@@ -131,9 +131,13 @@ def external_create(request):
 
 @require_GET
 def asset_info(request, asset_id):
+    from apps.backoffice.media import can_view_asset
+
     if not _can_upload(request.user):
         return JsonResponse({"error": "forbidden"}, status=403)
     asset = get_object_or_404(MediaAsset, pk=asset_id)
+    if not can_view_asset(request.user, asset):  # same rule as preview: own uploads or content in scope
+        raise Http404
     return JsonResponse(_asset_payload(asset, request.user))
 
 

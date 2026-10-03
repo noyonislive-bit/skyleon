@@ -63,7 +63,7 @@ In templates: `{% if perms_codes.employees_manage %}` is NOT available — compu
 |---|---|
 | Approve / suspend / reactivate an account | `accounts.services.approve_user`, `suspend_user`, `reactivate_user` |
 | Create an employee/staff account + invite email | `accounts.services.create_account(email=, name=, role=, invited_by=)` |
-| Convert a job application into an employee | `accounts.services.convert_application(app, by)` |
+| Convert a job application into an employee | `accounts.services.convert_application(app, by)` → `Conversion(user, created, invited)`; raises `ConversionRefused` for suspended / non-employee accounts (existing accounts are linked, never changed) |
 | Add someone to a project (assigns its content) | `projects.services.add_member(project, user, role=, team=)` |
 | Qualify a member (onboarding step 8) | `projects.services.qualify_member(member, by_user)` |
 | Publish a tutorial (assigns + notifies) | `training.services.publish_tutorial(tutorial)` |

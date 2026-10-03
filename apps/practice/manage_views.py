@@ -168,7 +168,7 @@ def results(request, pk):
         row = people.setdefault(a.user_id, {"user": a.user, "attempts": 0, "best": None, "last": None, "passed": False, "latest": a, "task_error": None})
         row["attempts"] += 1
         row["best"] = a.score if row["best"] is None or (a.score or 0) > row["best"] else row["best"]
-        row["last"] = max(filter(None, [row["last"], a.submitted_at]))
+        row["last"] = max(filter(None, [row["last"], a.submitted_at]), default=None)
         row["passed"] = row["passed"] or bool(a.passed)
         if a.task_error and not row["task_error"]:
             row["task_error"] = a.task_error

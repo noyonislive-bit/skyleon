@@ -278,7 +278,7 @@ def employee_edit(request, pk):
 def employee_status(request, pk):
     employee = _managed_employee(request, pk)
     action = request.POST.get("action")
-    if action == "approve" and employee.status != UserStatus.ACTIVE:
+    if action == "approve" and employee.status == UserStatus.PENDING:  # suspended accounts are reactivated, not re-approved
         approve_user(employee, request.user)
         audit.log(request, "employee.approve", employee)
         messages.success(request, f"{employee.name} is approved (ID {employee.employee_id}) and has been notified by email.")

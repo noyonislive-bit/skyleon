@@ -98,3 +98,128 @@ class PracticeViewTests(TestCase):
         self.task.refresh_from_db()
         self.assertEqual(self.task.reference_clips, [[2.0, 4.0]])
         self.assertEqual(self.client.get(reverse("practice:manage_settings")).status_code, 403)  # super admin only
+
+
+from django.utils import timezone  # noqa: E402
+
+from apps.training.models import Tutorial  # noqa: E402
+
+from .forms import PracticeTaskForm, parse_time  # noqa: E402
+from .services import coerce_seconds  # noqa: E402
+
+
+class PracticeHardeningTests(TestCase):
+    def setUp(self):
+        self.project = Project.objects.create(name="P", slug="p", code="P-1")
+        self.other = Project.objects.create(name="O", slug="o", code="O-1")
+        self.video = MediaAsset.objects.create(kind="video", provider="external", external_url="https://example.com/v.mp4",
+                                               status="ready", duration_sec=60)
+        self.task = PracticeTask.objects.create(title="T", project=self.project, video=self.video, range_start=0, range_end=20,
+                                                reference_clips=[[1, 5]], status="published", passing_score=70)
+        self.emp = User.objects.create_user("e@example.com", "pw-Strong-1", name="E")
+        approve_user(self.emp, send_email=False)
+        add_member(self.project, self.emp, notify_user=False)
+        self.trainer = User.objects.create_user("t@example.com", "pw-Strong-1", name="T", role=Role.TRAINER, status=UserStatus.ACTIVE)
+        add_member(self.project, self.trainer, notify_user=False)
+        self.pm = User.objects.create_user("pm@example.com", "pw-Strong-1", name="PM", role=Role.PROJECT_MANAGER, status=UserStatus.ACTIVE)
+        add_member(self.project, self.pm, notify_user=False)
+
+    def post(self, name, task, data, raw=None):
+        body = raw if raw is not None else json.dumps(data)
+        return self.client.post(reverse(name, args=[task.pk]), body, content_type="application/json")
+
+    def test_parse_time_rejects_non_finite(self):
+        for value in ("inf", "nan", "-1", "1e999", "00:inf"):
+            with self.assertRaises(ValueError, msg=value):
+                parse_time(value)
+        self.assertEqual(parse_time("01:15"), 75)
+        form = PracticeTaskForm({"title": "X", "range_start": "inf", "tolerance_sec": 0.5, "passing_score": 80, "order": 0},
+                                user=self.trainer, projects=Project.objects.all())
+        self.assertFalse(form.is_valid())
+        self.assertIn("range_start", form.errors)
+
+    def test_passing_score_bounds(self):
+        for score in (0, 101):
+            form = PracticeTaskForm({"title": "X", "tolerance_sec": 0.5, "passing_score": score, "order": 0},
+                                    user=self.trainer, projects=Project.objects.all())
+            self.assertIn("passing_score", form.errors, score)
+
+    def test_video_choices_are_scoped(self):
+        p1_tutorial_video = MediaAsset.objects.create(kind="video", provider="local", storage_key="a", status="ready")
+        Tutorial.objects.create(title="P1", project=self.project, video=p1_tutorial_video)
+        p2_tutorial_video = MediaAsset.objects.create(kind="video", provider="local", storage_key="b", status="ready")
+        Tutorial.objects.create(title="P2", project=self.other, video=p2_tutorial_video)
+        own = MediaAsset.objects.create(kind="video", provider="local", storage_key="c", status="ready", uploaded_by=self.trainer)
+        stray = MediaAsset.objects.create(kind="video", provider="local", storage_key="d", status="ready", uploaded_by=self.pm)
+        choices = set(PracticeTaskForm(user=self.trainer, projects=Project.objects.all()).fields["video"].queryset)
+        self.assertEqual(choices, {p1_tutorial_video, own, self.video})
+        self.assertNotIn(stray, choices)  # someone else's unattached upload
+        # picking a video outside the scope is rejected
+        form = PracticeTaskForm({"title": "X", "project": self.project.pk, "video": str(p2_tutorial_video.pk), "tolerance_sec": 0.5,
+                                 "passing_score": 80, "order": 0}, user=self.trainer, projects=Project.objects.all())
+        self.assertIn("video", form.errors)
+
+    def test_publish_redirect_is_safe(self):
+        self.client.force_login(self.trainer)
+        r = self.client.post(reverse("practice:manage_publish", args=[self.task.pk]), {"action": "unpublish", "next": "https://evil.example/x"})
+        self.assertEqual(r["Location"], reverse("practice:manage"))
+        r = self.client.post(reverse("practice:manage_publish", args=[self.task.pk]), {"next": "/admin/practice/"})
+        self.assertEqual(r["Location"], "/admin/practice/")
+
+    def test_reference_save_rejects_malformed_payload(self):
+        self.client.force_login(self.trainer)
+        for raw in ("not json", json.dumps({"clips": "x"}), json.dumps([1, 2]), json.dumps({})):
+            r = self.post("practice:manage_reference_save", self.task, None, raw=raw)
+            self.assertEqual(r.status_code, 400, raw)
+        self.task.refresh_from_db()
+        self.assertEqual(self.task.reference_clips, [[1, 5]])
+        self.assertEqual(self.post("practice:manage_reference_save", self.task, {"clips": []}).status_code, 200)
+
+    def test_time_spent_is_coerced(self):
+        self.assertEqual([coerce_seconds(v) for v in ("abc", "1e3", float("inf"), -5, 10 ** 9, True, None, "30.7")],
+                         [None, 1000, None, 0, 24 * 3600, None, None, 30])
+        self.client.force_login(self.emp)
+        for value in ("abc", "1e3", "Infinity", [1], {"a": 1}):
+            self.assertEqual(self.post("practice:save", self.task, {"clips": [[1, 5]], "timeSpent": value}).status_code, 200, value)
+        draft = PracticeAttempt.objects.get(user=self.emp, status=AttemptStatus.DRAFT)
+        self.assertEqual(draft.time_spent_sec, 1000)
+        # max per page session, not a running sum of the autosaves
+        self.post("practice:save", self.task, {"clips": [[1, 5]], "timeSpent": 40})
+        draft.refresh_from_db()
+        self.assertEqual(draft.time_spent_sec, 1000)
+        # a non-list "clips" never wipes the draft
+        self.post("practice:save", self.task, {"clips": "oops"})
+        draft.refresh_from_db()
+        self.assertEqual(draft.clips, [[1.0, 5.0]])
+        r = self.post("practice:submit", self.task, {"clips": {"0": [1, 5]}, "timeSpent": "abc"})
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(PracticeAttempt.objects.get(pk=draft.pk).clips, [[1.0, 5.0]])
+
+    def test_pm_list_hides_company_wide_tasks_and_counts_are_scoped(self):
+        glob = PracticeTask.objects.create(title="Company task", video=self.video, status="published")
+        outsider = User.objects.create_user("o@example.com", "pw-Strong-1", name="Outsider")
+        approve_user(outsider, send_email=False)
+        add_member(self.other, outsider, notify_user=False)
+        now = timezone.now()
+        PracticeAttempt.objects.create(task=self.task, user=outsider, status=AttemptStatus.SUBMITTED, score=50, submitted_at=now)
+        attempt = PracticeAttempt.objects.create(task=self.task, user=self.emp, status=AttemptStatus.SUBMITTED, score=90, passed=True,
+                                                 submitted_at=now)
+        self.client.force_login(self.pm)
+        r = self.client.get(reverse("practice:manage"))
+        tasks = list(r.context["tasks"])
+        self.assertNotIn(glob, tasks)  # PMs can't edit company-wide tasks (their links would 404)
+        row = next(t for t in tasks if t.pk == self.task.pk)
+        self.assertEqual((row.n_attempts, row.n_people, row.n_passed), (1, 1, 1))
+        results = self.client.get(reverse("practice:manage_results", args=[self.task.pk]))
+        self.assertEqual([p["user"] for p in results.context["people"]], [self.emp])
+        outsider_attempt = PracticeAttempt.objects.get(user=outsider)
+        self.assertEqual(self.client.get(reverse("practice:manage_attempt", args=[outsider_attempt.pk])).status_code, 404)
+        self.assertEqual(self.client.get(reverse("practice:manage_attempt", args=[attempt.pk])).status_code, 200)
+        self.client.force_login(self.trainer)  # trainers manage company-wide content
+        self.assertIn(glob, list(self.client.get(reverse("practice:manage")).context["tasks"]))
+
+    def test_delete_is_blocked_once_employees_submitted(self):
+        PracticeAttempt.objects.create(task=self.task, user=self.emp, status=AttemptStatus.SUBMITTED, score=90)
+        self.client.force_login(self.trainer)
+        self.client.post(reverse("practice:manage_delete", args=[self.task.pk]))
+        self.assertTrue(PracticeTask.objects.filter(pk=self.task.pk).exists())

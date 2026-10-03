@@ -233,6 +233,9 @@ class PeopleActionTests(AdminTestCase):
         self.post(self.admin, "employee_status", self.emp2.pk, data={"action": "suspend"})
         self.emp2.refresh_from_db()
         self.assertEqual(self.emp2.status, UserStatus.SUSPENDED)
+        self.post(self.admin, "employee_status", self.emp2.pk, data={"action": "approve"})  # not a back door
+        self.emp2.refresh_from_db()
+        self.assertEqual(self.emp2.status, UserStatus.SUSPENDED)
         self.post(self.admin, "employee_status", self.emp2.pk, data={"action": "reactivate"})
         self.emp2.refresh_from_db()
         self.assertEqual(self.emp2.status, UserStatus.ACTIVE)
@@ -424,9 +427,10 @@ class ContentActionTests(AdminTestCase):
             "opt-TOTAL_FORMS": 0, "opt-INITIAL_FORMS": 0,
         })
         tf = test.questions.get(prompt="Sky is blue")
-        self.assertEqual(list(tf.options.values_list("text", "is_correct")), [("True", True), ("False", False)])
-        # multi-select with an image option
-        img = MediaAsset.objects.create(kind=MediaKind.IMAGE, provider="local", storage_key="option/a.png", status=MediaStatus.READY)
+        self.assertEqual(list(tf.options.values_list("text", "is_correct")), [("সত্য", True), ("মিথ্যা", False)])  # employees read them
+        # multi-select with an image option (uploaded by the trainer through the upload widget)
+        img = MediaAsset.objects.create(kind=MediaKind.IMAGE, provider="local", storage_key="option/a.png", status=MediaStatus.READY,
+                                        uploaded_by=self.trainer)
         self.post(self.trainer, "question_create", test.pk, data={
             "q-qtype": QuestionType.MULTI_SELECT, "q-prompt": "Which masks are correct?", "q-points": 1,
             "opt-TOTAL_FORMS": 3, "opt-INITIAL_FORMS": 0,
@@ -486,7 +490,7 @@ class ContentActionTests(AdminTestCase):
         self.post(self.trainer, "onboarding_template", self.p1.pk)
         steps = list(OnboardingStep.objects.filter(project=self.p1).order_by("order"))
         self.assertEqual(len(steps), 8)
-        self.assertEqual(steps[0].title, "Welcome & project introduction")
+        self.assertEqual(steps[0].title, "স্বাগতম ও প্রজেক্ট পরিচিতি")  # employees read the steps in Bangla
         self.assertEqual(steps[-1].step_type, "qualification")
         self.post(self.trainer, "step_move", steps[1].pk, data={"direction": "up"})
         self.assertEqual(OnboardingStep.objects.filter(project=self.p1).order_by("order").first().pk, steps[1].pk)
@@ -582,3 +586,326 @@ class CommsAndSettingsTests(AdminTestCase):
         self.assertFalse(TutorialCategory.objects.filter(name="PM category").exists())
         self.post(self.trainer, "category_list", data={"name": "Trainer category", "order": 1})
         self.assertTrue(TutorialCategory.objects.filter(name="Trainer category", slug="trainer-category").exists())
+
+
+class MediaScopeTests(AdminTestCase):
+    """Files are only reachable / attachable through objects in the viewer's scope."""
+
+    def _asset(self, kind=MediaKind.VIDEO, **extra):
+        return MediaAsset.objects.create(kind=kind, provider="local", storage_key=f"x/{kind}.bin", status=MediaStatus.READY,
+                                         original_name=f"{kind}.bin", **extra)
+
+    def preview(self, user, asset):
+        self.client.force_login(user)
+        return self.client.get(reverse("storage:preview", args=[asset.pk]))
+
+    def test_preview_checks_the_parent_object(self):
+        cv = self._asset(MediaKind.DOCUMENT)
+        JobApplication.objects.filter(pk=self.application.pk).update(cv=cv)
+        quote_file = self._asset(MediaKind.DOCUMENT)
+        QuoteRequest.objects.filter(pk=self.quote.pk).update(attachment=quote_file)
+        p2_video = self._asset()
+        Tutorial.objects.filter(pk=self.tut2.pk).update(video=p2_video)
+        p1_video = self._asset()
+        Tutorial.objects.filter(pk=self.tut1.pk).update(video=p1_video)
+        thumb = self._asset(MediaKind.IMAGE)
+        MediaAsset.objects.filter(pk=p1_video.pk).update(thumbnail=thumb)
+        orphan = self._asset(uploaded_by=self.pm)
+
+        # Applicant CVs: applicants.manage only (PM yes, trainer no)
+        self.assertEqual(self.preview(self.trainer, cv).status_code, 404)
+        self.assertEqual(self.preview(self.pm, cv).status_code, 302)
+        # Quote attachments: leads.manage (super admin only)
+        self.assertEqual(self.preview(self.pm, quote_file).status_code, 404)
+        self.assertEqual(self.preview(self.admin, quote_file).status_code, 302)
+        # Training content: only the viewer's projects (+ the thumbnails of those videos)
+        self.assertEqual(self.preview(self.trainer, p2_video).status_code, 404)
+        self.assertEqual(self.preview(self.trainer, p1_video).status_code, 302)
+        self.assertEqual(self.preview(self.trainer, thumb).status_code, 302)
+        # Unattached uploads: only the uploader (and super admins)
+        self.assertEqual(self.preview(self.trainer, orphan).status_code, 404)
+        self.assertEqual(self.preview(self.pm, orphan).status_code, 302)
+        self.assertEqual(self.preview(self.admin, p2_video).status_code, 302)
+
+    def test_asset_field_only_accepts_reachable_files(self):
+        p2_video = self._asset()
+        Tutorial.objects.filter(pk=self.tut2.pk).update(video=p2_video)
+        foreign = self._asset(uploaded_by=self.pm)  # someone else's unattached upload
+        cv = self._asset(MediaKind.VIDEO)
+        JobApplication.objects.filter(pk=self.application.pk).update(cv=cv)
+        data = {"title": "T", "project": self.p1.pk, "cadence": "daily"}
+        for asset in (p2_video, foreign, cv):
+            response = self.post(self.trainer, "tutorial_create", data={**data, "video": str(asset.pk)})
+            self.assertEqual(response.status_code, 200, asset)
+            self.assertFalse(Tutorial.objects.filter(title="T").exists())
+            # the rejected id is neither echoed back nor turned into a signed URL
+            self.assertNotContains(response, str(asset.pk))
+        # files of content in scope and own uploads are fine
+        own = self._asset(uploaded_by=self.trainer)
+        self.post(self.trainer, "tutorial_create", data={**data, "title": "Own", "video": str(own.pk)})
+        self.assertEqual(Tutorial.objects.get(title="Own").video, own)
+        self.post(self.trainer, "tutorial_create", data={**data, "title": "Reuse", "video": str(self.video.pk)})
+        self.assertEqual(Tutorial.objects.get(title="Reuse").video, self.video)
+        # the saved value stays valid on edit even though the editor didn't upload it
+        admin_upload = self._asset(uploaded_by=self.admin)
+        Tutorial.objects.filter(pk=self.tut1.pk).update(video=admin_upload)
+        response = self.post(self.trainer, "tutorial_edit", self.tut1.pk, data={**data, "title": "P1 renamed", "video": str(admin_upload.pk)})
+        self.assertEqual(response.status_code, 302)
+        self.tut1.refresh_from_db()
+        self.assertEqual((self.tut1.title, self.tut1.video), ("P1 renamed", admin_upload))
+
+    def test_guideline_document_cannot_reference_a_cv(self):
+        cv = self._asset(MediaKind.DOCUMENT)
+        JobApplication.objects.filter(pk=self.application.pk).update(cv=cv)
+        response = self.post(self.admin, "guideline_create", self.p1.pk,
+                             data={"title": "Rules", "version": "1.0", "order": 1, "content": "x", "document": str(cv.pk)})
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(self.p1.guidelines.exists())
+
+
+class ApplicantConversionTests(AdminTestCase):
+    def test_new_account_gets_an_invite(self):
+        response = self.post(self.pm, "applicant_convert", self.application.pk, data={})
+        user = User.objects.get(email="applicant@x.test")
+        self.assertRedirects(response, reverse("backoffice:employee_detail", args=[user.pk]), fetch_redirect_response=False)
+        self.assertTrue(EmailMessage.objects.filter(to="applicant@x.test", template="account_invite").exists())
+
+    def _apply_as(self, user):
+        return JobApplication.objects.create(full_name=user.name, email=user.email.upper(), phone="1", location="Remote")
+
+    def test_suspended_account_is_not_reactivated(self):
+        self.emp2.status = UserStatus.SUSPENDED
+        self.emp2.save()
+        app = self._apply_as(self.emp2)
+        page = self.get(self.pm, "applicant_detail", app.pk)
+        self.assertContains(page, "An account with this email already exists (Employee · Suspended)")
+        self.assertNotContains(page, reverse("backoffice:applicant_convert", args=[app.pk]))
+        response = self.post(self.pm, "applicant_convert", app.pk)
+        self.assertRedirects(response, reverse("backoffice:applicant_detail", args=[app.pk]), fetch_redirect_response=False)
+        self.emp2.refresh_from_db()
+        app.refresh_from_db()
+        self.assertEqual(self.emp2.status, UserStatus.SUSPENDED)
+        self.assertIsNone(app.user_id)
+        self.assertFalse(EmailMessage.objects.filter(to=self.emp2.email, template__in=["account_invite", "account_approved"]).exists())
+
+    def test_staff_account_is_never_attached(self):
+        app = self._apply_as(self.trainer)
+        self.post(self.admin, "applicant_convert", app.pk)
+        app.refresh_from_db()
+        self.trainer.refresh_from_db()
+        self.assertIsNone(app.user_id)
+        self.assertEqual((self.trainer.role, self.trainer.status), (Role.TRAINER, UserStatus.ACTIVE))
+
+    def test_existing_employee_is_linked_unchanged_without_email(self):
+        app = self._apply_as(self.pending)
+        response = self.post(self.pm, "applicant_convert", app.pk)
+        self.assertRedirects(response, reverse("backoffice:employee_detail", args=[self.pending.pk]), fetch_redirect_response=False)
+        app.refresh_from_db()
+        self.pending.refresh_from_db()
+        self.assertEqual(app.user, self.pending)
+        self.assertEqual(self.pending.status, UserStatus.PENDING)  # not approved behind the PM's back
+        self.assertFalse(EmailMessage.objects.filter(to=self.pending.email, template__in=["account_invite", "account_approved"]).exists())
+        text = " ".join(str(m) for m in response.wsgi_request._messages)
+        self.assertIn("no email was sent", text)
+        self.assertNotIn("has been sent", text)
+
+    def test_link_hidden_when_viewer_cannot_see_the_account(self):
+        app = self._apply_as(self.other)  # employee of P2 — outside the PM's people area
+        page = self.get(self.pm, "applicant_detail", app.pk)
+        self.assertContains(page, "An account with this email already exists (Employee · Active)")
+        self.assertNotContains(page, reverse("backoffice:employee_detail", args=[self.other.pk]))
+        response = self.post(self.pm, "applicant_convert", app.pk)
+        self.assertRedirects(response, reverse("backoffice:applicant_detail", args=[app.pk]), fetch_redirect_response=False)
+
+
+class ValidationTests(AdminTestCase):
+    def test_non_finite_score_filter_is_ignored(self):
+        for value in ("nan", "inf", "-inf", "1e999"):
+            self.assertEqual(self.get(self.trainer, "feedback_tracking", score_min=value).status_code, 200, value)
+            self.assertEqual(self.get(self.trainer, "feedback_detail", self.fb1.pk, score_max=value).status_code, 200, value)
+
+    def test_pm_cannot_change_an_email(self):
+        data = {"name": "Emp1", "email": "attacker@evil.test", "phone": "", "location": "", "title": "", "bio": ""}
+        self.post(self.pm, "employee_edit", self.emp1.pk, data=data)
+        self.emp1.refresh_from_db()
+        self.assertEqual(self.emp1.email, "emp1@t.test")
+        self.post(self.admin, "employee_edit", self.emp1.pk, data={**data, "email": "new-emp1@t.test"})
+        self.emp1.refresh_from_db()
+        self.assertEqual(self.emp1.email, "new-emp1@t.test")
+
+    def test_role_change_feedback(self):
+        response = self.post(self.admin, "employee_role", self.emp1.pk, data={"role": "wizard"})
+        self.assertIn("Choose a valid role", " ".join(str(m) for m in response.wsgi_request._messages))
+        response = self.post(self.admin, "employee_role", self.emp1.pk, data={"role": Role.EMPLOYEE})
+        self.assertIn("nothing changed", " ".join(str(m) for m in response.wsgi_request._messages))
+
+    def test_test_settings_limits(self):
+        base = {"title": "Limits", "kind": TestKind.TRAINING, "project": self.p1.pk, "passing_score": 80}
+        for extra in ({"attempt_limit": 0}, {"time_limit_min": 0}, {"passing_score": 0}):
+            response = self.post(self.trainer, "test_create", data={**base, **extra})
+            self.assertEqual(response.status_code, 200, extra)
+        self.assertFalse(Test.objects.filter(title="Limits").exists())
+        self.post(self.trainer, "test_create", data={**base, "attempt_limit": "", "time_limit_min": ""})
+        test = Test.objects.get(title="Limits")
+        self.assertIsNone(test.attempt_limit)  # empty = unlimited
+
+    def test_question_needs_points(self):
+        response = self.post(self.trainer, "question_create", self.test1.pk, data={
+            "q-qtype": QuestionType.TRUE_FALSE, "q-prompt": "Zero", "q-points": 0, "q-tf_answer": "true",
+            "opt-TOTAL_FORMS": 0, "opt-INITIAL_FORMS": 0,
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(Question.objects.filter(prompt="Zero").exists())
+
+    def test_true_false_edit_keeps_existing_english_options(self):
+        q = Question.objects.create(test=self.test1, prompt="Old TF", qtype=QuestionType.TRUE_FALSE)
+        t = QuestionOption.objects.create(question=q, text="True", is_correct=True)
+        f = QuestionOption.objects.create(question=q, text="False")
+        self.post(self.trainer, "question_edit", q.pk, data={
+            "q-qtype": QuestionType.TRUE_FALSE, "q-prompt": "Old TF", "q-points": 1, "q-tf_answer": "false",
+            "opt-TOTAL_FORMS": 0, "opt-INITIAL_FORMS": 0,
+        })
+        self.assertEqual(list(q.options.values_list("pk", "text", "is_correct")), [(t.pk, "True", False), (f.pk, "False", True)])
+
+    def test_meeting_validation(self):
+        base = {"title": "M", "duration_min": 30, "project": self.p1.pk, "meeting_url": "https://meet.google.com/abc", "audience": "project"}
+        future = (timezone.now() + timedelta(days=1)).strftime("%Y-%m-%dT%H:%M")
+        past = (timezone.now() - timedelta(days=1)).strftime("%Y-%m-%dT%H:%M")
+        self.assertEqual(self.post(self.pm, "meeting_create", data={**base, "starts_at": past}).status_code, 200)
+        self.assertEqual(self.post(self.pm, "meeting_create", data={**base, "starts_at": future, "duration_min": 2}).status_code, 200)
+        self.assertFalse(Meeting.objects.filter(title="M").exists())
+        self.post(self.pm, "meeting_create", data={**base, "starts_at": future})
+        self.assertTrue(Meeting.objects.filter(title="M").exists())
+
+    def test_project_colour_and_organisation(self):
+        from apps.accounts.models import Organization
+
+        org = Organization.objects.create(name="Acme", slug="acme")
+        data = {"name": "Project One", "code": "P1-01", "slug": "p1", "status": "active", "color": "#123456", "organization": org.pk}
+        self.post(self.pm, "project_edit", self.p1.pk, data=data)
+        self.p1.refresh_from_db()
+        self.assertEqual(self.p1.color, "#123456")
+        self.assertIsNone(self.p1.organization_id)  # PMs can't move a project to a client organisation
+        response = self.post(self.pm, "project_edit", self.p1.pk, data={**data, "color": "red;background:url(x)"})
+        self.assertEqual(response.status_code, 200)
+        self.p1.refresh_from_db()
+        self.assertEqual(self.p1.color, "#123456")
+        self.post(self.admin, "project_edit", self.p1.pk, data=data)
+        self.p1.refresh_from_db()
+        self.assertEqual(self.p1.organization, org)
+
+    def test_published_tutorial_keeps_its_video(self):
+        data = {"title": "P1 tutorial", "project": self.p1.pk, "cadence": "daily", "video": ""}
+        response = self.post(self.trainer, "tutorial_edit", self.tut1.pk, data=data)
+        self.assertContains(response, "Unpublish first or choose another video")
+        self.tut1.refresh_from_db()
+        self.assertEqual(self.tut1.video, self.video)
+
+    def test_published_feedback_keeps_its_audience(self):
+        self.post(self.trainer, "feedback_publish", self.fb1.pk)
+        other_team = Team.objects.create(project=self.p1, name="Team Z")
+        self.post(self.admin, "feedback_edit", self.fb1.pk, data={
+            "topic": "Changed", "explanation": "x", "project": self.p2.pk, "team": other_team.pk,
+            "severity": "normal", "cadence": "daily", "then": "save",
+        })
+        self.fb1.refresh_from_db()
+        self.assertEqual((self.fb1.topic, self.fb1.project, self.fb1.team), ("Changed", self.p1, None))
+
+    def test_feedback_project_must_match_linked_test(self):
+        self.post(self.trainer, "feedback_test_create", self.fb1.pk)
+        response = self.post(self.admin, "feedback_edit", self.fb1.pk, data={
+            "topic": "Boxes too loose", "explanation": "x", "project": self.p2.pk, "severity": "normal", "cadence": "daily", "then": "save",
+        })
+        self.assertEqual(response.status_code, 200)
+        self.fb1.refresh_from_db()
+        self.assertEqual(self.fb1.project, self.p1)
+        test = self.fb1.test
+        self.assertEqual(test.title, f"ফিডব্যাক {self.fb1.display_number} যাচাই — {self.fb1.topic}")
+
+
+class DashboardConsistencyTests(AdminTestCase):
+    def test_tiles_match_the_linked_pages(self):
+        Feedback.objects.filter(pk=self.fb2.pk).update(status=ContentStatus.ARCHIVED)
+        self.post(self.trainer, "feedback_publish", self.fb1.pk)
+        FeedbackRecipient.objects.create(feedback=self.fb2, user=self.other)
+        Test.objects.filter(pk=self.test1.pk).update(status=ContentStatus.PUBLISHED)
+        TestAssignment.objects.create(test=self.test1, user=self.emp1)
+        TestAssignment.objects.create(test=self.test1, user=self.emp2)
+        for user in (self.admin, self.pm, self.trainer):
+            tiles = {t["label"]: t for t in self.get(user, "dashboard").context["tiles"]}
+            unseen = tiles["Unseen feedback"]
+            self.assertEqual(unseen["query"], "?state=unseen")
+            tracking = self.get(user, "feedback_tracking", state="unseen")
+            self.assertEqual(unseen["value"], tracking.context["summary"]["total"], user.email)
+            pending = tiles["Tests pending"]
+            self.assertEqual(pending["query"], "?pending=1")
+            self.assertEqual(pending["value"], self.get(user, "test_list", pending="1").context["pending_total"], user.email)
+            if "Total employees" in tiles:
+                self.assertIn("role=employee", tiles["Total employees"]["query"])
+                listed = self.get(user, "employee_list", role="employee").context["page"].paginator.count
+                self.assertEqual(tiles["Total employees"]["value"], listed, user.email)
+
+    def test_dashboard_links_only_people_in_scope(self):
+        Test.objects.filter(pk=self.test1.pk).update(status=ContentStatus.PUBLISHED)
+        glob = Test.objects.create(title="Company test", status=ContentStatus.PUBLISHED)
+        q = Question.objects.create(test=glob, prompt="?", qtype=QuestionType.SINGLE_CHOICE)
+        ok = QuestionOption.objects.create(question=q, text="A", is_correct=True)
+        QuestionOption.objects.create(question=q, text="B")
+        attempt = start_attempt(self.other, glob)
+        submit_attempt(attempt, {str(q.pk): [ok.pk]})
+        html = self.get(self.trainer, "dashboard").content.decode()
+        self.assertNotIn(reverse("backoffice:employee_detail", args=[self.other.pk]), html)
+        self.assertIn(reverse("backoffice:employee_detail", args=[self.other.pk]), self.get(self.admin, "dashboard").content.decode())
+
+    def test_members_tab_links_and_messages(self):
+        html = self.get(self.pm, "project_members", self.p1.pk).content.decode()
+        self.assertIn(reverse("backoffice:employee_detail", args=[self.emp1.pk]), html)
+        self.assertNotIn(reverse("backoffice:employee_detail", args=[self.trainer.pk]), html)  # staff: outside a PM's people area
+        response = self.post(self.pm, "project_members", self.p1.pk, data={"users": [self.other.pk], "role": MemberRole.ANNOTATOR})
+        text = " ".join(str(m) for m in response.context["messages"])
+        self.assertIn("can't be added", text)
+        self.assertNotIn("Select at least one person", text)
+
+
+    def test_meeting_invitees_link_only_when_visible(self):
+        m = Meeting.objects.create(title="Sync", starts_at=timezone.now() + timedelta(days=1), project=self.p1, created_by=self.pm)
+        MeetingInvite.objects.create(meeting=m, user=self.emp1)
+        MeetingInvite.objects.create(meeting=m, user=self.trainer)
+        html = self.get(self.pm, "meeting_detail", m.pk).content.decode()
+        self.assertIn(reverse("backoffice:employee_detail", args=[self.emp1.pk]), html)
+        self.assertNotIn(reverse("backoffice:employee_detail", args=[self.trainer.pk]), html)
+        self.assertIn(self.trainer.name, html)
+
+
+class QueryCountTests(AdminTestCase):
+    def _queries(self, name, *args):
+        from django.db import connection
+        from django.test.utils import CaptureQueriesContext
+
+        self.client.force_login(self.pm)
+        with CaptureQueriesContext(connection) as ctx:
+            response = self.client.get(reverse(f"backoffice:{name}", args=args))
+        self.assertEqual(response.status_code, 200)
+        return len(ctx.captured_queries), response
+
+    def test_teams_page_does_not_query_per_team(self):
+        Team.objects.filter(pk=self.team_a.pk).update(lead=self.emp1)
+        one, response = self._queries("project_teams", self.p1.pk)
+        self.assertContains(response, f'<option value="{self.emp1.pk}" selected>')
+        for i in range(3):
+            Team.objects.create(project=self.p1, name=f"Extra {i}")
+        self.assertEqual(self._queries("project_teams", self.p1.pk)[0], one)
+
+    def test_tutorial_list_does_not_query_per_row(self):
+        one = self._queries("tutorial_list")[0]
+        for i in range(3):
+            Tutorial.objects.create(title=f"Extra {i}", project=self.p1)
+        self.assertEqual(self._queries("tutorial_list")[0], one)
+
+
+class ExportAuditTests(AdminTestCase):
+    def test_csv_exports_are_audited(self):
+        self.get(self.admin, "message_list", format="csv")
+        self.get(self.pm, "reports", format="csv")
+        self.assertTrue(AuditLog.objects.filter(action="messages.export").exists())
+        self.assertTrue(AuditLog.objects.filter(action="reports.export").exists())
