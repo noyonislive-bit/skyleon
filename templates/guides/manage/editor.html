@@ -1,0 +1,87 @@
+{% extends "backoffice/base.html" %}
+{% load guides_tags %}
+{% block page_actions %}
+  <a href="{% url 'guides:detail' guide.slug %}" class="btn btn-secondary">{% icon "eye" class="h-4 w-4" %} Preview</a>
+  <a href="{% url 'guides:manage_progress' guide.pk %}" class="btn btn-secondary">{% icon "bar-chart-3" class="h-4 w-4" %} Progress</a>
+  <form method="post" action="{% url 'guides:manage_publish' guide.pk %}">{% csrf_token %}
+    {% if guide.is_published %}<button name="action" value="unpublish" class="btn btn-secondary">Unpublish</button>
+    {% else %}<button class="btn btn-success">{% icon "send" class="h-4 w-4" %} Publish</button>{% endif %}
+  </form>
+{% endblock %}
+{% block content %}
+<div class="mb-5 flex flex-wrap items-center gap-2 text-sm text-slate-500">
+  {% status_badge guide.status guide.get_status_display %}
+  <span>{{ outline.sections|length }} sections · {{ outline.total }} steps · {{ outline.video_count }} videos · ~{{ outline.minutes }} min</span>
+  <span class="text-slate-300">·</span><span>{{ guide.project.name|default:"All employees" }}</span>
+</div>
+
+<div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
+  {# ── Outline ── #}
+  <div class="card overflow-hidden">
+    <div class="card-header">
+      <h2 class="card-title">Outline</h2>
+      <a href="{% url 'guides:manage_section_new' guide.pk %}" class="btn btn-primary btn-sm">{% icon "plus" class="h-4 w-4" %} Add section</a>
+    </div>
+    {% for sec in outline.sections %}
+    <div class="g-ed-sec" id="{{ sec.anchor }}">
+      <div class="g-ed-sec-head">
+        <span class="g-ed-num">{{ sec.number }}</span>
+        <div class="min-w-0 flex-1">
+          <p class="font-semibold text-slate-900" lang="bn">{{ sec.obj.title }}</p>
+          <p class="text-xs text-slate-500">{% if sec.obj.title_en %}{{ sec.obj.title_en }} · {% endif %}#{{ sec.anchor }} · {{ sec.steps|length }} steps</p>
+        </div>
+        <div class="flex items-center gap-1">
+          <form method="post" action="{% url 'guides:manage_section_move' sec.obj.pk %}">{% csrf_token %}<button name="direction" value="up" class="btn btn-ghost btn-sm btn-icon" title="Move up" {% if forloop.first %}disabled{% endif %}>{% icon "arrow-up" class="h-4 w-4" %}</button></form>
+          <form method="post" action="{% url 'guides:manage_section_move' sec.obj.pk %}">{% csrf_token %}<button name="direction" value="down" class="btn btn-ghost btn-sm btn-icon" title="Move down" {% if forloop.last %}disabled{% endif %}>{% icon "arrow-down" class="h-4 w-4" %}</button></form>
+          <a href="{% url 'guides:manage_section_edit' sec.obj.pk %}" class="btn btn-ghost btn-sm">Edit</a>
+          <a href="{% url 'guides:manage_step_new' sec.obj.pk %}" class="btn btn-secondary btn-sm">{% icon "plus" class="h-4 w-4" %} Step</a>
+          <form method="post" action="{% url 'guides:manage_section_delete' sec.obj.pk %}" data-confirm="Delete this section and all its steps?">{% csrf_token %}<button class="btn btn-ghost btn-sm btn-icon text-red-600" title="Delete section">{% icon "trash-2" class="h-4 w-4" %}</button></form>
+        </div>
+      </div>
+      {% for node in sec.steps %}
+      <div class="g-ed-row" id="{{ node.anchor }}">
+        <span class="g-ed-num">{{ node.number }}</span>
+        <div class="min-w-0 flex-1">
+          <a href="{% url 'guides:manage_step_edit' node.obj.pk %}" class="font-medium text-slate-800 hover:text-brand-700" lang="bn">{{ node.obj.title }}</a>
+          <p class="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+            <span>#{{ node.anchor }}</span>
+            {% if node.obj.video_url %}<span class="inline-flex items-center gap-1 text-brand-700">{% icon "circle-play" class="h-3 w-3" %} video</span>{% endif %}
+            {% if node.obj.actions %}<span class="inline-flex items-center gap-1">{% icon "keyboard" class="h-3 w-3" %} {{ node.obj.actions|length }} buttons</span>{% endif %}
+            {% if node.obj.body_en %}<span>EN original</span>{% endif %}
+            <span>~{{ node.minutes }} min</span>
+          </p>
+        </div>
+        <div class="flex items-center gap-1">
+          <form method="post" action="{% url 'guides:manage_step_move' node.obj.pk %}">{% csrf_token %}<button name="direction" value="up" class="btn btn-ghost btn-sm btn-icon" title="Move up" {% if forloop.first %}disabled{% endif %}>{% icon "arrow-up" class="h-4 w-4" %}</button></form>
+          <form method="post" action="{% url 'guides:manage_step_move' node.obj.pk %}">{% csrf_token %}<button name="direction" value="down" class="btn btn-ghost btn-sm btn-icon" title="Move down" {% if forloop.last %}disabled{% endif %}>{% icon "arrow-down" class="h-4 w-4" %}</button></form>
+          <a href="{% url 'guides:manage_step_edit' node.obj.pk %}" class="btn btn-ghost btn-sm">Edit</a>
+          <form method="post" action="{% url 'guides:manage_step_delete' node.obj.pk %}" data-confirm="Delete this step?">{% csrf_token %}<button class="btn btn-ghost btn-sm btn-icon text-red-600" title="Delete step">{% icon "trash-2" class="h-4 w-4" %}</button></form>
+        </div>
+      </div>
+      {% empty %}
+      <p class="px-5 py-3 text-sm text-slate-500">No steps yet — <a class="font-medium text-brand-600" href="{% url 'guides:manage_step_new' sec.obj.pk %}">add the first step</a>.</p>
+      {% endfor %}
+    </div>
+    {% empty %}
+      {% include "components/empty_state.html" with icon="list-tree" title="No sections yet" text="Start with a section (e.g. “ভূমিকা” / Introduction), then add its steps." %}
+    {% endfor %}
+  </div>
+
+  {# ── Guide settings ── #}
+  <div class="space-y-6">
+    <form method="post" class="card" novalidate>
+      {% csrf_token %}
+      <div class="card-header"><h2 class="card-title">Guide settings</h2></div>
+      <div class="card-body space-y-5">{% include "guides/manage/_guide_fields.html" %}</div>
+      <div class="flex justify-end border-t border-slate-100 px-5 py-4"><button class="btn btn-primary">Save settings</button></div>
+    </form>
+    <div class="card card-body space-y-3 text-sm">
+      <h2 class="card-title">Tools</h2>
+      <a href="{% url 'guides:manage_export' guide.pk %}" class="btn btn-secondary w-full">{% icon "download" class="h-4 w-4" %} Export as JSON</a>
+      <a href="{% url 'guides:manage_import' %}" class="btn btn-secondary w-full">{% icon "upload" class="h-4 w-4" %} Import / replace from JSON</a>
+      {% if guide.source_url %}<a href="{{ guide.source_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-ghost w-full">{% icon "external-link" class="h-4 w-4" %} Original document</a>{% endif %}
+      <form method="post" action="{% url 'guides:manage_delete' guide.pk %}" data-confirm="Delete this guide, all its steps and employees' progress?" class="border-t border-slate-100 pt-3">{% csrf_token %}<button class="btn btn-danger-soft w-full">{% icon "trash-2" class="h-4 w-4" %} Delete guide</button></form>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,11 @@
+{% extends "backoffice/base.html" %}
+{% block content %}
+<form method="post" class="card max-w-3xl" novalidate>
+  {% csrf_token %}
+  <div class="card-body space-y-5">{% include "guides/manage/_guide_fields.html" %}</div>
+  <div class="flex justify-end gap-3 border-t border-slate-100 px-5 py-4">
+    <a href="{% url 'guides:manage' %}" class="btn btn-ghost">Cancel</a>
+    <button class="btn btn-primary">Create guide</button>
+  </div>
+</form>
+{% endblock %}

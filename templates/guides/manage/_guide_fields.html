@@ -1,0 +1,14 @@
+{% include "components/form_errors.html" %}
+<div class="grid gap-5 sm:grid-cols-2">
+  {% include "components/field.html" with field=form.title class="sm:col-span-2" %}
+  {% include "components/field.html" with field=form.title_en %}
+  {% include "components/field.html" with field=form.slug %}
+  {% include "components/field.html" with field=form.summary class="sm:col-span-2" %}
+  {% include "components/field.html" with field=form.kind %}
+  {% include "components/field.html" with field=form.project %}
+  {% include "components/field.html" with field=form.icon hint="Lucide icon name, e.g. scissors, file-text, book-open-check" %}
+  {% include "components/field.html" with field=form.accent %}
+  {% include "components/field.html" with field=form.source_url class="sm:col-span-2" hint="Link to the original document (staff only)." %}
+  {% include "components/field.html" with field=form.order %}
+</div>
+<datalist id="guide-icons">{% for name in icons %}<option value="{{ name }}"></option>{% endfor %}</datalist>

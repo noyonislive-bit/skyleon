@@ -1,0 +1,86 @@
+{% extends "backoffice/base.html" %}
+{% load static guides_tags %}
+{% block page_actions %}
+  {% if preview_url %}<a href="{{ preview_url }}" class="btn btn-secondary">{% icon "eye" class="h-4 w-4" %} Preview as employee</a>{% endif %}
+{% endblock %}
+{% block content %}
+<form method="post" class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]" novalidate data-guide-step-form>
+  {% csrf_token %}
+  <div class="space-y-6">
+    <div class="card card-body space-y-5">
+      {% include "components/form_errors.html" %}
+      {% include "components/field.html" with field=form.title %}
+      <div class="grid gap-5 sm:grid-cols-2">
+        {% include "components/field.html" with field=form.section %}
+        {% include "components/field.html" with field=form.anchor %}
+      </div>
+      {% include "components/field.html" with field=form.body %}
+      {% include "components/field.html" with field=form.body_en %}
+    </div>
+
+    <div class="card card-body space-y-5">
+      <h2 class="card-title">{% icon "circle-play" class="mr-1 inline h-4 w-4" %} Video (original link)</h2>
+      <div>
+        {% include "components/field.html" with field=form.video_url hint="Paste the ORIGINAL link — YouTube, Vimeo, Google Drive, Loom, Stream/SharePoint, Lark, a direct MP4 or an HLS (.m3u8) link. Nothing is downloaded or re-hosted." %}
+        <span class="g-detect{% if video_label %} is-ok{% endif %}" data-guide-detect {% if not video_label %}hidden{% endif %}>{{ video_label }}</span>
+      </div>
+      <div class="grid gap-5 sm:grid-cols-2">
+        {% include "components/field.html" with field=form.video_caption %}
+        {% include "components/field.html" with field=form.video_start %}
+      </div>
+      <div class="rounded-xl bg-slate-50 p-3 ring-1 ring-slate-200" data-guide-preview {% if not video_info %}hidden{% endif %}>
+        {% if video_info %}{% include "guides/_video.html" with info=video_info title="Preview" caption="" compact=True %}{% endif %}
+      </div>
+    </div>
+
+    <div class="card card-body space-y-4">
+      <div class="flex items-center justify-between gap-3">
+        <h2 class="card-title">{% icon "keyboard" class="mr-1 inline h-4 w-4" %} Which button does what</h2>
+        <button type="button" class="btn btn-secondary btn-sm" data-guide-action-add>{% icon "plus" class="h-4 w-4" %} Add row</button>
+      </div>
+      <p class="text-xs text-slate-500">Key or button (e.g. <code>Space</code>, <code>N</code>, <code>Ctrl+Z</code>, <code>Submit &amp; Next</code>), a short Bangla label and what it does.</p>
+      <div class="space-y-2" data-guide-actions></div>
+      <template data-guide-action-template>
+        <div class="g-act-row" data-guide-action-row>
+          <input class="input" placeholder="Key / button" data-k="key" aria-label="Key or button">
+          <input class="input" placeholder="নাম (বাংলা)" lang="bn" data-k="label_bn" aria-label="Bangla label">
+          <input class="input" placeholder="কী হয় (বাংলা)" lang="bn" data-k="description_bn" aria-label="Bangla description">
+          <button type="button" class="btn btn-ghost btn-icon text-red-600" data-guide-action-remove aria-label="Remove row">{% icon "x" class="h-4 w-4" %}</button>
+        </div>
+      </template>
+      <details class="text-xs text-slate-500"><summary class="cursor-pointer">Raw JSON</summary>
+        <div class="mt-2">{{ form.actions }}{% for e in form.actions.errors %}<p class="field-error">{{ e }}</p>{% endfor %}</div>
+      </details>
+    </div>
+  </div>
+
+  <aside class="space-y-6">
+    <div class="card card-body space-y-4">
+      {% include "components/field.html" with field=form.estimated_minutes %}
+      <div class="flex flex-col gap-2 border-t border-slate-100 pt-4">
+        <button class="btn btn-primary" name="then" value="">Save step</button>
+        <button class="btn btn-secondary" name="then" value="add">Save &amp; add next step</button>
+        <button class="btn btn-ghost" name="then" value="stay">Save &amp; keep editing</button>
+        <a href="{% url 'guides:manage_edit' guide.pk %}" class="btn btn-ghost">Cancel</a>
+      </div>
+    </div>
+    <div class="card card-body text-sm">
+      <h2 class="card-title mb-2">Formatting cheat-sheet</h2>
+      <p class="mb-3 text-xs text-slate-500">Click to insert into the Bangla explanation.</p>
+      <div class="space-y-1.5">
+        <button type="button" class="g-snippet" data-guide-snippet="&gt; [!RULE] নিয়ম&#10;&gt; ">&gt; [!RULE] নিয়ম — rule box</button>
+        <button type="button" class="g-snippet" data-guide-snippet="&gt; [!TIP] টিপস&#10;&gt; ">&gt; [!TIP] টিপস — tip box</button>
+        <button type="button" class="g-snippet" data-guide-snippet="&gt; [!WARNING] সতর্কতা&#10;&gt; ">&gt; [!WARNING] সতর্কতা</button>
+        <button type="button" class="g-snippet" data-guide-snippet="&gt; [!IMPORTANT] গুরুত্বপূর্ণ&#10;&gt; ">&gt; [!IMPORTANT] গুরুত্বপূর্ণ</button>
+        <button type="button" class="g-snippet" data-guide-snippet="&gt; [!EXAMPLE] উদাহরণ&#10;&gt; ">&gt; [!EXAMPLE] উদাহরণ</button>
+        <button type="button" class="g-snippet" data-guide-snippet="&gt; [!NOTE] নোট&#10;&gt; ">&gt; [!NOTE] নোট</button>
+        <button type="button" class="g-snippet" data-guide-snippet="1. প্রথম ধাপ&#10;2. দ্বিতীয় ধাপ&#10;">1. numbered list</button>
+        <button type="button" class="g-snippet" data-guide-snippet="- পয়েন্ট&#10;">- bullet list</button>
+        <button type="button" class="g-snippet" data-guide-snippet="**গুরুত্বপূর্ণ শব্দ**">**bold**</button>
+      </div>
+      <p class="mt-3 text-xs text-slate-500">Separate two boxes with an empty line plus a normal sentence, otherwise they join into one.</p>
+    </div>
+  </aside>
+</form>
+{% endblock %}
+{% block scripts %}{{ block.super }}<script src="{% static 'js/guides-admin.js' %}" defer></script>{% endblock %}

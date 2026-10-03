@@ -1,0 +1,28 @@
+{% extends "backoffice/base.html" %}
+{% block page_actions %}{% if can_edit %}<a href="{% url 'guides:manage_edit' guide.pk %}" class="btn btn-secondary">Edit guide</a>{% endif %}{% endblock %}
+{% block content %}
+<div class="mb-6 grid gap-4 sm:grid-cols-4">
+  <div class="stat"><p class="stat-label">Employees</p><p class="stat-value">{{ summary.people }}</p><p class="stat-meta">in the audience</p></div>
+  <div class="stat"><p class="stat-label">Started</p><p class="stat-value">{{ summary.started }}</p><p class="stat-meta">read at least one step</p></div>
+  <div class="stat"><p class="stat-label">Completed</p><p class="stat-value">{{ summary.completed }}</p><p class="stat-meta">all {{ outline.total }} steps</p></div>
+  <div class="stat"><p class="stat-label">Average</p><p class="stat-value">{{ summary.avg }}%</p><div class="progress mt-2"><div class="progress-bar" style="width: {{ summary.avg }}%"></div></div></div>
+</div>
+<div class="card">
+  {% if rows %}
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th>Employee</th><th class="num">Steps</th><th>Progress</th>{% for sec in outline.sections %}<th class="num" title="{{ sec.obj.title }}">§{{ sec.number }}</th>{% endfor %}<th>Last read</th></tr></thead>
+    <tbody>{% for r in rows %}
+      <tr>
+        <td><p class="font-medium text-slate-900">{{ r.user.name }}</p><p class="text-xs text-slate-500">{{ r.user.employee_id|default:r.user.email }}</p></td>
+        <td class="num">{{ r.done }}/{{ outline.total }}</td>
+        <td class="w-48">{% include "components/progress.html" with value=r.percent %}</td>
+        {% for s in r.sections %}<td class="num {% if s.total and s.done == s.total %}text-emerald-700 font-semibold{% elif not s.done %}text-slate-400{% endif %}">{{ s.done }}/{{ s.total }}</td>{% endfor %}
+        <td class="whitespace-nowrap text-slate-500">{{ r.last|date:"j M Y, H:i"|default:"—" }}</td>
+      </tr>
+    {% endfor %}</tbody>
+  </table></div>
+  {% else %}
+    {% include "components/empty_state.html" with icon="users" title="No employees in the audience yet" text="Assign employees to the guide's project, or make it company-wide." %}
+  {% endif %}
+</div>
+{% endblock %}

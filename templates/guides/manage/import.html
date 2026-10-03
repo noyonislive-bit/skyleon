@@ -1,0 +1,29 @@
+{% extends "backoffice/base.html" %}
+{% block content %}
+<div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
+  <form method="post" enctype="multipart/form-data" class="card" novalidate>
+    {% csrf_token %}
+    <div class="card-body space-y-5">
+      {% include "components/form_errors.html" %}
+      {% if errors %}
+      <div class="alert alert-error" role="alert">{% icon "alert-circle" class="mt-0.5 h-4 w-4 shrink-0" %}
+        <div><p class="font-semibold">The JSON could not be imported:</p><ul class="mt-1 list-disc pl-4">{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul></div>
+      </div>
+      {% endif %}
+      {% include "components/field.html" with field=form.file %}
+      {% include "components/field.html" with field=form.text %}
+      {% include "components/field.html" with field=form.replace %}
+      {% include "components/field.html" with field=form.publish %}
+      {% include "components/field.html" with field=form.dry_run %}
+    </div>
+    <div class="flex justify-end gap-3 border-t border-slate-100 px-5 py-4">
+      <a href="{% url 'guides:manage' %}" class="btn btn-ghost">Cancel</a>
+      <button class="btn btn-primary">{% icon "upload" class="h-4 w-4" %} Import</button>
+    </div>
+  </form>
+  <div class="card">
+    <div class="card-header"><h2 class="card-title">JSON format</h2></div>
+    <pre class="max-h-[34rem] overflow-auto px-5 py-4 font-mono text-[11.5px] leading-5 whitespace-pre-wrap text-slate-700">{{ schema }}</pre>
+  </div>
+</div>
+{% endblock %}

@@ -266,6 +266,16 @@ class Command(BaseCommand):
             **fit(t_desc.video, 35, (2, 33), [[3.0, 6.0], [7.0, 11.5], [12.0, 17.0], [18.5, 24.0], [25.0, 32.0]]),
         )
 
+        # Sample Bangla work guide (the real Video Splitting / Description guides are imported from JSON)
+        import json as _json
+        from pathlib import Path as _Path
+
+        from apps.guides.importer import import_guide
+
+        sample = _Path(__file__).resolve().parents[3] / "guides" / "fixtures" / "sample_guide.json"
+        if sample.exists():
+            import_guide(_json.loads(sample.read_text(encoding="utf-8")), publish=True, user=trainer)
+
         Announcement.objects.create(title="New QA scoring starts Monday", project=act, priority="important", pinned=True, created_by=pm,
                                     body="From **Monday** reviewers will score boundary accuracy at ±5 frames. Please re-read the *Action segmentation rules* guideline.")
         Announcement.objects.create(title="Welcome to the new training portal", created_by=admin,
