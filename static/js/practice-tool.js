@@ -16,8 +16,9 @@
   const data = JSON.parse(dataEl.textContent);
   const cfg = data.config || {};
   const MODE = data.mode; // practice | reference
-  const BASE_PPS = 10; // pixels per second at 100 %
-  const ZOOMS = [0.25, 0.5, 0.75, 1, 1.5, 2, 3, 4, 6, 8, 12, 16];
+  const BASE_PPS = 10; // internal pixels per second scale
+  // Zoom levels relative to "100%" — like the production tool, 100% shows the whole range.
+  const ZOOMS = [0.5, 0.75, 1, 1.5, 2, 3, 4, 6, 8, 12, 16, 24, 32];
   const MIN_CLIP = 0.1;
   const FPS = cfg.frame_rate || 30;
   const SPEEDS = (cfg.speeds && cfg.speeds.length ? cfg.speeds : [1, 1.5, 2, 0.5]).map(Number);
@@ -49,6 +50,7 @@
     selected: null,
     open: null, // toggle mode: start time of the clip being recorded
     zoom: 1,
+    fitZoom: 1,
     speedIdx: 0,
     history: [],
     dirty: false,
@@ -121,8 +123,7 @@
       if (lo >= hi) lo = 0;
     }
     if (video.currentTime < lo || video.currentTime > hi) video.currentTime = lo;
-    if (state.zoomInitDone !== true) { state.zoomInitDone = true; fitIfSmall(); }
-    renderAll();
+    fit();
   });
   video.addEventListener("error", () => stage.classList.add("has-error"));
   video.addEventListener("play", () => { stage.classList.add("is-playing"); tick(); });
@@ -160,7 +161,7 @@
   function contentWidth() { return Math.max(scroller.clientWidth, Math.ceil(xOf(hi)) + 24); }
   function renderAll() {
     inner.style.width = contentWidth() + "px";
-    zoomLabel.textContent = Math.round(state.zoom * 100) + "%";
+    zoomLabel.textContent = Math.round((state.zoom / state.fitZoom) * 100) + "%";
     renderRuler();
     renderClips();
     renderUncovered();
@@ -269,24 +270,30 @@
     cancelAnimationFrame(rulerRaf);
     rulerRaf = requestAnimationFrame(renderRuler);
   });
-  window.addEventListener("resize", () => renderAll());
+  window.addEventListener("resize", () => {
+    const rel = state.zoom / state.fitZoom;
+    computeFit();
+    if (Math.abs(rel - 1) < 1e-6) fit(); else renderAll();
+  });
 
   // ── Zoom ───────────────────────────────────────────────────────────────
+  function computeFit() {
+    state.fitZoom = Math.max(0.01, (scroller.clientWidth - 24) / BASE_PPS / Math.max(1, hi - lo));
+  }
   function setZoom(z) {
     const anchorT = now();
     const anchorOffset = xOf(anchorT) - scroller.scrollLeft;
-    state.zoom = clamp(z, 0.05, 32);
+    state.zoom = clamp(z, state.fitZoom * 0.5, state.fitZoom * 64);
     renderAll();
     scroller.scrollLeft = xOf(anchorT) - anchorOffset;
     renderRuler();
   }
   function zoomStep(dir) {
-    const z = state.zoom;
-    const next = dir > 0 ? ZOOMS.find((s) => s > z + 1e-6) : [...ZOOMS].reverse().find((s) => s < z - 1e-6);
-    setZoom(next || z);
+    const rel = state.zoom / state.fitZoom;
+    const next = dir > 0 ? ZOOMS.find((s) => s > rel + 1e-6) : [...ZOOMS].reverse().find((s) => s < rel - 1e-6);
+    setZoom((next || rel) * state.fitZoom);
   }
-  function fit() { setZoom((scroller.clientWidth - 24) / BASE_PPS / Math.max(1, hi - lo)); scroller.scrollLeft = 0; renderRuler(); }
-  function fitIfSmall() { if (xOf(hi) < scroller.clientWidth * 0.5) fit(); }
+  function fit() { computeFit(); setZoom(state.fitZoom); scroller.scrollLeft = 0; renderRuler(); }
   scroller.addEventListener("wheel", (e) => {
     if (e.ctrlKey || e.metaKey) { e.preventDefault(); zoomStep(e.deltaY < 0 ? 1 : -1); }
     else if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) { e.preventDefault(); scroller.scrollLeft += e.deltaY; }
@@ -641,6 +648,6 @@
 
   // ── Start ──────────────────────────────────────────────────────────────
   loadSource();
-  renderAll();
+  fit();
   window.__practiceTool = { state, act, get range() { return [lo, hi]; } }; // exposed for automated tests
 })();

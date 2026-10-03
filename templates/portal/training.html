@@ -1,5 +1,13 @@
 {% extends "portal/base.html" %}
 {% block content %}
+<a href="{% url 'practice:list' %}" class="card group mb-5 flex flex-wrap items-center gap-4 overflow-hidden bg-ink-900 p-5 text-slate-300 ring-ink-700 transition hover:ring-brand-400">
+  <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/10 text-accent-300">{% icon "scissors" class="h-5 w-5" %}</span>
+  <span class="min-w-0 flex-1">
+    <span class="block font-semibold text-white">ভিডিও ক্লিপিং প্র্যাকটিস — Practice Lab</span>
+    <span class="mt-0.5 block text-sm">আসল কাজের টুলের হুবহু কপি: <kbd class="rounded bg-white/10 px-1.5 font-mono text-xs text-white">Space</kbd> প্লে, <kbd class="rounded bg-white/10 px-1.5 font-mono text-xs text-white">N</kbd> কাট, টাইমলাইন, Submit — অনুশীলন করুন আর সাথে সাথে স্কোর দেখুন।</span>
+  </span>
+  <span class="btn btn-white btn-sm">Open Practice Lab {% icon "arrow-right" class="h-4 w-4" %}</span>
+</a>
 <form method="get" class="card card-body" data-autosubmit role="search" aria-label="Filter tutorials">
   <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.6fr)_repeat(4,minmax(0,1fr))]">
     <div class="sm:col-span-2 lg:col-span-1">
