@@ -1,7 +1,6 @@
 """Public marketing website."""
 
 import ipaddress
-import logging
 from urllib.parse import urlsplit
 
 from django.conf import settings
@@ -24,8 +23,6 @@ from . import seo
 from .forms import ApplicationForm, ContactForm, QuoteForm
 from .models import ContactMessage, JobApplication, QuoteRequest
 from .sitemaps import SITEMAPS
-
-logger = logging.getLogger(__name__)
 
 BRAND = site_settings.BRAND["name"]
 RATE_LIMIT_MESSAGE = (
