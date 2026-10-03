@@ -1,0 +1,15 @@
+{
+  // GitHub Codespaces / VS Code dev container: one click gives a running preview with demo data.
+  "name": "Skyloon AI",
+  "image": "mcr.microsoft.com/devcontainers/python:3.12",
+  "postCreateCommand": "bash .devcontainer/setup.sh",
+  "postAttachCommand": "bash .devcontainer/start.sh",
+  "forwardPorts": [8000],
+  "portsAttributes": {
+    "8000": { "label": "Skyloon AI website", "onAutoForward": "openBrowser" }
+  },
+  "customizations": {
+    "codespaces": { "openFiles": [".devcontainer/PREVIEW.md"] },
+    "vscode": { "extensions": ["ms-python.python"] }
+  }
+}

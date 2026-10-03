@@ -1,5 +1,7 @@
 # Skyloon AI — AI Data Annotation website & employee training portal
 
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/noyonislive-bit/skyleon/tree/claude/eager-cori-wcmlyv)
+
 One web application with three areas:
 
 | Area | URL | Who |
@@ -44,6 +46,17 @@ Built with **Python (Django 5.2 LTS) + MySQL/MariaDB** and designed to run on **
 - Private files live outside `public_html` or in a private bucket. They are served through short-lived signed URLs; local-storage URLs only work for the logged-in user they were issued to.
 
 ---
+
+## Preview from GitHub (Codespaces — nothing to install)
+
+1. Click the **Open in GitHub Codespaces** button above (or on GitHub: **Code → Codespaces → Create codespace on
+   `claude/eager-cori-wcmlyv`**).
+2. Wait 2–3 minutes while it installs everything and loads the demo data.
+3. The website opens automatically on port 8000 (otherwise: **Ports** tab → 8000 → *Open in Browser*).
+
+The preview link is private to your GitHub account. Demo logins are listed below and in `.devcontainer/PREVIEW.md`.
+Codespaces is free for personal accounts up to a monthly quota; stop the codespace when you are done
+(github.com/codespaces → … → Stop).
 
 ## Try it on your computer (5 minutes, no MySQL needed)
 
