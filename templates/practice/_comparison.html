@@ -1,0 +1,18 @@
+{% comment %} Timeline comparison: your clips vs reference vs uncovered gaps. {% endcomment %}
+<div class="card">
+  <div class="card-header"><h2 class="card-title">Timeline comparison</h2><span class="font-mono text-xs text-slate-500">{{ range_label }}</span></div>
+  <div class="card-body">
+    <div class="relative ml-24 h-5 border-b border-slate-200">
+      {% for t in ticks %}<span class="absolute -translate-x-1/2 font-mono text-[10px] text-slate-400" style="left: {{ t.left|stringformat:'.3f' }}%">{{ t.label }}</span>{% endfor %}
+    </div>
+    {% for row in comparison_rows %}
+      <div class="mt-3 flex items-center gap-3">
+        <span class="w-21 shrink-0 text-right text-xs font-medium text-slate-600">{{ row.label }}</span>
+        <div class="relative h-9 flex-1 rounded-md bg-slate-50 ring-1 ring-slate-200">
+          {% for b in row.bars %}<span class="absolute top-1 bottom-1 rounded {{ row.css }}" style="left: {{ b.left|stringformat:'.3f' }}%; width: {{ b.width|stringformat:'.3f' }}%" title="{{ row.label }} {{ b.n }}: {{ b.start|floatformat:2 }}s – {{ b.end|floatformat:2 }}s"></span>{% empty %}<span class="absolute inset-0 flex items-center justify-center text-xs text-slate-400">—</span>{% endfor %}
+        </div>
+      </div>
+    {% endfor %}
+    <p class="mt-4 text-xs text-slate-500">Hover a bar to see exact times. Tolerance for boundaries: ±{{ task.tolerance_sec }}s.</p>
+  </div>
+</div>

@@ -1,0 +1,62 @@
+{% extends "portal/base.html" %}
+{% block content %}
+<div class="grid gap-6 lg:grid-cols-[1fr_320px]">
+  <div class="space-y-4">
+    <div class="card overflow-hidden">
+      <div class="flex flex-wrap items-center gap-4 bg-ink-900 p-5 text-slate-300">
+        <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-white/10 text-accent-300">{% icon "clapperboard" class="h-5 w-5" %}</div>
+        <div class="min-w-0 flex-1">
+          <p class="font-semibold text-white">Same tool, same shortcuts as production</p>
+          <p class="mt-0.5 text-sm">Press <kbd class="rounded bg-white/10 px-1.5 font-mono text-xs text-white">Space</kbd> to play, <kbd class="rounded bg-white/10 px-1.5 font-mono text-xs text-white">N</kbd> to cut, <kbd class="rounded bg-white/10 px-1.5 font-mono text-xs text-white">L</kbd> to loop. Your clips are compared with the trainer's reference and scored instantly.</p>
+        </div>
+      </div>
+    </div>
+
+    {% for row in rows %}
+      {% with t=row.task %}
+      <a href="{% url 'practice:workspace' t.pk %}" class="card group flex flex-col gap-4 p-5 transition hover:ring-brand-300 sm:flex-row sm:items-center">
+        <div class="flex h-16 w-28 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-gradient-to-br from-ink-800 to-brand-800 text-white/80">{% icon "film" class="h-6 w-6" %}</div>
+        <div class="min-w-0 flex-1">
+          <div class="flex flex-wrap items-center gap-2">
+            <h2 class="font-semibold text-slate-900 group-hover:text-brand-700">{{ t.title }}</h2>
+            {% if row.passed %}{% status_badge "passed" "Passed" %}{% elif row.attempts %}{% status_badge "review" "Keep practising" %}{% elif row.draft %}{% status_badge "in_progress" "In progress" %}{% else %}{% status_badge "new" "New" %}{% endif %}
+          </div>
+          <p class="mt-1 text-sm text-slate-500">{{ t.project.name|default:"All projects" }} · passing score {{ t.passing_score }}%{% if not t.has_reference %} · coverage practice{% endif %}</p>
+        </div>
+        <div class="flex items-center gap-6 text-sm">
+          <div class="text-right"><p class="text-xs text-slate-500">Best score</p><p class="font-semibold tabular-nums text-slate-900">{% if row.best is not None %}{{ row.best|floatformat:0 }}%{% else %}—{% endif %}</p></div>
+          <div class="text-right"><p class="text-xs text-slate-500">Attempts</p><p class="font-semibold tabular-nums text-slate-900">{{ row.attempts }}</p></div>
+          <span class="btn btn-primary btn-sm">{% if row.draft %}Continue{% elif row.attempts %}Practise again{% else %}Start{% endif %} {% icon "arrow-right" class="h-4 w-4" %}</span>
+        </div>
+      </a>
+      {% endwith %}
+    {% empty %}
+      <div class="card">{% include "components/empty_state.html" with icon="clapperboard" title="No practice tasks yet" text="Your trainer will add clipping exercises here. Check back soon." %}</div>
+    {% endfor %}
+  </div>
+
+  <aside class="space-y-4">
+    <div class="card">
+      <div class="card-header"><h2 class="card-title">Recent results</h2></div>
+      <ul class="divide-y divide-slate-100">
+        {% for a in recent %}
+          <li><a href="{% url 'practice:result' a.pk %}" class="flex items-center justify-between gap-3 px-5 py-3 text-sm hover:bg-slate-50">
+            <span class="min-w-0 truncate text-slate-700">{{ a.task.title }}</span>
+            <span class="font-semibold tabular-nums {% if a.passed %}text-emerald-700{% else %}text-amber-700{% endif %}">{{ a.score|floatformat:0 }}%</span>
+          </a></li>
+        {% empty %}
+          <li class="px-5 py-6 text-sm text-slate-500">Your submitted practice attempts will appear here.</li>
+        {% endfor %}
+      </ul>
+    </div>
+    <div class="card card-body text-sm text-slate-600">
+      <h2 class="card-title mb-2">How scoring works</h2>
+      <ul class="list-disc space-y-1.5 pl-4">
+        <li><strong>Boundary accuracy</strong> — your clip start/end points within the allowed tolerance of the reference.</li>
+        <li><strong>Clip overlap</strong> — how well each reference action is covered by one of your clips.</li>
+        <li><strong>Coverage</strong> — how much of the “hands present” range you clipped.</li>
+      </ul>
+    </div>
+  </aside>
+</div>
+{% endblock %}

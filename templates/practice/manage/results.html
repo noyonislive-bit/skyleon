@@ -1,0 +1,30 @@
+{% extends "backoffice/base.html" %}
+{% block page_actions %}<a href="{% url 'practice:manage_edit' task.pk %}" class="btn btn-secondary">Edit task</a>{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-header"><h2 class="card-title">Employees</h2><span class="text-xs text-slate-500">Passing score {{ task.passing_score }}%</span></div>
+  {% if people %}
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th>Employee</th><th class="num">Attempts</th><th class="num">Best score</th><th>Status</th><th>Last submitted</th><th></th></tr></thead>
+    <tbody>{% for r in people %}
+      <tr>
+        <td><p class="font-medium text-slate-900">{{ r.user.name }}</p><p class="text-xs text-slate-500">{{ r.user.employee_id|default:r.user.email }}</p></td>
+        <td class="num">{{ r.attempts }}</td>
+        <td class="num">{{ r.best|floatformat:0 }}%</td>
+        <td>{% if r.passed %}{% status_badge "passed" "Passed" %}{% else %}{% status_badge "review" "Review" %}{% endif %}{% if r.task_error %} <span class="badge badge-danger" title="{{ r.task_error.comment }}">Task error</span>{% endif %}</td>
+        <td>{{ r.last|date:"j M Y, H:i" }}</td>
+        <td class="text-right"><a href="{% url 'practice:manage_attempt' r.latest.pk %}" class="btn btn-ghost btn-sm">Latest attempt</a></td>
+      </tr>
+    {% endfor %}</tbody>
+  </table></div>
+  {% else %}{% include "components/empty_state.html" with icon="users" title="No attempts yet" text="Results appear here as soon as employees submit this task." %}{% endif %}
+</div>
+{% if errors %}
+<div class="card mt-6">
+  <div class="card-header"><h2 class="card-title">Task errors reported</h2></div>
+  <ul class="divide-y divide-slate-100">{% for a in errors %}
+    <li class="px-5 py-3 text-sm"><span class="font-medium text-slate-900">{{ a.user.name }}</span> · {{ a.task_error.reason|default:"other" }}{% if a.task_error.comment %} — <span class="text-slate-600">{{ a.task_error.comment }}</span>{% endif %}</li>
+  {% endfor %}</ul>
+</div>
+{% endif %}
+{% endblock %}

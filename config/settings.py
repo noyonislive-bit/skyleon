@@ -66,6 +66,7 @@ INSTALLED_APPS = [
     "apps.training",
     "apps.assessments",
     "apps.feedback",
+    "apps.practice",
     "apps.comms",
     "apps.website",
     "apps.portal",

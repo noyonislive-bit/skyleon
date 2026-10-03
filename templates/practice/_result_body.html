@@ -1,0 +1,22 @@
+<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+  <div class="stat"><p class="stat-label">Score</p><p class="stat-value {% if attempt.passed %}text-emerald-700{% else %}text-amber-700{% endif %}">{{ attempt.score|floatformat:0 }}%</p><p class="stat-meta">Passing score {{ task.passing_score }}% · {% if attempt.passed %}passed{% else %}not passed yet{% endif %}</p></div>
+  <div class="stat"><p class="stat-label">Boundary accuracy</p><p class="stat-value">{% if metrics.boundary_f1 is not None %}{{ metrics.boundary_f1|floatformat:0 }}%{% else %}—{% endif %}</p><p class="stat-meta">{% if metrics.mean_boundary_error is not None %}average error {{ metrics.mean_boundary_error|floatformat:2 }}s{% else %}start/end points vs reference{% endif %}</p></div>
+  <div class="stat"><p class="stat-label">Clip overlap (IoU)</p><p class="stat-value">{% if metrics.mean_iou is not None %}{{ metrics.mean_iou|floatformat:0 }}%{% else %}—{% endif %}</p><p class="stat-meta">{{ metrics.clip_count }} clips · reference {{ metrics.reference_count }}</p></div>
+  <div class="stat"><p class="stat-label">Coverage</p><p class="stat-value">{{ metrics.coverage|floatformat:0 }}%</p><p class="stat-meta">of the hands-present range</p></div>
+</div>
+<div class="mt-6">{% include "practice/_comparison.html" %}</div>
+<div class="card mt-6">
+  <div class="card-header"><h2 class="card-title">What to improve</h2></div>
+  {% if metrics.issues %}
+    <ul class="divide-y divide-slate-100">
+      {% for i in metrics.issues %}
+        <li class="flex items-start gap-3 px-5 py-3 text-sm">
+          <span class="mt-0.5 {% if i.kind == 'missed' or i.kind == 'overlap' %}text-red-600{% else %}text-amber-600{% endif %}">{% icon "alert-triangle" class="h-4 w-4" %}</span>
+          <span class="text-slate-700">{{ i.text }}</span>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="px-5 py-5 text-sm text-emerald-700">No issues found — your segmentation matches the reference.</p>
+  {% endif %}
+</div>

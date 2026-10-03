@@ -1,0 +1,22 @@
+{% extends "backoffice/base.html" %}
+{% block content %}
+<form method="post" class="space-y-6" novalidate>
+  {% csrf_token %}
+  {% include "components/form_errors.html" %}
+  <div class="card card-body space-y-5">
+    <h2 class="card-title">Cutting</h2>
+    {% include "components/field.html" with field=form.cut_mode %}
+    <div class="grid gap-5 sm:grid-cols-2">
+      {% include "components/field.html" with field=form.speeds %}
+      {% include "components/field.html" with field=form.frame_rate %}
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header"><h2 class="card-title">Keyboard shortcuts</h2><span class="text-xs text-slate-500">Comma-separate several keys. Use names like Space, ArrowLeft, Delete, Shift+ArrowRight, Ctrl+z.</span></div>
+    <div class="card-body grid gap-4 sm:grid-cols-2">
+      {% for f in shortcut_fields %}{% include "components/field.html" with field=f %}{% endfor %}
+    </div>
+  </div>
+  <div class="flex justify-end"><button class="btn btn-primary">Save settings</button></div>
+</form>
+{% endblock %}

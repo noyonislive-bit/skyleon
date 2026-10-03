@@ -14,6 +14,7 @@ from apps.feedback.models import Feedback, FeedbackRecipient
 from apps.projects.models import Guideline, Project, ProjectMember, Team
 from apps.storage.models import MediaAsset
 from apps.training.models import OnboardingStep, Tutorial, TutorialCategory, TutorialProgress
+from apps.practice.models import PracticeAttempt, PracticeTask
 from apps.website.models import ContactMessage, JobApplication, QuoteRequest
 
 from .models import AuditLog, SiteSetting
@@ -106,5 +107,6 @@ class AuditLogAdmin(admin.ModelAdmin):
 for model in (
     Organization, SiteSetting, Team, ProjectMember, Guideline, TutorialCategory, TutorialProgress, OnboardingStep,
     FeedbackRecipient, TestAssignment, Announcement, Meeting, Notification, QuoteRequest, ContactMessage, JobApplication,
+    PracticeTask, PracticeAttempt,
 ):
     admin.site.register(model)

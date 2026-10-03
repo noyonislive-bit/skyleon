@@ -76,22 +76,23 @@ class Command(BaseCommand):
     def video(self, title, seconds=40, color="0x1a2438"):
         """Generate a small local sample clip with ffmpeg when available, otherwise use a public sample URL."""
         if shutil.which("ffmpeg") and settings.STORAGE_BACKEND == "local":
-            key = build_key("tutorial", "sample.mp4")
+            key = build_key("tutorial", "sample.webm")
             with tempfile.TemporaryDirectory() as tmp:
-                out = Path(tmp) / "sample.mp4"
+                out = Path(tmp) / "sample.webm"
                 cmd = [
                     "ffmpeg", "-loglevel", "error", "-y", "-f", "lavfi", "-i", f"testsrc2=size=640x360:rate=24:duration={seconds}",
                     "-f", "lavfi", "-i", f"sine=frequency=330:duration={seconds}",
                     "-vf", f"drawbox=x=0:y=300:w=640:h=60:color={color}@0.85:t=fill",
-                    "-c:v", "libx264", "-preset", "veryfast", "-pix_fmt", "yuv420p", "-c:a", "aac", "-shortest", "-movflags", "+faststart", str(out),
+                    # WebM/VP9 plays in every modern browser (incl. open-source Chromium builds without H.264)
+                    "-c:v", "libvpx-vp9", "-b:v", "600k", "-deadline", "realtime", "-cpu-used", "8", "-c:a", "libopus", "-shortest", str(out),
                 ]
                 try:
                     subprocess.run(cmd, check=True, timeout=120)
                     with open(out, "rb") as fh:
-                        size = get_backend().save(key, fh, "video/mp4")
+                        size = get_backend().save(key, fh, "video/webm")
                     return MediaAsset.objects.create(
-                        kind=MediaKind.VIDEO, provider="local", storage_key=key, mime_type="video/mp4", size_bytes=size,
-                        duration_sec=float(seconds), width=640, height=360, original_name=f"{title}.mp4",
+                        kind=MediaKind.VIDEO, provider="local", storage_key=key, mime_type="video/webm", size_bytes=size,
+                        duration_sec=float(seconds), width=640, height=360, original_name=f"{title}.webm",
                         status=MediaStatus.READY, purpose="tutorial",
                     )
                 except Exception as exc:  # pragma: no cover
@@ -243,6 +244,21 @@ class Command(BaseCommand):
                 submit_attempt(a, answers)
         from apps.projects.models import ProjectMember
         ProjectMember.objects.filter(project=act, user__in=employees[:2]).update(qualified_at=now - timedelta(days=2), qualified_by=pm)
+
+        from apps.practice.models import PracticeTask
+
+        PracticeTask.objects.create(
+            title="Kitchen clip 001 — pick & place", project=act, video=t_seg.video, range_start=3, range_end=40,
+            tolerance_sec=0.5, passing_score=75, status="published", published_at=now, created_by=trainer,
+            instructions="Segment every hand action between **00:03** and **00:40**. Start a clip when the hand begins an action and end it when the action is complete.",
+            reference_clips=[[4.0, 7.5], [8.0, 12.0], [12.5, 18.0], [19.0, 24.5], [25.0, 31.0], [32.0, 39.5]],
+        )
+        PracticeTask.objects.create(
+            title="Kitchen clip 002 — open & close", project=act, video=t_desc.video, range_start=2, range_end=33,
+            tolerance_sec=0.5, passing_score=75, status="published", published_at=now, created_by=trainer, order=1,
+            instructions="Clip each open / close action. Remember: the clip ends when the door or drawer stops moving.",
+            reference_clips=[[3.0, 6.0], [7.0, 11.5], [12.0, 17.0], [18.5, 24.0], [25.0, 32.0]],
+        )
 
         Announcement.objects.create(title="New QA scoring starts Monday", project=act, priority="important", pinned=True, created_by=pm,
                                     body="From **Monday** reviewers will score boundary accuracy at ±5 frames. Please re-read the *Action segmentation rules* guideline.")

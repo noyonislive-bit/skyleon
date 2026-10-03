@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{{ task.title }} · {% if mode == "reference" %}Reference segmentation{% else %}Practice Lab{% endif %} · {{ brand.name }}{% endblock %}
+{% block meta_robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+{% block head %}<link rel="stylesheet" href="{% static 'css/practice-tool.css' %}">{% endblock %}
+{% block body_class %}{% endblock %}
+{% block body %}
+<div class="pt-root" data-mode="{{ mode }}">
+  <!-- Training bar: not part of the production tool -->
+  <div class="pt-trainbar">
+    <a href="{{ back_url }}">← {% if mode == "reference" %}Back to task{% else %}Practice Lab{% endif %}</a>
+    <span class="pt-badge{% if mode == 'reference' %} is-ref{% endif %}">{% if mode == "reference" %}Reference segmentation{% else %}Practice mode{% endif %}</span>
+    <span class="pt-task-title">{{ task.title }}</span>
+    <span class="pt-spacer"></span>
+    {% if mode == "practice" %}<span class="pt-meta">Attempts: {{ attempt_count }}</span>{% endif %}
+    <span class="pt-meta" data-save-status></span>
+    <span class="pt-meta" data-timer>00:00</span>
+    {% if task.instructions or mode == "practice" %}<button type="button" class="pt-help" data-open="#pt-intro">Instructions</button>{% endif %}
+  </div>
+
+  <div class="pt-page">
+    <p class="pt-mobile-note">The clipping tool is designed for a desktop or laptop with a keyboard. Please switch to a computer for practice.</p>
+
+    <!-- ═══ Replica of the production tool ═══ -->
+    <section class="vp-card" aria-label="Video Preview">
+      <header class="vp-header">
+        <span class="vp-title">Video Preview</span>
+        <div class="vp-zoom" role="group" aria-label="Timeline zoom">
+          <button type="button" data-action="zoom_out" aria-label="Zoom out">-</button>
+          <span class="vp-zoom-label" data-zoom-label>100%</span>
+          <button type="button" data-action="zoom_in" aria-label="Zoom in">+</button>
+          <button type="button" class="vp-fit" data-action="zoom_fit">Fit</button>
+        </div>
+      </header>
+
+      <div class="vp-body">
+        <div class="vp-stage" data-stage>
+          <video data-video playsinline preload="auto"></video>
+          <button type="button" class="vp-play" data-action="play_pause" aria-label="Play">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.14v13.72a1 1 0 0 0 1.52.85l10.6-6.86a1 1 0 0 0 0-1.7L9.52 4.29A1 1 0 0 0 8 5.14Z"/></svg>
+          </button>
+          <div class="vp-stage-msg" data-stage-msg>The video could not be loaded.</div>
+        </div>
+
+        <div class="vp-controls">
+          <span class="vp-hint" data-hint>Click a clip to start editing</span>
+          <div class="vp-actions">
+            <button type="button" class="vp-btn vp-btn-gray" data-action="delete_clip">Delete Clip</button>
+            <button type="button" class="vp-btn vp-btn-error" data-open="#pt-task-error">Task Error</button>
+            <button type="button" class="vp-link" data-open="#pt-shortcuts">Shortcuts</button>
+            <button type="button" class="vp-link" data-action="speed" data-speed-label>Speed 1x</button>
+            <label class="vp-source">Source
+              <select data-source aria-label="Video source"><option value="auto">Auto</option><option value="original">Original</option></select>
+            </label>
+            <label class="vp-loop"><input type="checkbox" data-loop> Loop Current Segment (L)</label>
+          </div>
+        </div>
+
+        <div class="vp-timeline">
+          <div class="vp-tl-title">Timeline</div>
+          <div class="vp-uncovered" data-uncovered aria-live="polite"></div>
+          <div class="vp-tl">
+            <div class="vp-tl-scroll" data-scroll>
+              <div class="vp-tl-inner" data-inner>
+                <div class="vp-ruler" data-ruler></div>
+                <div class="vp-track" data-track></div>
+                <div class="vp-playhead" data-playhead><div class="vp-playhead-handle" data-playhead-handle title="Drag to scrub"></div><div class="vp-playhead-line"></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="vp-footer">
+          <button type="button" class="vp-fbtn vp-fbtn-mint" data-action="realign">Realign Video</button>
+          <button type="button" class="vp-fbtn vp-fbtn-green" data-action="submit">submit task</button>
+          <button type="button" class="vp-fbtn vp-fbtn-green" data-action="submit_next">Submit &amp; Next</button>
+          <button type="button" class="vp-fbtn vp-fbtn-mint" data-action="previous">Previous</button>
+          <button type="button" class="vp-fbtn vp-fbtn-mint" data-action="next">Next</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Shortcuts -->
+  <div class="pt-modal" id="pt-shortcuts" hidden role="dialog" aria-modal="true" aria-labelledby="pt-shortcuts-title">
+    <div class="pt-dialog">
+      <div class="pt-dialog-head"><h2 id="pt-shortcuts-title">Keyboard shortcuts</h2><button type="button" class="pt-x" data-close aria-label="Close">×</button></div>
+      <div class="pt-dialog-body">
+        <table class="pt-keys" data-shortcut-table></table>
+        <p style="margin:14px 0 0;color:#6b7280;font-size:12.5px" data-cut-mode-note></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Task error -->
+  <div class="pt-modal" id="pt-task-error" hidden role="dialog" aria-modal="true" aria-labelledby="pt-err-title">
+    <div class="pt-dialog">
+      <div class="pt-dialog-head"><h2 id="pt-err-title">Report a task error</h2><button type="button" class="pt-x" data-close aria-label="Close">×</button></div>
+      <div class="pt-dialog-body">
+        <p style="margin:0 0 12px">Use <strong>Task Error</strong> only when the task itself cannot be done — exactly as in the production tool.</p>
+        <div class="pt-reasons">
+          <label><input type="radio" name="pt-reason" value="video_not_loading" checked> Video does not load or plays incorrectly</label>
+          <label><input type="radio" name="pt-reason" value="no_hands"> No hands visible in the video</label>
+          <label><input type="radio" name="pt-reason" value="corrupted"> Video is corrupted or the wrong video</label>
+          <label><input type="radio" name="pt-reason" value="other"> Other</label>
+        </div>
+        <textarea class="pt-textarea" data-error-comment placeholder="Describe the problem (optional)"></textarea>
+      </div>
+      <div class="pt-dialog-foot"><button type="button" class="vp-fbtn vp-fbtn-mint" data-close>Cancel</button><button type="button" class="vp-fbtn vp-fbtn-green" data-action="send_task_error">Report error</button></div>
+    </div>
+  </div>
+
+  <!-- Result -->
+  <div class="pt-modal" id="pt-result" hidden role="dialog" aria-modal="true" aria-labelledby="pt-result-title">
+    <div class="pt-dialog">
+      <div class="pt-dialog-head"><h2 id="pt-result-title">Practice result</h2><button type="button" class="pt-x" data-close aria-label="Close">×</button></div>
+      <div class="pt-dialog-body" data-result-body></div>
+      <div class="pt-dialog-foot" data-result-foot></div>
+    </div>
+  </div>
+
+  <!-- Intro / instructions -->
+  <div class="pt-modal" id="pt-intro" {% if not show_intro %}hidden{% endif %} role="dialog" aria-modal="true" aria-labelledby="pt-intro-title">
+    <div class="pt-dialog">
+      <div class="pt-dialog-head"><h2 id="pt-intro-title">{{ task.title }}</h2><button type="button" class="pt-x" data-close aria-label="Close">×</button></div>
+      <div class="pt-dialog-body pt-instructions">
+        {% if task.instructions %}<div>{{ task.instructions|markdown }}</div>{% endif %}
+        <p><strong>This is an exact copy of the production clipping tool.</strong> Everything you practise here works the same way at work.</p>
+        <ul>
+          <li><span class="pt-kbd">Space</span> plays / pauses the video (or click the play button).</li>
+          <li><span class="pt-kbd">N</span> cuts: press it where an action starts and again where it ends to create a clip.</li>
+          <li>Click a clip to edit it — drag its edges, or use <span class="pt-kbd">[</span> / <span class="pt-kbd">]</span> to move its start / end to the playhead. <strong>Delete Clip</strong> removes it.</li>
+          <li><span class="pt-kbd">L</span> loops the current segment. Open <strong>Shortcuts</strong> for the full list.</li>
+          <li>Cover the whole “Hands present” range, then press <strong>submit task</strong> — you'll get a score compared to the trainer's reference.</li>
+        </ul>
+      </div>
+      <div class="pt-dialog-foot"><button type="button" class="vp-fbtn vp-fbtn-green" data-close>Start {% if mode == "reference" %}editing{% else %}practice{% endif %}</button></div>
+    </div>
+  </div>
+
+  <div class="pt-toast" data-toast role="status" aria-live="polite"></div>
+  {{ payload|json_script:"practice-data" }}
+  {% csrf_token %}
+</div>
+{% endblock %}
+{% block scripts %}<script src="{% static 'js/practice-tool.js' %}" defer></script>{% endblock %}
