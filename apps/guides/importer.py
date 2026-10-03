@@ -20,7 +20,7 @@ from apps.core.choices import ContentStatus
 from apps.core.icons import ICONS
 
 from . import services
-from .models import Guide, GuideAccent, GuideKind, GuideProgress, GuideSection, GuideStep
+from .models import Guide, GuideAccent, GuideKind, GuideSection, GuideStep
 from .video import clean_url, parse_start
 
 SLUG_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
@@ -198,10 +198,10 @@ def validate(data) -> tuple[dict, list[str], list[str]]:
     taken: set[str] = set()
     explicit: dict[str, str] = {}
 
-    def claim_anchor(raw, path, base, fallback):
+    def claim_anchor(raw, path):
         if raw not in (None, ""):
-            if not isinstance(raw, str) or not SLUG_RE.match(raw.strip()):
-                v.err(f"{path}.anchor", f"use lowercase letters, digits and hyphens only, got {raw!r}")
+            if not isinstance(raw, str) or not SLUG_RE.match(raw.strip()) or len(raw.strip()) > 100:
+                v.err(f"{path}.anchor", f"use up to 100 lowercase letters, digits and hyphens, got {raw!r}")
             else:
                 raw = raw.strip()
                 if raw in explicit:
@@ -214,10 +214,10 @@ def validate(data) -> tuple[dict, list[str], list[str]]:
     # First pass: explicit anchors (so generated ones never collide with them).
     for i, sec in enumerate(sections, start=1):
         if isinstance(sec, dict):
-            claim_anchor(sec.get("anchor"), f"sections[{i}]", None, None)
+            claim_anchor(sec.get("anchor"), f"sections[{i}]")
             for j, st in enumerate(sec.get("steps") or [], start=1):
                 if isinstance(st, dict):
-                    claim_anchor(st.get("anchor"), f"sections[{i}].steps[{j}]", None, None)
+                    claim_anchor(st.get("anchor"), f"sections[{i}].steps[{j}]")
 
     total_steps = 0
     for i, sec in enumerate(sections, start=1):
@@ -351,49 +351,36 @@ def import_guide(data, *, replace=False, publish=False, user=None, dry_run=False
     new_section_anchors = {s["anchor"] for s in cleaned["sections"]}
     new_step_anchors = {t["anchor"] for s in cleaned["sections"] for t in s["steps"]}
 
-    removed = [s for a, s in old_steps.items() if a not in new_step_anchors]
+    # Steps that are gone are deleted (with their progress); the rest are updated in place
+    # — matched by anchor — so progress on them survives a --replace.
+    removed = [s.pk for a, s in old_steps.items() if a not in new_step_anchors]
     result.steps_removed = len(removed)
-    GuideStep.objects.filter(pk__in=[s.pk for s in removed]).delete()
-    # Steps that survive but whose section disappears must be moved before the section is deleted.
-    keep_sections = [s for a, s in old_sections.items() if a in new_section_anchors]
-    drop_sections = [s for a, s in old_sections.items() if a not in new_section_anchors]
+    GuideStep.objects.filter(pk__in=removed).delete()
 
-    # Section anchors may now be used by steps (and vice versa): free anchors that change type.
-    clash_steps = [old_steps[a] for a in new_section_anchors if a in old_steps and a in new_step_anchors]
-    for st in clash_steps:  # pragma: no cover — anchors are unique across both kinds within one file
-        pass
-
-    sec_objs = {}
+    sections = {}
     for i, s in enumerate(cleaned["sections"], start=1):
-        sec = old_sections.get(s["anchor"]) if s["anchor"] in {x.anchor for x in keep_sections} else None
-        if sec is None:
-            sec = GuideSection(guide=guide, anchor=s["anchor"])
+        sec = old_sections.get(s["anchor"]) or GuideSection(guide=guide, anchor=s["anchor"])
         sec.order, sec.title, sec.title_en, sec.intro = i, s["title"], s["title_en"], s["intro"]
-        # A step of the previous version may hold this anchor: rename it out of the way first.
-        if s["anchor"] in old_steps and s["anchor"] not in new_step_anchors:
-            pass  # already deleted above
         sec.save()
-        sec_objs[s["anchor"]] = sec
+        sections[s["anchor"]] = sec
         result.sections += 1
 
-    kept_progress = 0
     for s in cleaned["sections"]:
-        sec = sec_objs[s["anchor"]]
         for j, t in enumerate(s["steps"], start=1):
             st = old_steps.get(t["anchor"])
-            if st is not None and t["anchor"] in new_step_anchors and st.pk not in {r.pk for r in removed}:
+            if st is not None:
                 result.steps_kept += 1
-                kept_progress += st.progress.count()
+                result.progress_kept += st.progress.count()
             else:
                 st = GuideStep(guide=guide, anchor=t["anchor"])
-            st.section, st.guide, st.order = sec, guide, j
+            st.section, st.guide, st.order = sections[s["anchor"]], guide, j
             for f in ("title", "body", "body_en", "video_url", "video_caption", "video_start", "actions", "estimated_minutes"):
                 setattr(st, f, t[f])
             st.save()
             result.steps += 1
-    for sec in drop_sections:
-        sec.delete()
-    result.progress_kept = kept_progress
+
+    # Sections that are gone (their surviving steps were moved above).
+    GuideSection.objects.filter(pk__in=[s.pk for a, s in old_sections.items() if a not in new_section_anchors]).delete()
     if dry_run:
         transaction.set_rollback(True)
     return result
@@ -421,4 +408,4 @@ def export_guide(guide) -> dict:
     return out
 
 
-__all__ = ["GuideImportError", "ImportResult", "SCHEMA_HELP", "export_guide", "import_guide", "load_json", "validate", "GuideProgress"]
+__all__ = ["GuideImportError", "ImportResult", "SCHEMA_HELP", "export_guide", "import_guide", "load_json", "validate"]

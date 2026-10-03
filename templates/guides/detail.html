@@ -1,0 +1,124 @@
+{% extends "portal/base.html" %}
+{% load static guides_tags %}
+{% block browser_title %}{{ guide.title }}{% endblock %}
+{% block page_header %}{% endblock %}
+{% block content %}
+<div class="g-reader guide-bn g-accent-{{ guide.accent }}" lang="bn" data-g-reader data-g-mode="doc" data-g-target="{{ target }}">
+  <div class="g-readbar" aria-hidden="true"><span data-g-readbar></span></div>
+
+  {% if is_preview %}
+  <div class="alert alert-warning mb-5" lang="en">{% icon "eye" class="mt-0.5 h-4 w-4 shrink-0" %}
+    <p class="flex-1">Preview — this guide is a <strong>{{ guide.get_status_display|lower }}</strong>, employees can't see it yet.</p>
+    {% if can_edit %}<a href="{% url 'guides:manage_edit' guide.pk %}" class="font-semibold underline">Back to editor</a>{% endif %}
+  </div>
+  {% endif %}
+
+  {# ── Guide header ── #}
+  <header class="g-hero card">
+    <div class="g-hero-bar" aria-hidden="true"></div>
+    <div class="flex flex-col gap-6 p-5 sm:p-7 lg:flex-row lg:items-center">
+      <div class="min-w-0 flex-1">
+        <div class="flex flex-wrap items-center gap-3">
+          <span class="g-icon-tile">{% icon guide.icon class="h-6 w-6" %}</span>
+          <div class="flex flex-wrap items-center gap-1.5">
+            <span class="g-chip">{{ guide.kind_label_bn }}</span>
+            {% if guide.project %}<span class="g-chip-muted" lang="en">{{ guide.project.code }}</span>{% else %}<span class="g-chip-muted">সব কর্মীর জন্য</span>{% endif %}
+          </div>
+        </div>
+        <h1 class="g-h1">{{ guide.title }}</h1>
+        {% if guide.title_en %}<p class="g-h1-en" lang="en">{{ guide.title_en }}</p>{% endif %}
+        {% if guide.summary %}<p class="g-summary">{{ guide.summary }}</p>{% endif %}
+        <ul class="g-meta mt-4">
+          <li>{% icon "layers" class="h-4 w-4" %} {{ outline.sections|length|bn }}টি অধ্যায়</li>
+          <li>{% icon "list-checks" class="h-4 w-4" %} {{ outline.total|bn }}টি ধাপ</li>
+          {% if outline.video_count %}<li>{% icon "circle-play" class="h-4 w-4" %} {{ outline.video_count|bn }}টি ভিডিও</li>{% endif %}
+          <li>{% icon "clock" class="h-4 w-4" %} আনুমানিক {{ outline.minutes|bn }} মিনিট</li>
+        </ul>
+      </div>
+      <div class="g-hero-side">
+        <div class="flex items-center gap-4">
+          <div class="ring-progress h-[4.5rem] w-[4.5rem]{% if outline.is_complete %} is-complete{% endif %}" style="--p: {{ outline.percent }}" data-g-ring>
+            <span class="text-base font-semibold text-slate-900" data-g-percent>{{ outline.percent|bn }}%</span>
+          </div>
+          <div class="min-w-0">
+            <p class="text-sm font-semibold text-slate-900"><span data-g-done-count>{{ outline.done_count|bn }}</span> / {{ outline.total|bn }} ধাপ সম্পন্ন</p>
+            <p class="mt-0.5 text-xs text-slate-500" data-g-hero-note>{% if outline.is_complete %}পুরো গাইড পড়া শেষ।{% elif outline.started %}বাকি আছে প্রায় {{ outline.remaining_minutes|bn }} মিনিট।{% else %}প্রথম ধাপ থেকে শুরু করুন।{% endif %}</p>
+          </div>
+        </div>
+        <div class="mt-4 flex flex-wrap gap-2">
+          {% if outline.steps %}
+            {% if outline.first_unread and outline.started %}
+              <a href="#{{ outline.first_unread.anchor }}" class="btn btn-primary" data-g-jump>চালিয়ে যান {% icon "arrow-right" class="h-4 w-4" %}</a>
+            {% elif outline.is_complete %}
+              <a href="#{{ outline.steps.0.section.anchor }}" class="btn btn-primary" data-g-jump>আবার দেখুন {% icon "rotate-ccw" class="h-4 w-4" %}</a>
+            {% else %}
+              <a href="#{{ outline.steps.0.section.anchor }}" class="btn btn-primary" data-g-jump>শুরু করুন {% icon "arrow-right" class="h-4 w-4" %}</a>
+            {% endif %}
+            <a href="{{ step_mode_url }}" class="btn btn-secondary">{% icon "footprints" class="h-4 w-4" %} ধাপে ধাপে দেখুন</a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% if is_staff %}
+    <div class="g-staff-row" lang="en">
+      <span class="font-mono text-[10.5px] tracking-[0.14em] text-slate-400 uppercase">Staff</span>
+      {% if guide.source_url %}<a href="{{ guide.source_url }}" target="_blank" rel="noopener noreferrer" class="g-staff-link">{% icon "file-text" class="h-3.5 w-3.5" %} Original document</a>{% endif %}
+      {% if can_edit %}<a href="{% url 'guides:manage_edit' guide.pk %}" class="g-staff-link">{% icon "pencil" class="h-3.5 w-3.5" %} Edit guide</a>{% endif %}
+      <a href="{% url 'guides:manage_progress' guide.pk %}" class="g-staff-link">{% icon "bar-chart-3" class="h-3.5 w-3.5" %} Progress</a>
+    </div>
+    {% endif %}
+  </header>
+
+  {% if outline.steps %}
+  {# ── Mobile: sticky bar with the current section, opens the TOC drawer ── #}
+  <div class="g-mbar">
+    <button type="button" class="g-mbar-btn" data-g-drawer-open aria-controls="g-toc" aria-expanded="false">
+      <span class="g-mbar-icon">{% icon "list-tree" class="h-4 w-4" %}</span>
+      <span class="min-w-0 flex-1 text-left">
+        <span class="block text-[11px] leading-4 text-slate-500" data-g-mbar-eyebrow>অধ্যায় {{ outline.sections.0.label }}</span>
+        <span class="block truncate text-sm leading-5 font-semibold text-slate-900" data-g-mbar-title>{{ outline.sections.0.obj.title }}</span>
+      </span>
+      <span class="g-mbar-count"><span data-g-done-count>{{ outline.done_count|bn }}</span>/{{ outline.total|bn }}</span>
+      {% icon "chevron-down" class="h-4 w-4 shrink-0 text-slate-400" %}
+    </button>
+  </div>
+
+  <div class="g-layout">
+    <aside id="g-toc" class="g-drawer g-drawer-lg-static" aria-label="সূচিপত্র" data-g-drawer>
+      <div class="g-toc">{% include "guides/_toc.html" with mode="doc" %}</div>
+    </aside>
+
+    <div class="g-main" data-g-main>
+      {% for sec in outline.sections %}
+      <section id="{{ sec.anchor }}" class="g-section" aria-labelledby="sec-h-{{ sec.anchor }}" tabindex="-1">
+        {% include "guides/_section_head.html" with mode="doc" %}
+        <div class="g-steps">
+          {% for node in sec.steps %}{% include "guides/_step.html" with mode="doc" %}{% endfor %}
+        </div>
+      </section>
+      {% endfor %}
+
+      <section id="g-finish" class="g-finish card" tabindex="-1" aria-label="গাইড শেষ">
+        <div class="flex flex-col items-center gap-3 px-6 py-10 text-center" data-g-finish-done{% if not outline.is_complete %} hidden{% endif %}>
+          <span class="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 ring-1 ring-emerald-100">{% icon "party-popper" class="h-7 w-7" %}</span>
+          <h2 class="text-xl font-semibold">অভিনন্দন! পুরো গাইডটি শেষ করেছেন।</h2>
+          <p class="max-w-md text-[15px] text-slate-600">কাজের সময় কোনো নিয়ম মনে না পড়লে আবার এখানে এসে দেখে নিন — সূচিপত্র থেকে সরাসরি যেকোনো ধাপে যাওয়া যায়।</p>
+          <a href="{{ list_url }}" class="btn btn-secondary mt-2">{% icon "arrow-left" class="h-4 w-4" %} সব গাইড</a>
+        </div>
+        <div class="flex flex-col items-center gap-3 px-6 py-10 text-center" data-g-finish-todo{% if outline.is_complete %} hidden{% endif %}>
+          <span class="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-500">{% icon "flag" class="h-7 w-7" %}</span>
+          <h2 class="text-xl font-semibold">গাইডের শেষে পৌঁছেছেন</h2>
+          <p class="max-w-md text-[15px] text-slate-600">এখনো <strong data-g-remaining>{{ outline.remaining_count|bn }}</strong>টি ধাপে “বুঝেছি” দেওয়া বাকি। প্রতিটি ধাপ বুঝে নিলে তবেই গাইড সম্পন্ন হবে।</p>
+          <a href="#{% if outline.first_unread %}{{ outline.first_unread.anchor }}{% endif %}" class="btn btn-primary mt-2" data-g-first-unread>প্রথম বাকি ধাপে যান {% icon "arrow-right" class="h-4 w-4" %}</a>
+        </div>
+      </section>
+    </div>
+  </div>
+  <div class="g-backdrop" data-g-backdrop hidden></div>
+  {% else %}
+  <div class="card mt-6">{% include "components/empty_state.html" with icon="book-open" title="এই গাইডে এখনো কোনো ধাপ নেই" text="শীঘ্রই এখানে ধাপে ধাপে নির্দেশনা যোগ করা হবে।" %}</div>
+  {% endif %}
+  <div class="g-toast" role="status" aria-live="polite" data-g-toast hidden></div>
+</div>
+{% endblock %}
+{% block page_scripts %}<script src="{% static 'js/guides.js' %}" defer></script>{% endblock %}

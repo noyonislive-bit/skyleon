@@ -166,7 +166,7 @@ class Command(BaseCommand):
         Guideline.objects.create(project=rtl, order=1, title="Bounding box rules", content="- Boxes must be **tight** to visible product edges.\n- Label occluded products if >30% visible.\n- Use class `unknown_product` only after checking the catalogue.")
 
         cat = self.categories
-        t_intro = Tutorial.objects.create(title="Welcome to Skyleon — how we work", category=cat["Getting started"], cadence=Cadence.ONBOARDING,
+        t_intro = Tutorial.objects.create(title="Welcome to Skyloon AI — how we work", category=cat["Getting started"], cadence=Cadence.ONBOARDING,
                                           description="Company introduction, confidentiality rules and how the portal works.", video=self.video("welcome", 30), created_by=admin)
         t_seg = Tutorial.objects.create(title="Action segmentation fundamentals", project=act, category=cat["Annotation techniques"], cadence=Cadence.ONBOARDING,
                                         description="How to find action boundaries, handle transitions and avoid over-segmentation.", video=self.video("segmentation", 45, "0x4338ca"), created_by=trainer)

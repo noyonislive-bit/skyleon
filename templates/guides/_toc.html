@@ -1,0 +1,50 @@
+{% load guides_tags %}{% comment %}
+  Table of contents. Context: guide, outline, mode ("doc" = links to #anchors on this page, "step" = links to step pages), current (step node, step mode).
+{% endcomment %}
+<div class="g-toc-head">
+  <div class="flex items-center justify-between gap-2">
+    <p class="g-toc-title" id="g-toc-title">{% icon "list-tree" class="h-4 w-4" %} সূচিপত্র</p>
+    <button type="button" class="g-icon-btn g-drawer-close" data-g-drawer-close aria-label="সূচিপত্র বন্ধ করুন">{% icon "x" class="h-4 w-4" %}</button>
+  </div>
+  <div class="mt-3">
+    <div class="progress h-1.5" role="progressbar" aria-label="গাইডের অগ্রগতি" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ outline.percent }}" data-g-progress>
+      <div class="progress-bar{% if outline.is_complete %} is-complete{% endif %}" style="width: {{ outline.percent }}%" data-g-progress-bar></div>
+    </div>
+    <p class="mt-1.5 text-xs text-slate-500"><span class="font-semibold text-slate-700" data-g-done-count>{{ outline.done_count|bn }}</span> / {{ outline.total|bn }} ধাপ সম্পন্ন</p>
+  </div>
+  {% if mode == "doc" %}
+  <div class="relative mt-3">
+    <span class="pointer-events-none absolute inset-y-0 left-2.5 flex items-center text-slate-400">{% icon "search" class="h-3.5 w-3.5" %}</span>
+    <input type="search" class="g-toc-search" placeholder="গাইডে খুঁজুন…" aria-label="গাইডে খুঁজুন" autocomplete="off" data-g-search>
+  </div>
+  <p class="mt-1.5 text-xs text-slate-500" data-g-search-status aria-live="polite" hidden></p>
+  {% endif %}
+</div>
+<nav class="g-toc-scroll" aria-labelledby="g-toc-title" data-g-toc-scroll>
+  <ol class="g-toc-list">
+    {% for sec in outline.sections %}
+    <li class="g-toc-sec" data-g-toc-sec="{{ sec.anchor }}">
+      <a href="{% if mode == 'doc' %}#{{ sec.anchor }}{% else %}{% url 'guides:step' guide.slug sec.anchor %}{% endif %}" class="g-toc-link is-section" data-g-link="{{ sec.anchor }}" data-done="{{ sec.is_done|yesno:'true,false' }}"{% if mode == 'step' and current.section == sec %} data-g-current-section{% endif %}>
+        <span class="g-toc-num">{{ sec.label }}</span>
+        <span class="g-toc-text" data-g-toc-text>{{ sec.obj.title }}</span>
+        <span class="g-toc-count" data-g-sec-count="{{ sec.anchor }}" data-total="{{ sec.steps|length }}">{{ sec.done_count|bn }}/{{ sec.steps|length|bn }}</span>
+      </a>
+      {% if sec.steps %}
+      <ol class="g-toc-steps">
+        {% for st in sec.steps %}
+        <li>
+          <a href="{% if mode == 'doc' %}#{{ st.anchor }}{% else %}{% url 'guides:step' guide.slug st.anchor %}{% endif %}" class="g-toc-link is-step" data-g-link="{{ st.anchor }}" data-g-step-id="{{ st.obj.pk }}" data-done="{{ st.done|yesno:'true,false' }}"{% if mode == 'step' and current == st %} aria-current="page"{% endif %}>
+            <span class="g-toc-num">{{ st.label }}</span>
+            <span class="g-toc-text" data-g-toc-text>{{ st.obj.title }}</span>
+            <span class="g-toc-check" aria-hidden="true">{% icon "check" class="h-2.5 w-2.5" stroke_width="3.5" %}</span>
+            <span class="sr-only" data-g-sr-done>{% if st.done %} (পড়া হয়েছে){% endif %}</span>
+          </a>
+        </li>
+        {% endfor %}
+      </ol>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ol>
+  {% if mode == "doc" %}<p class="px-2 py-6 text-center text-sm text-slate-500" data-g-search-empty hidden>কিছু পাওয়া যায়নি।</p>{% endif %}
+</nav>

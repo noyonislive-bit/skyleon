@@ -78,7 +78,7 @@ SERVICES = [
         "project_type": "Image annotation",
         "visual": "image",
         "short": "Bounding boxes, polygons, segmentation masks and keypoints for still images.",
-        "title": "Image Annotation Services — Boxes, Polygons, Segmentation & Keypoints",
+        "title": "Image Annotation Services — Boxes, Polygons & Masks",
         "meta": (
             "Image annotation services: bounding boxes, polygons, semantic and instance segmentation, keypoints, "
             "cuboids and classification — delivered by trained teams with multi-layer QA."
@@ -146,7 +146,7 @@ SERVICES = [
         "project_type": "Video annotation",
         "visual": "video",
         "short": "Object tracking, temporal segmentation and frame-by-frame labels for video.",
-        "title": "Video Annotation Services — Tracking, Segmentation & Temporal Labels",
+        "title": "Video Annotation Services — Tracking & Temporal Labels",
         "meta": (
             "Video annotation services: object and multi-object tracking, video and action segmentation, temporal "
             "and frame-by-frame annotation, event detection and human activity labels with layered QA."
@@ -216,7 +216,7 @@ SERVICES = [
         "visual": "action",
         "badge": "Current major project area",
         "short": "Hand movements, object interactions and human actions segmented on the timeline.",
-        "title": "Action & Activity Annotation — Hand Movement, Object Interaction & Human Actions",
+        "title": "Action & Activity Annotation for Video Datasets",
         "meta": (
             "Action and activity annotation for video: hand movement, object interaction, pick up / put down, "
             "open / close, move / place, human actions and action-based video segmentation."
@@ -288,7 +288,7 @@ SERVICES = [
         "project_type": "Action description",
         "visual": "description",
         "short": "Structured Hand + Action + Object descriptions aligned to each action segment.",
-        "title": "Action Description Annotation — Structured Hand + Action + Object Video Descriptions",
+        "title": "Action Description Annotation — Hand + Action + Object",
         "meta": (
             "Structured action descriptions for video datasets: Hand + Action + Object sentences such as "
             "“Right hand picks up a cup.”, aligned to segments, with consistency rules and description QA."
@@ -363,7 +363,7 @@ SERVICES = [
         "project_type": "Text annotation",
         "visual": "text",
         "short": "Classification, intent, entities and sentiment for NLP datasets.",
-        "title": "Text Annotation Services — Classification, Intent, NER & Sentiment",
+        "title": "Text Annotation Services — Intent, NER & Sentiment",
         "meta": (
             "Text annotation services: text and intent classification, named entity annotation, sentiment "
             "annotation, categorisation and NLP dataset preparation with structured QA."
@@ -427,7 +427,7 @@ SERVICES = [
         "project_type": "OCR / document annotation",
         "visual": "ocr",
         "short": "Text detection, transcription, layout and form labels for document AI.",
-        "title": "OCR & Document Annotation — Text Detection, Transcription & Form Labeling",
+        "title": "OCR & Document Annotation Services",
         "meta": (
             "OCR and document annotation: text detection, OCR transcription, document structure and layout, "
             "form and key-value labeling and handwritten text annotation with QA."
@@ -592,7 +592,7 @@ SOLUTION_PAGES = [
         "icon": "sparkles",
         "visual": "workspace",
         "project_type": "",
-        "title": "AI Data Annotation Services for Image, Video, Text & Documents",
+        "title": "AI Data Annotation Services — Image, Video & Text",
         "meta": (
             "Outsource AI data annotation to a structured team: image, video, action, text and document annotation "
             "with layered review and QA, delivered in the format your pipeline needs."
@@ -644,7 +644,7 @@ SOLUTION_PAGES = [
         "icon": "clapperboard",
         "visual": "video",
         "project_type": "Video annotation",
-        "title": "Outsource Video Annotation — Tracking, Segmentation & Action Labels",
+        "title": "Outsource Video Annotation — Tracking & Action Labels",
         "meta": (
             "Outsource video annotation to a trained team: object tracking, video segmentation, action and event "
             "labels with frame-accurate review. Learn how we scope and deliver video projects."
@@ -696,7 +696,7 @@ SOLUTION_PAGES = [
         "icon": "scan",
         "visual": "image",
         "project_type": "Image annotation",
-        "title": "Outsource Image Annotation — Bounding Boxes, Polygons & Masks",
+        "title": "Outsource Image Annotation — Boxes, Polygons & Masks",
         "meta": (
             "Outsource image annotation to a dedicated team: bounding boxes, polygons, segmentation masks, "
             "keypoints and classification, with pilot-first onboarding and layered QA."
@@ -802,7 +802,7 @@ SOLUTION_PAGES = [
         "icon": "activity",
         "visual": "action",
         "project_type": "Action & activity annotation",
-        "title": "Action Recognition Dataset Annotation — Labels, Segments & Descriptions",
+        "title": "Action Recognition Dataset Annotation",
         "meta": (
             "Annotation for action recognition datasets: action classes, temporal segments, hand-object "
             "interactions and structured descriptions, with consistency-focused QA."
@@ -856,7 +856,7 @@ SOLUTION_PAGES = [
         "icon": "scan-eye",
         "visual": "detection",
         "project_type": "",
-        "title": "Computer Vision Annotation — Detection, Segmentation, Pose & Tracking",
+        "title": "Computer Vision Annotation — Detection, Pose & Tracking",
         "meta": (
             "Computer vision annotation for detection, segmentation, pose estimation, tracking and action "
             "recognition — annotated datasets to support model training, evaluation and improvement."
@@ -960,7 +960,7 @@ SOLUTION_PAGES = [
         "icon": "database",
         "visual": "workspace",
         "project_type": "",
-        "title": "AI Training Data Annotation — From Raw Data to Validated Datasets",
+        "title": "AI Training Data — Annotated & Validated Datasets",
         "meta": (
             "Turn raw images, video, text and documents into validated AI training data. Annotation, review and QA "
             "to support training, evaluation and improvement of AI models."
@@ -1012,7 +1012,7 @@ SOLUTION_PAGES = [
         "icon": "person-standing",
         "visual": "pose",
         "project_type": "Action & activity annotation",
-        "title": "Human Activity Annotation — Actions, Poses & Interactions in Video",
+        "title": "Human Activity Annotation — Actions, Poses & Interactions",
         "meta": (
             "Human activity annotation for video: activity classes, temporal segments, pose keypoints and "
             "human-object interactions for activity recognition datasets."
@@ -1064,7 +1064,7 @@ SOLUTION_PAGES = [
         "icon": "bot",
         "visual": "timeline",
         "project_type": "Action & activity annotation",
-        "title": "Robotic Task Annotation — Manipulation, Task Segmentation & Hand-Object Actions",
+        "title": "Robotic Task Annotation for Robot Learning Datasets",
         "meta": (
             "Robotic task annotation for robot learning datasets: task and sub-task segmentation, manipulation "
             "actions, hand-object interaction, keypoints and structured action descriptions."

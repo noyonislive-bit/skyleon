@@ -1,0 +1,75 @@
+{% load guides_tags %}{% comment %}
+  One step card. Context: node (StepNode), guide, mode ("doc" | "step").
+  Layout: header → [VIDEO panel | DESCRIPTION panel] (side by side when the card is wide, stacked otherwise) → footer (doc mode).
+{% endcomment %}{% with st=node.obj video=node.video %}
+<article id="{{ node.anchor }}" class="g-step card{% if node.done %} is-done{% endif %}" data-g-spy="{{ node.anchor }}" data-g-step="{{ st.pk }}" aria-labelledby="h-{{ node.anchor }}" tabindex="-1">
+  <header class="g-step-head">
+    <span class="g-step-num" aria-hidden="true">{{ node.label }}</span>
+    <div class="min-w-0 flex-1">
+      <p class="g-step-eyebrow">ধাপ {{ node.label }}<span class="text-slate-300"> · </span>{% icon "clock" class="h-3 w-3" %} প্রায় {{ node.minutes|bn }} মিনিট</p>
+      <h3 id="h-{{ node.anchor }}" class="g-step-title"><span class="sr-only">ধাপ {{ node.label }}: </span>{{ st.title }}</h3>
+    </div>
+    <div class="g-step-tools">
+      <span class="g-done-chip" data-g-done-chip{% if not node.done %} hidden{% endif %}>{% icon "check" class="h-3.5 w-3.5" stroke_width="2.5" %}<span class="hidden sm:inline">পড়া হয়েছে</span></span>
+      {% if mode == "doc" %}<a href="#{{ node.anchor }}" class="g-icon-btn" data-g-copy-link title="এই ধাপের লিংক কপি করুন" aria-label="এই ধাপের লিংক কপি করুন">{% icon "link" class="h-4 w-4" %}</a>{% endif %}
+    </div>
+  </header>
+
+  <div class="g-step-grid{% if video %} has-video{% endif %}">
+    {% if video %}
+    <section class="g-step-video" aria-label="ভিডিও">
+      <div class="g-step-video-inner">
+        <p class="g-panel-label is-dark">{% icon "circle-play" class="h-3.5 w-3.5" %} ভিডিও</p>
+        {% guide_video video title=st.title caption=st.video_caption %}
+      </div>
+    </section>
+    {% endif %}
+    <section class="g-step-desc" aria-label="বিবরণ">
+      {% if video %}<p class="g-panel-label">{% icon "text" class="h-3.5 w-3.5" %} বিবরণ</p>{% endif %}
+      {% if st.body %}<div class="prose-content g-prose">{{ st.body|guide_md }}</div>{% endif %}
+      {% if st.actions %}
+      <div class="g-actions">
+        <p class="g-actions-title">{% icon "keyboard" class="h-4 w-4" %} কোন বোতামে কী হয়</p>
+        <table class="g-actions-table">
+          <thead class="sr-only"><tr><th scope="col">বোতাম বা কী</th><th scope="col">কী হয়</th></tr></thead>
+          <tbody>
+            {% for a in st.actions %}
+            <tr>
+              <th scope="row"><span class="g-keys">{% action_key a %}</span></th>
+              <td>{% if a.label_bn %}<p class="g-act-label">{{ a.label_bn }}</p>{% endif %}{% if a.description_bn %}<p class="g-act-desc">{{ a.description_bn }}</p>{% endif %}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% endif %}
+      {% if st.body_en %}
+      <details class="g-en">
+        <summary>{% icon "languages" class="h-4 w-4" %}<span class="g-en-open">মূল ইংরেজি দেখুন</span><span class="g-en-close">মূল ইংরেজি লুকান</span>{% icon "chevron-down" class="g-en-chev h-4 w-4" %}</summary>
+        <div class="prose-content g-en-body" lang="en">{{ st.body_en|markdown }}</div>
+      </details>
+      {% endif %}
+      {% if not st.body and not st.actions and not st.body_en and not video %}<p class="text-sm text-slate-500">এই ধাপের বিবরণ এখনো যোগ করা হয়নি।</p>{% endif %}
+    </section>
+  </div>
+
+  {% if mode == "doc" %}
+  <footer class="g-step-foot">
+    <form method="post" action="{% url 'guides:done' st.pk %}" data-g-done-form>
+      {% csrf_token %}
+      <input type="hidden" name="done" value="{{ node.done|yesno:'0,1' }}" data-g-done-input>
+      <input type="hidden" name="next" value="{{ guide.get_absolute_url }}#{% if node.next %}{{ node.next.anchor }}{% else %}g-finish{% endif %}">
+      <button type="submit" class="btn g-done-btn" aria-pressed="{{ node.done|yesno:'true,false' }}" data-g-done-btn>
+        <span class="g-when-todo">{% icon "check" class="h-4 w-4" stroke_width="2.5" %} বুঝেছি</span>
+        <span class="g-when-done">{% icon "circle-check" class="h-4 w-4" %} বুঝেছি<span class="hidden sm:inline"> · পড়া হয়েছে</span></span>
+      </button>
+    </form>
+    {% if node.next %}
+      <a href="#{{ node.next.anchor }}" class="g-next-link" data-g-next="{{ node.next.anchor }}">পরের ধাপ<span class="hidden sm:inline"> {{ node.next.label }}</span> {% icon "arrow-right" class="h-4 w-4" %}</a>
+    {% else %}
+      <a href="#g-finish" class="g-next-link" data-g-next="g-finish">গাইড শেষ {% icon "flag" class="h-4 w-4" %}</a>
+    {% endif %}
+  </footer>
+  {% endif %}
+</article>
+{% endwith %}

@@ -23,7 +23,7 @@ from apps.core import audit
 from apps.core.choices import ContentStatus
 from apps.feedback.models import Feedback, FeedbackRecipient
 from apps.feedback.services import add_recipients
-from apps.projects.models import MemberRole, Project, ProjectMember
+from apps.projects.models import MemberRole, Project, ProjectMember, Team
 from apps.projects.services import add_member, qualify_member, remove_member
 from apps.training.models import Tutorial, TutorialProgress
 from apps.training.services import assign_tutorial, onboarding_for_user
@@ -156,8 +156,12 @@ def employee_detail(request, pk):
         "application": _application(employee) if has_permission(user, "applicants.manage") else None,
         "now": timezone.now(),
     }
+    teams_by_project = {}
+    for t in Team.objects.filter(project_id__in=[m.project_id for m in memberships]).order_by("name"):
+        teams_by_project.setdefault(t.project_id, []).append((t.pk, t.name))
     for m in memberships:
         m.form = MemberUpdateForm(initial={"role": m.role, "team": m.team_id}, project=m.project, prefix=f"m{m.pk}")
+        m.form.fields["team"].widget.choices = [("", "No team")] + teams_by_project.get(m.project_id, [])
         m.can_manage = can_projects and can_manage_project(user, m.project)
 
     if can_projects:

@@ -1,4 +1,4 @@
-# Skyleon — architecture & conventions
+# Skyloon AI — architecture & conventions
 
 This document is the source of truth for how the codebase is organised. Read it
 before adding features.

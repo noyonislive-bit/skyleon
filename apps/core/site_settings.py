@@ -9,8 +9,8 @@ from django.core.cache import cache
 from .models import SiteSetting
 
 BRAND = {
-    "name": "Skyleon",
-    "legal_name": "Skyleon AI Data Services",
+    "name": "Skyloon AI",
+    "legal_name": "Skyloon AI",
     "tagline": "AI Data Annotation & Video Data Services",
     "description": (
         "Reliable image, video, text and multimodal annotation services powered by skilled teams, "
@@ -19,8 +19,8 @@ BRAND = {
 }
 
 DEFAULT_COMPANY = {
-    "email": "hello@skyleon.ai",
-    "careers_email": "careers@skyleon.ai",
+    "email": "hello@skyloon.ai",
+    "careers_email": "careers@skyloon.ai",
     "phone": "",
     "whatsapp": "",
     "address": "",

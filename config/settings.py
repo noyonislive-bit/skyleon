@@ -1,5 +1,5 @@
 """
-Django settings for the Skyleon website + employee portal.
+Django settings for the Skyloon AI website + employee portal.
 
 All deployment-specific values come from environment variables, normally
 provided through a `.env` file in the project root (see `.env.example`).
@@ -248,7 +248,7 @@ EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", "")
 EMAIL_USE_SSL = env_bool("EMAIL_USE_SSL", EMAIL_PORT == 465)
 EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", EMAIL_PORT == 587)
 EMAIL_TIMEOUT = env_int("EMAIL_TIMEOUT", 15)
-DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", "Skyleon <no-reply@localhost>")
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", "Skyloon AI <no-reply@localhost>")
 SERVER_EMAIL = DEFAULT_FROM_EMAIL
 # Send queued emails within the request (True) or leave them for the cron job (False).
 EMAIL_SEND_IMMEDIATELY = env_bool("EMAIL_SEND_IMMEDIATELY", True)

@@ -923,6 +923,9 @@
   .h-\[3px\] {
     height: 3px;
   }
+  .h-\[4\.5rem\] {
+    height: 4.5rem;
+  }
   .h-\[18px\] {
     height: 18px;
   }
@@ -1084,6 +1087,9 @@
   }
   .w-64 {
     width: calc(var(--spacing) * 64);
+  }
+  .w-\[4\.5rem\] {
+    width: 4.5rem;
   }
   .w-\[8\%\] {
     width: 8%;
@@ -1401,6 +1407,9 @@
   }
   .flex-wrap {
     flex-wrap: wrap;
+  }
+  .content-start {
+    align-content: flex-start;
   }
   .items-center {
     align-items: center;
@@ -2671,6 +2680,10 @@
   .text-\[17px\] {
     font-size: 17px;
   }
+  .leading-4 {
+    --tw-leading: calc(var(--spacing) * 4);
+    line-height: calc(var(--spacing) * 4);
+  }
   .leading-5 {
     --tw-leading: calc(var(--spacing) * 5);
     line-height: calc(var(--spacing) * 5);
@@ -3338,6 +3351,10 @@
     @supports (color: color-mix(in lab, red, red)) {
       --tw-ring-color: color-mix(in oklab, var(--color-white) 70%, transparent);
     }
+  }
+  .outline {
+    outline-style: var(--tw-outline-style);
+    outline-width: 1px;
   }
   .blur-3xl {
     --tw-blur: blur(var(--blur-3xl));
@@ -4136,6 +4153,9 @@
     }
     .lg\:grid-cols-\[minmax\(0\,1fr\)_22rem\] {
       grid-template-columns: minmax(0,1fr) 22rem;
+    }
+    .lg\:grid-cols-\[minmax\(0\,1fr\)_24rem\] {
+      grid-template-columns: minmax(0,1fr) 24rem;
     }
     .lg\:flex-col {
       flex-direction: column;
@@ -7774,6 +7794,11 @@
   inherits: false;
   initial-value: 0 0 #0000;
 }
+@property --tw-outline-style {
+  syntax: "*";
+  inherits: false;
+  initial-value: solid;
+}
 @property --tw-blur {
   syntax: "*";
   inherits: false;
@@ -7867,11 +7892,6 @@
   syntax: "*";
   inherits: false;
 }
-@property --tw-outline-style {
-  syntax: "*";
-  inherits: false;
-  initial-value: solid;
-}
 @keyframes spin {
   to {
     transform: rotate(360deg);
@@ -7954,6 +7974,7 @@
       --tw-ring-offset-width: 0px;
       --tw-ring-offset-color: #fff;
       --tw-ring-offset-shadow: 0 0 #0000;
+      --tw-outline-style: solid;
       --tw-blur: initial;
       --tw-brightness: initial;
       --tw-contrast: initial;
@@ -7977,7 +7998,6 @@
       --tw-backdrop-saturate: initial;
       --tw-backdrop-sepia: initial;
       --tw-duration: initial;
-      --tw-outline-style: solid;
     }
   }
 }

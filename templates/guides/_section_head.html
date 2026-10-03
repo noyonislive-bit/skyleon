@@ -1,0 +1,12 @@
+{% load guides_tags %}{% comment %} Section header. Context: sec (SectionNode), mode ("doc" adds the scrollspy hook). {% endcomment %}
+<header class="g-sec-head"{% if mode == "doc" %} data-g-spy="{{ sec.anchor }}"{% endif %}>
+  <div class="flex items-start gap-4">
+    <span class="g-sec-num" aria-hidden="true">{{ sec.label }}</span>
+    <div class="min-w-0 flex-1">
+      <p class="g-sec-eyebrow">অধ্যায় {{ sec.label }}<span class="text-slate-300"> · </span><span data-g-sec-progress="{{ sec.anchor }}" data-total="{{ sec.steps|length }}">{{ sec.done_count|bn }}/{{ sec.steps|length|bn }} ধাপ পড়া হয়েছে</span></p>
+      <h2 id="sec-h-{{ sec.anchor }}" class="g-sec-title"><span class="sr-only">অধ্যায় {{ sec.label }}: </span>{{ sec.obj.title }}</h2>
+      {% if sec.obj.title_en %}<p class="g-sec-en" lang="en">{{ sec.obj.title_en }}</p>{% endif %}
+    </div>
+  </div>
+  {% if sec.obj.intro %}<div class="prose-content g-prose g-sec-intro">{{ sec.obj.intro|guide_md }}</div>{% endif %}
+</header>

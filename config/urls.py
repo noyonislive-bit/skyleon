@@ -1,8 +1,8 @@
 from django.contrib import admin
 from django.urls import include, path
 
-admin.site.site_header = "Skyleon — database admin"
-admin.site.site_title = "Skyleon database admin"
+admin.site.site_header = "Skyloon AI — database admin"
+admin.site.site_title = "Skyloon AI database admin"
 admin.site.index_title = "Low-level data administration (super admins only)"
 
 urlpatterns = [

@@ -61,7 +61,7 @@ def dashboard(request):
          if has_permission(user, "applicants.manage") else 0, "meta": "Careers applications to review", "icon": "briefcase",
          "url": "backoffice:applicant_list", "query": "?status=new", "show": has_permission(user, "applicants.manage")},
         {"label": "Pending approvals", "value": people["pending"], "meta": "Signups waiting for approval", "icon": "clock",
-         "url": "backoffice:employee_list", "query": "?status=pending", "show": has_permission(user, "employees.view"),
+         "url": "backoffice:employee_list", "query": "?status=pending", "show": has_permission(user, "employees.manage"),
          "tone": "warning" if people["pending"] else ""},
         {"label": "Active projects", "value": projects.filter(status=ProjectStatus.ACTIVE).count(),
          "meta": "Assigned to you" if not user.is_super_admin else "Across the company", "icon": "folder-open",
@@ -98,6 +98,7 @@ def dashboard(request):
 
     ctx = {
         "page_title": f"Good {_daypart(now)}, {user.first_name}",
+        "crumbs": [("Dashboard", None)],
         "page_subtitle": "Here's what is happening across " + ("the company" if user.is_super_admin else "your projects") + " today.",
         "tiles": tiles,
         "chart_projects": chart_projects,

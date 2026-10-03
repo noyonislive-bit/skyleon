@@ -216,10 +216,12 @@ def project_members(request, pk):
     users = [m.user for m in members]
     matrix = onboarding_matrix(project, users)
     training = training_by_user([u.pk for u in users], only_project=project)
+    team_choices = [("", "No team")] + [(t.pk, t.name) for t in project.teams.all()]
     for m in members:
         m.onboarding = matrix.get(m.user_id)
         m.training = training.get(m.user_id)
         m.form = MemberUpdateForm(initial={"role": m.role, "team": m.team_id}, project=project, prefix=f"m{m.pk}")
+        m.form.fields["team"].widget.choices = team_choices  # render without one query per row
         m.can_manage = can_edit and (m.user.role == Role.EMPLOYEE or has_permission(user, "staff.manage"))
     return render(request, "backoffice/projects/members.html", _ctx(
         request, project, "members", members=members, form=form, teams=project.teams.all(), team_filter=team_filter,

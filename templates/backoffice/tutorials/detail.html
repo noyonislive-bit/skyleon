@@ -27,81 +27,75 @@
 </div>
 {% endblock %}
 {% block content %}
-<div class="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_21rem]">
-  <div class="min-w-0 space-y-6">
-    <section class="grid grid-cols-2 gap-3 sm:grid-cols-4" aria-label="Tracking summary">
-      <div class="stat"><p class="stat-label">Completion</p><p class="stat-value !text-2xl">{% if completion is not None %}{{ completion }}%{% else %}—{% endif %}</p><div class="bo-meter mt-2{% if completion >= 100 %} is-good{% endif %}"><span style="width: {{ completion|default:0 }}%"></span></div></div>
-      <div class="stat"><p class="stat-label">Watched</p><p class="stat-value !text-2xl">{{ summary.completed }}</p><p class="stat-meta">of {{ summary.assigned }} assigned</p></div>
-      <div class="stat"><p class="stat-label">In progress</p><p class="stat-value !text-2xl">{{ summary.in_progress }}</p><p class="stat-meta">started, not finished</p></div>
-      <div class="stat"><p class="stat-label">Not started</p><p class="stat-value !text-2xl">{{ summary.not_started }}</p><p class="stat-meta">never pressed play</p></div>
-    </section>
-
-    <section class="card">
-      <div class="card-header flex-wrap">
-        <div><h2 class="card-title">Who has watched it</h2><p class="mt-0.5 text-xs text-slate-500">“Watched” = at least {{ threshold }}% of the video really played (tracked from playback, not a button).</p></div>
-      </div>
-      <form method="get" class="bo-filters" data-autosubmit>
-        {% include "backoffice/components/search.html" with value=filters.q placeholder="Employee name or ID" %}
-        <select name="status" class="select" aria-label="Status">
-          <option value="">All employees</option>
-          <option value="watched"{% if filters.status == "watched" %} selected{% endif %}>Watched</option>
-          <option value="not_watched"{% if filters.status == "not_watched" %} selected{% endif %}>Not watched</option>
-          <option value="in_progress"{% if filters.status == "in_progress" %} selected{% endif %}>In progress</option>
-          <option value="not_started"{% if filters.status == "not_started" %} selected{% endif %}>Not started</option>
-        </select>
-        {% if tutorial.project %}
-        <select name="member" class="select" aria-label="Project membership">
-          <option value="">Members &amp; others</option>
-          <option value="members"{% if filters.member == "members" %} selected{% endif %}>{{ tutorial.project.code }} members</option>
-          <option value="others"{% if filters.member == "others" %} selected{% endif %}>Not members</option>
-        </select>
-        {% if teams %}<select name="team" class="select" aria-label="Team"><option value="">All teams</option>{% for t in teams %}<option value="{{ t.pk }}"{% if filters.team == t.pk|stringformat:"s" %} selected{% endif %}>{{ t.name }}</option>{% endfor %}</select>{% endif %}
-        {% endif %}
-      </form>
-      {% if page.object_list %}
-      <div class="table-wrap">
-        <table class="table">
-          <thead><tr><th>Employee</th><th>Video</th><th>Watched</th><th>% watched</th><th>Completion date</th></tr></thead>
-          <tbody>
-          {% for p in page %}
-            <tr>
-              <td class="min-w-48">{% include "backoffice/components/person.html" with u=p.user link=True %}</td>
-              <td class="max-w-48 truncate text-xs text-slate-500">{{ tutorial.title|truncatechars:28 }}</td>
-              <td>{% if p.status == "completed" %}{% status_badge "watched" "Watched" %}{% elif p.status == "in_progress" %}{% status_badge "in_progress" "In progress" %}{% else %}{% status_badge "not_watched" "Not watched" %}{% endif %}{% if not p.assigned %}<span class="ml-1 bo-chip">self-started</span>{% endif %}</td>
-              <td class="w-44">{% include "backoffice/components/meter.html" with value=p.percent|floatformat:0|add:0 %}<p class="mt-0.5 text-[11px] text-slate-400">{{ p.watched_seconds|duration }} played{% if p.last_viewed_at %} · seen {{ p.last_viewed_at|timesince }} ago{% endif %}</p></td>
-              <td class="text-xs whitespace-nowrap">{% if p.completed_at %}{{ p.completed_at|date:"j M Y, H:i" }}{% elif p.due_at %}<span class="text-slate-500">due {{ p.due_at|date:"j M" }}</span>{% else %}<span class="bo-muted">—</span>{% endif %}</td>
-            </tr>
-          {% endfor %}
-          </tbody>
-        </table>
-      </div>
-      {% include "components/pagination.html" with page=page %}
-      {% else %}
-        {% include "components/empty_state.html" with icon="eye" title="No tracking rows" text="Rows appear when the tutorial is assigned or someone opens it." %}
-      {% endif %}
-    </section>
-
-    {% if tutorial.description %}
-    <section class="card"><div class="card-header"><h2 class="card-title">Description</h2></div><div class="card-body prose-content">{{ tutorial.description|markdown }}</div></section>
+<div class="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_24rem]">
+  <section class="grid min-w-0 grid-cols-2 content-start gap-3 sm:gap-4" aria-label="Tracking summary">
+    <div class="stat"><p class="stat-label">Completion</p><p class="stat-value">{% if completion is not None %}{{ completion }}%{% else %}—{% endif %}</p><div class="bo-meter mt-2{% if completion >= 100 %} is-good{% endif %}"><span style="width: {{ completion|default:0 }}%"></span></div><p class="stat-meta">of assigned employees</p></div>
+    <div class="stat"><p class="stat-label">Watched</p><p class="stat-value">{{ summary.completed }}</p><p class="stat-meta">of {{ summary.assigned }} assigned</p></div>
+    <div class="stat"><p class="stat-label">In progress</p><p class="stat-value">{{ summary.in_progress }}</p><p class="stat-meta">started, not finished</p></div>
+    <div class="stat"><p class="stat-label">Not started</p><p class="stat-value">{{ summary.not_started }}</p><p class="stat-meta">never pressed play</p></div>
+  </section>
+  <section class="card min-w-0 overflow-hidden">
+    {% if tutorial.video %}
+      <video controls preload="metadata" playsinline class="aspect-video w-full bg-ink-950" data-src="{% asset_url tutorial.video %}"{% if tutorial.video.is_hls %} data-hls data-hls-lib="{% static 'vendor/hls.min.js' %}"{% endif %}{% if tutorial.video.thumbnail %} poster="{% asset_url tutorial.video.thumbnail %}"{% endif %}></video>
+      <p class="px-4 py-2.5 text-xs text-slate-500"><span class="bo-num">{{ tutorial.video.duration_sec|duration }}</span>{% if tutorial.video.width %} · {{ tutorial.video.width }}×{{ tutorial.video.height }}{% endif %} · {{ tutorial.video.get_provider_display }}{% if tutorial.video.size_bytes %} · {{ tutorial.video.size_bytes|filesize_h }}{% endif %} · admin preview, not tracked</p>
+    {% else %}
+      <div class="flex aspect-video flex-col items-center justify-center gap-2 bg-slate-100 text-sm text-slate-500">{% icon "file-video" class="h-8 w-8" %}No video yet{% if can_edit %}<a href="{% url 'backoffice:tutorial_edit' tutorial.pk %}" class="bo-link">Upload one</a>{% endif %}</div>
     {% endif %}
+  </section>
+</div>
+
+<section class="card mt-6">
+  <div class="card-header flex-wrap">
+    <div><h2 class="card-title">Who has watched it</h2><p class="mt-0.5 text-xs text-slate-500">“Watched” = at least {{ threshold }}% of the video really played (tracked from playback, not a button).</p></div>
   </div>
+  <form method="get" class="bo-filters" data-autosubmit>
+    {% include "backoffice/components/search.html" with value=filters.q placeholder="Employee name or ID" %}
+    <select name="status" class="select" aria-label="Status">
+      <option value="">All employees</option>
+      <option value="watched"{% if filters.status == "watched" %} selected{% endif %}>Watched</option>
+      <option value="not_watched"{% if filters.status == "not_watched" %} selected{% endif %}>Not watched</option>
+      <option value="in_progress"{% if filters.status == "in_progress" %} selected{% endif %}>In progress</option>
+      <option value="not_started"{% if filters.status == "not_started" %} selected{% endif %}>Not started</option>
+    </select>
+    {% if tutorial.project %}
+    <select name="member" class="select" aria-label="Project membership">
+      <option value="">Members &amp; others</option>
+      <option value="members"{% if filters.member == "members" %} selected{% endif %}>{{ tutorial.project.code }} members</option>
+      <option value="others"{% if filters.member == "others" %} selected{% endif %}>Not members</option>
+    </select>
+    {% if teams %}<select name="team" class="select" aria-label="Team"><option value="">All teams</option>{% for t in teams %}<option value="{{ t.pk }}"{% if filters.team == t.pk|stringformat:"s" %} selected{% endif %}>{{ t.name }}</option>{% endfor %}</select>{% endif %}
+    {% endif %}
+  </form>
+  {% if page.object_list %}
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>Employee</th><th>Video</th><th>Watched</th><th>% watched</th><th>Completion date</th><th>Assigned</th></tr></thead>
+      <tbody>
+      {% for p in page %}
+        <tr>
+          <td class="min-w-48">{% include "backoffice/components/person.html" with u=p.user link=True %}</td>
+          <td class="max-w-56 truncate text-xs text-slate-500" title="{{ tutorial.title }}">{{ tutorial.title }}</td>
+          <td>{% if p.status == "completed" %}{% status_badge "watched" "Watched" %}{% elif p.status == "in_progress" %}{% status_badge "in_progress" "In progress" %}{% else %}{% status_badge "not_watched" "Not watched" %}{% endif %}{% if not p.assigned %}<span class="ml-1 bo-chip">self-started</span>{% endif %}</td>
+          <td class="w-48">{% include "backoffice/components/meter.html" with value=p.percent|floatformat:0|add:0 %}<p class="mt-0.5 text-[11px] text-slate-400">{{ p.watched_seconds|duration }} played{% if p.last_viewed_at %} · seen {{ p.last_viewed_at|timesince }} ago{% endif %}</p></td>
+          <td class="text-xs whitespace-nowrap">{% if p.completed_at %}<span class="font-medium text-slate-800">{{ p.completed_at|date:"j M Y, H:i" }}</span>{% else %}<span class="bo-muted">—</span>{% endif %}</td>
+          <td class="text-xs whitespace-nowrap text-slate-500">{{ p.assigned_at|date:"j M Y" }}{% if p.due_at %}<span class="block">due {{ p.due_at|date:"j M" }}</span>{% endif %}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% include "components/pagination.html" with page=page %}
+  {% else %}
+    {% include "components/empty_state.html" with icon="eye" title="No tracking rows" text="Rows appear when the tutorial is assigned or someone opens it." %}
+  {% endif %}
+</section>
 
-  <aside class="min-w-0 space-y-6">
-    <section class="card overflow-hidden">
-      {% if tutorial.video %}
-        <video controls preload="metadata" playsinline class="aspect-video w-full bg-ink-950" data-src="{% asset_url tutorial.video %}"{% if tutorial.video.is_hls %} data-hls data-hls-lib="{% static 'vendor/hls.min.js' %}"{% endif %}{% if tutorial.video.thumbnail %} poster="{% asset_url tutorial.video.thumbnail %}"{% endif %}></video>
-        <dl class="bo-kv card-body !grid-cols-2 !gap-y-3">
-          <div><dt>Length</dt><dd class="bo-num">{{ tutorial.video.duration_sec|duration }}</dd></div>
-          <div><dt>Resolution</dt><dd class="bo-num">{% if tutorial.video.width %}{{ tutorial.video.width }}×{{ tutorial.video.height }}{% else %}—{% endif %}</dd></div>
-          <div><dt>Stored in</dt><dd>{{ tutorial.video.get_provider_display }}</dd></div>
-          <div><dt>Size</dt><dd class="bo-num">{{ tutorial.video.size_bytes|filesize_h }}</dd></div>
-        </dl>
-        <p class="border-t border-slate-100 px-5 py-3 text-xs text-slate-500">Admin preview — playback here is not tracked.</p>
-      {% else %}
-        <div class="flex aspect-video flex-col items-center justify-center gap-2 bg-slate-100 text-sm text-slate-500">{% icon "file-video" class="h-8 w-8" %}No video yet{% if can_edit %}<a href="{% url 'backoffice:tutorial_edit' tutorial.pk %}" class="bo-link">Upload one</a>{% endif %}</div>
-      {% endif %}
-    </section>
-
+<div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_24rem]">
+  <section class="card min-w-0">
+    <div class="card-header"><h2 class="card-title">Description</h2></div>
+    <div class="card-body">{% if tutorial.description %}<div class="prose-content">{{ tutorial.description|markdown }}</div>{% else %}<p class="text-sm text-slate-500">No description.</p>{% endif %}</div>
+  </section>
+  <div class="min-w-0">
     {% if assign_form and assign_form.fields.users.queryset.exists %}
     <form method="post" action="{% url 'backoffice:tutorial_assign' tutorial.pk %}" class="card card-body space-y-4">{% csrf_token %}
       <div><h2 class="bo-section">Assign to employees</h2><p class="mt-1 text-xs text-slate-500">{% if tutorial.project %}Members of {{ tutorial.project.code }} who don't have it yet.{% else %}Active employees who don't have it yet.{% endif %} They get an in-app notification and an email.</p></div>
@@ -114,6 +108,6 @@
     {% elif can_edit and not tutorial.is_published %}
     <div class="alert alert-info">{% icon "info" class="mt-0.5 h-4 w-4 shrink-0" %}<p>Publish the tutorial to assign it to specific employees.</p></div>
     {% endif %}
-  </aside>
+  </div>
 </div>
 {% endblock %}

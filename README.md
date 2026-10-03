@@ -1,4 +1,4 @@
-# Skyleon — AI Data Annotation website & employee training portal
+# Skyloon AI — AI Data Annotation website & employee training portal
 
 One web application with three areas:
 

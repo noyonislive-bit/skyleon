@@ -1,0 +1,40 @@
+{% load static guides_tags %}{% comment %}
+  Player for an embed_info() dict — the ORIGINAL link, embedded, never re-hosted.
+  Context: info, title, caption, compact (admin preview).
+{% endcomment %}{% if info %}
+<figure class="g-player-wrap">
+  {% if info.kind == "iframe" %}
+    <div class="g-player">
+      <iframe src="{{ info.src }}" title="{{ title|default:'ভিডিও' }}" loading="lazy" allow="{{ info.allow }}" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>
+    </div>
+  {% elif info.kind == "video" %}
+    <div class="g-player">
+      <video controls preload="metadata" playsinline src="{{ info.src }}"{% if info.start %} data-start="{{ info.start }}"{% endif %} aria-label="{{ title|default:'ভিডিও' }}">
+        <a href="{{ info.original }}" target="_blank" rel="noopener noreferrer">ভিডিওটি খুলুন</a>
+      </video>
+    </div>
+  {% elif info.kind == "hls" %}
+    <div class="g-player">
+      <video controls preload="none" playsinline data-hls-src="{{ info.src }}" data-hls-lib="{% static 'vendor/hls.min.js' %}"{% if info.start %} data-start="{{ info.start }}"{% endif %} aria-label="{{ title|default:'ভিডিও' }}"></video>
+    </div>
+  {% else %}
+    <div class="g-player g-player-link">
+      <div class="flex flex-col items-center gap-3 px-6 text-center">
+        <span class="flex h-12 w-12 items-center justify-center rounded-full bg-white/10 text-accent-300">{% icon "monitor-play" class="h-6 w-6" %}</span>
+        <p class="text-sm text-slate-300">এই ভিডিওটি এখানে চালানো যাচ্ছে না — মূল জায়গায় খুলে দেখুন।</p>
+        <a href="{{ info.original }}" target="_blank" rel="noopener noreferrer" class="btn btn-white btn-sm">{% icon "external-link" class="h-4 w-4" %} ভিডিওটি খুলুন{% if info.host %} · {{ info.host }}{% endif %}</a>
+      </div>
+    </div>
+  {% endif %}
+  <figcaption class="g-player-meta">
+    {% if caption %}<p class="g-player-caption">{{ caption }}</p>{% endif %}
+    <p class="g-player-links">
+      <a href="{{ info.original }}" target="_blank" rel="noopener noreferrer" class="g-orig-link">{% icon "external-link" class="h-3.5 w-3.5" %} মূল ভিডিও লিংক</a>
+      <span class="g-provider">{{ info.provider_label }}</span>
+    </p>
+    {% if info.needs_login %}
+      <p class="g-login-note">{% icon "info" class="mt-0.5 h-3.5 w-3.5 shrink-0" %}<span>এই ভিডিও দেখতে {{ info.provider_label }}-এ লগইন করা থাকতে হতে পারে। প্লেয়ারে না চললে “মূল ভিডিও লিংক”-এ ক্লিক করে খুলুন।</span></p>
+    {% endif %}
+  </figcaption>
+</figure>
+{% endif %}

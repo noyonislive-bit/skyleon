@@ -13,8 +13,8 @@ certificate (AutoSSL is fine).
 
 cPanel → **MySQL® Databases**
 
-1. Create a database, e.g. `cpuser_skyleon`.
-2. Create a user, e.g. `cpuser_skyleon`, with a strong password.
+1. Create a database, e.g. `cpuser_skyloon`.
+2. Create a user, e.g. `cpuser_skyloon`, with a strong password.
 3. Add the user to the database with **ALL PRIVILEGES**.
 
 The app connects with `utf8mb4` automatically. If your host lets you choose, set the database
@@ -22,9 +22,9 @@ collation to `utf8mb4_unicode_ci`.
 
 ## 2. Upload the code
 
-Put the project **outside `public_html`**, e.g. `/home/cpuser/skyleon`.
+Put the project **outside `public_html`**, e.g. `/home/cpuser/skyloon`.
 
-* **Git:** cPanel → *Git™ Version Control* → *Create* → clone the repository into `/home/cpuser/skyleon`; or
+* **Git:** cPanel → *Git™ Version Control* → *Create* → clone the repository into `/home/cpuser/skyloon`; or
 * **Upload:** zip the project (without `.venv`, `node_modules`, `storage`, `staticfiles`) and extract it with *File Manager*.
 
 ## 3. Create the Python application
@@ -34,7 +34,7 @@ cPanel → **Setup Python App** → *Create Application*
 | Field | Value |
 |---|---|
 | Python version | 3.11 (or newest available ≥ 3.10) |
-| Application root | `skyleon` (the folder from step 2) |
+| Application root | `skyloon` (the folder from step 2) |
 | Application URL | your domain (e.g. `example.com`) |
 | Application startup file | `passenger_wsgi.py` |
 | Application Entry point | `application` |
@@ -42,7 +42,7 @@ cPanel → **Setup Python App** → *Create Application*
 Click **Create**. cPanel creates a virtualenv and shows a command such as:
 
 ```bash
-source /home/cpuser/virtualenv/skyleon/3.11/bin/activate && cd /home/cpuser/skyleon
+source /home/cpuser/virtualenv/skyloon/3.11/bin/activate && cd /home/cpuser/skyloon
 ```
 
 ## 4. Install dependencies and configure
@@ -101,8 +101,8 @@ cPanel → **Cron Jobs** (replace the paths with the ones from step 3):
 
 | Schedule | Command |
 |---|---|
-| Every 5 minutes | `/home/cpuser/virtualenv/skyleon/3.11/bin/python /home/cpuser/skyleon/manage.py process_emails >/dev/null 2>&1` |
-| Daily 03:15 | `/home/cpuser/virtualenv/skyleon/3.11/bin/python /home/cpuser/skyleon/manage.py cleanup >/dev/null 2>&1` |
+| Every 5 minutes | `/home/cpuser/virtualenv/skyloon/3.11/bin/python /home/cpuser/skyloon/manage.py process_emails >/dev/null 2>&1` |
+| Daily 03:15 | `/home/cpuser/virtualenv/skyloon/3.11/bin/python /home/cpuser/skyloon/manage.py cleanup >/dev/null 2>&1` |
 
 `process_emails` retries any email that could not be sent immediately (e.g. SMTP hiccup).
 `cleanup` removes expired sessions, abandoned uploads and old delivered emails.
@@ -126,7 +126,7 @@ and streamed from it with short-lived signed URLs, so your hosting bandwidth and
 
 ```ini
 STORAGE_BACKEND=s3
-S3_BUCKET=skyleon-media
+S3_BUCKET=skyloon-media
 S3_ENDPOINT_URL=https://<account-id>.r2.cloudflarestorage.com
 S3_REGION=auto
 S3_ACCESS_KEY_ID=...
@@ -158,7 +158,7 @@ tracked by the portal.
 ## 10. Updating
 
 ```bash
-source /home/cpuser/virtualenv/skyleon/3.11/bin/activate && cd /home/cpuser/skyleon
+source /home/cpuser/virtualenv/skyloon/3.11/bin/activate && cd /home/cpuser/skyloon
 git pull                       # or upload the new files
 pip install -r requirements.txt
 python manage.py migrate

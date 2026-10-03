@@ -51,10 +51,10 @@
       </a>
     </aside>
 
-    <div class="form-card">
+    <div class="form-card scroll-mt-24" id="contact-form">
       <h2 class="text-xl font-semibold tracking-tight">Send us a message</h2>
       <p class="mt-1 text-sm text-slate-500">We aim to reply within one business day.</p>
-      <form method="post" novalidate data-public-form class="mt-7 space-y-5">
+      <form method="post" action="{% url 'website:contact' %}#contact-form" novalidate data-public-form class="mt-7 space-y-5">
         {% csrf_token %}
         {% include "components/honeypot.html" %}
         {% include "components/form_errors.html" %}

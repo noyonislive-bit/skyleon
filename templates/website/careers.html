@@ -81,7 +81,7 @@
       </div>
     </div>
     <div class="form-card">
-      <form method="post" enctype="multipart/form-data" novalidate data-public-form class="space-y-9">
+      <form method="post" action="{% url 'website:careers' %}#apply" enctype="multipart/form-data" novalidate data-public-form class="space-y-9">
         {% csrf_token %}
         {% include "components/honeypot.html" %}
         {% include "components/form_errors.html" %}

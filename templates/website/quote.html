@@ -16,8 +16,8 @@
 
 <section class="relative z-10 -mt-24 pb-20 sm:pb-28">
   <div class="container-page grid gap-8 lg:grid-cols-[1.55fr_1fr] lg:gap-10">
-    <div class="form-card">
-      <form method="post" enctype="multipart/form-data" novalidate data-public-form class="space-y-9">
+    <div class="form-card scroll-mt-24" id="quote-form">
+      <form method="post" action="{{ request.get_full_path }}#quote-form" enctype="multipart/form-data" novalidate data-public-form class="space-y-9">
         {% csrf_token %}
         {% include "components/honeypot.html" %}
         {{ form.source }}

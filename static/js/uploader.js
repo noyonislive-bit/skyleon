@@ -10,6 +10,14 @@
  *   5. POST /media/uploads/<id>/complete/ {duration, width, height, thumbnail_id}
  *   6. the MediaAsset id goes into the hidden input; only that id is submitted with the form.
  * External HLS (.m3u8) / MP4 URLs are registered with POST /media/external/.
+ *
+ * Standalone use (any page, no build step): include this file and render
+ *   {% load backoffice_tags %}{% uploader form.video kind="video" purpose="tutorial" %}
+ * (form field: apps.backoffice.forms.MediaAssetField) — or hand-write the markup of
+ * templates/backoffice/components/uploader.html: a [data-uploader][data-kind][data-purpose] root with
+ * [data-uploader-value] (hidden input, the field name), [data-uploader-file], [data-uploader-drop],
+ * [data-uploader-preview] … Widgets added later (e.g. cloned rows) are initialised with
+ * window.skyleon.initUploaders(rootElement). Each change fires "uploader:change" (detail = asset JSON).
  */
 (function () {
   "use strict";
@@ -23,7 +31,13 @@
   const DOC_EXT = /\.(pdf|docx?|txt|rtf|odt|zip|csv|xlsx|json|xml|jpe?g|png|webp)$/i;
 
   const S = () => window.skyleon || {};
-  const csrf = () => (S().csrfToken ? S().csrfToken() : "");
+  const csrf = () => {
+    if (S().csrfToken) return S().csrfToken();
+    const m = document.cookie.match(/(?:^|;\s*)csrftoken=([^;]+)/);
+    if (m) return decodeURIComponent(m[1]);
+    const input = document.querySelector("input[name=csrfmiddlewaretoken]");
+    return input ? input.value : "";
+  };
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
   function fmtDuration(s) {

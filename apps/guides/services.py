@@ -137,7 +137,7 @@ def step_minutes(step) -> int:
     return max(1, math.ceil(words / WORDS_PER_MINUTE) + (1 if step.video_url else 0))
 
 
-@dataclass
+@dataclass(eq=False)
 class StepNode:
     obj: GuideStep
     section: "SectionNode"
@@ -166,7 +166,7 @@ class StepNode:
         return self._video
 
 
-@dataclass
+@dataclass(eq=False)
 class SectionNode:
     obj: GuideSection
     number: int
@@ -189,7 +189,7 @@ class SectionNode:
         return bool(self.steps) and self.done_count == len(self.steps)
 
 
-@dataclass
+@dataclass(eq=False)
 class Outline:
     guide: Guide
     sections: list
@@ -215,6 +215,14 @@ class Outline:
     @property
     def remaining_minutes(self):
         return sum(s.minutes for s in self.steps if not s.done)
+
+    @property
+    def remaining_count(self):
+        return self.total - self.done_count
+
+    @property
+    def video_count(self):
+        return sum(1 for s in self.steps if s.obj.video_url)
 
     @property
     def first_unread(self):
