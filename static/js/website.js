@@ -37,7 +37,7 @@
       trigger.setAttribute("aria-expanded", String(open));
       if (open) {
         const first = item.querySelector(".nav-panel a");
-        if (e.detail === 0 && first) first.focus(); // keyboard activation
+        if (e.detail === 0 && first) window.setTimeout(() => first.focus(), 40); // keyboard activation
       }
     });
     item.addEventListener("mouseenter", () => trigger.setAttribute("aria-expanded", "true"));

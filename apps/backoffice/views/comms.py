@@ -251,6 +251,7 @@ def email_list(request):
         "statuses": EmailStatus.choices,
         "templates": EmailMessage.objects.order_by("template").values_list("template", flat=True).distinct(),
         "counts": counts,
+        "retry_count": counts.get(EmailStatus.FAILED, 0) + counts.get(EmailStatus.PENDING, 0),
     })
 
 

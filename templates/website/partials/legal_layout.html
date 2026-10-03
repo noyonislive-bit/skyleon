@@ -1,0 +1,10 @@
+{% comment %} Shared hero for legal pages. Variables: title, updated {% endcomment %}
+<section class="hero-dark">
+  <div class="absolute inset-0 grid-bg fade-grid" aria-hidden="true"></div>
+  <div class="glow-brand -top-48 left-[10%] h-[480px] w-[480px]" aria-hidden="true"></div>
+  <div class="container-page relative pt-28 pb-14 sm:pt-36 sm:pb-20">
+    {% include "website/partials/breadcrumbs.html" %}
+    <h1 class="mt-7 text-4xl font-semibold tracking-tight sm:text-5xl" style="letter-spacing:-0.035em">{{ title }}</h1>
+    <p class="mt-4 font-mono text-xs tracking-wide text-slate-500">Last updated: {{ updated }}</p>
+  </div>
+</section>

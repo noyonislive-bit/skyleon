@@ -1257,9 +1257,9 @@ SCALE_STEPS = [
 
 FEEDBACK_LOOP = [
     {"name": "QA finds an issue", "x": 50, "y": 9},
-    {"name": "Daily feedback with examples", "x": 81, "y": 50},
+    {"name": "Daily feedback with examples", "x": 83, "y": 50},
     {"name": "Refresher tutorial or re-test", "x": 50, "y": 91},
-    {"name": "Re-checked in the next batch", "x": 19, "y": 50},
+    {"name": "Re-checked in the next batch", "x": 17, "y": 50},
 ]
 
 QUALITY_PRINCIPLES = [

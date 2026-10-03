@@ -13,7 +13,15 @@ from apps.assessments.services import test_state
 from apps.feedback.models import FeedbackRecipient
 from apps.feedback.services import mark_opened, record_feedback_heartbeat
 
-from ..helpers import crumbs, heartbeat_allowed, paginate, player_config, read_json, state_badge, trusted_duration
+from ..helpers import (
+    crumbs,
+    heartbeat_allowed,
+    paginate,
+    player_config,
+    read_json,
+    state_badge,
+    trusted_duration,
+)
 from ..scope import portal_api, portal_view
 
 TABS = [
@@ -94,7 +102,7 @@ def feedback_detail(request, number):
     recipient = _recipient_or_404(scope, number)
     fb = recipient.feedback
     was_new = recipient.first_viewed_at is None
-    mark_opened(recipient, has_video=bool(fb.video_id))
+    mark_opened(recipient, has_video=bool(fb.video_id and fb.video and fb.video.is_ready))
 
     player = None
     if fb.video_id:

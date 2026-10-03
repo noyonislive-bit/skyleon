@@ -9,10 +9,22 @@ from django.utils import timezone
 from django.utils.formats import date_format
 
 from apps.core.choices import ProgressStatus
-from apps.training.models import Cadence, OnboardingStep, TutorialCategory, TutorialProgress
+from apps.training.models import (
+    Cadence,
+    OnboardingStep,
+    TutorialCategory,
+    TutorialProgress,
+)
 from apps.training.services import get_or_create_progress, record_tutorial_heartbeat
 
-from ..helpers import crumbs, heartbeat_allowed, paginate, player_config, read_json, trusted_duration
+from ..helpers import (
+    crumbs,
+    heartbeat_allowed,
+    paginate,
+    player_config,
+    read_json,
+    trusted_duration,
+)
 from ..scope import portal_api, portal_view
 from .dashboard import NEW_DAYS, annotate_progress
 

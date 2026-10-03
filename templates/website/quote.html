@@ -63,8 +63,9 @@
     <aside class="space-y-5 lg:pt-0">
       <div class="rounded-2xl bg-white p-6 shadow-card ring-1 ring-slate-200 sm:p-7">
         <h2 class="text-lg font-semibold">What happens next</h2>
-        <ol class="relative mt-6 space-y-6">
-          <span class="absolute top-2 bottom-2 left-[15px] w-px bg-slate-200" aria-hidden="true"></span>
+        <div class="relative mt-6">
+        <span class="absolute top-2 bottom-2 left-[15px] w-px bg-slate-200" aria-hidden="true"></span>
+        <ol class="relative space-y-6">
           {% for icon_name, title, text in next_steps %}
             <li class="relative flex gap-4">
               <span class="relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-brand-600 ring-1 ring-slate-200">{% icon icon_name class="h-4 w-4" %}</span>
@@ -72,6 +73,7 @@
             </li>
           {% endfor %}
         </ol>
+        </div>
       </div>
       <div class="rounded-2xl bg-slate-50 p-6 ring-1 ring-slate-200 sm:p-7">
         <h2 class="text-base font-semibold">Helpful to include</h2>

@@ -1,0 +1,61 @@
+{% extends "backoffice/base.html" %}
+{% load backoffice_tags %}
+{% block page_actions %}<a href="{% url 'backoffice:reports' %}{% if project %}?project={{ project.pk }}{% endif %}" class="btn btn-secondary btn-sm">{% icon "bar-chart-3" class="h-4 w-4" %} Employee report</a>{% endblock %}
+{% block content %}
+<div class="card">
+  <form method="get" class="bo-filters" data-autosubmit>
+    <select name="project" class="select" aria-label="Project">
+      {% for p in projects %}<option value="{{ p.pk }}"{% if project.pk == p.pk %} selected{% endif %}>{{ p.code }} · {{ p.name }}</option>{% endfor %}
+      <option value="global"{% if filters.project == "global" %} selected{% endif %}>Company-wide training only</option>
+    </select>
+    {% if teams %}<select name="team" class="select" aria-label="Team"><option value="">All teams</option>{% for t in teams %}<option value="{{ t.pk }}"{% if filters.team == t.pk|stringformat:"s" %} selected{% endif %}>{{ t.name }}</option>{% endfor %}</select>{% endif %}
+    <select name="status" class="select" aria-label="Completion"><option value="">Everyone</option><option value="incomplete"{% if filters.status == "incomplete" %} selected{% endif %}>Still has videos to watch</option><option value="complete"{% if filters.status == "complete" %} selected{% endif %}>All required videos watched</option></select>
+    {% include "backoffice/components/search.html" with value=filters.q placeholder="Employee name or ID" %}
+  </form>
+  <div class="flex flex-wrap items-center gap-x-5 gap-y-2 border-b border-slate-100 px-4 py-3 text-xs text-slate-500">
+    <span class="font-medium text-slate-700">{% if overall is not None %}{{ overall }}% complete{% else %}No assignments{% endif %} · {{ total_done }} of {{ total_assigned }} required videos watched</span>
+    <span class="flex items-center gap-1.5"><span class="bo-cell is-done !min-w-0 !px-1.5">{% icon "check" class="h-3 w-3" %}</span> watched (date)</span>
+    <span class="flex items-center gap-1.5"><span class="bo-cell is-progress !min-w-0 !px-1.5">45%</span> in progress</span>
+    <span class="flex items-center gap-1.5"><span class="bo-cell is-todo !min-w-0 !px-1.5">0%</span> not started</span>
+    <span class="flex items-center gap-1.5"><span class="bo-cell is-none !min-w-0 !px-1.5">—</span> not assigned</span>
+  </div>
+  {% if matrix and columns %}
+  <div class="table-wrap">
+    <table class="table bo-matrix">
+      <thead>
+        <tr>
+          <th class="sticky left-0 z-10 bg-slate-50">Employee</th>
+          <th>Completion</th>
+          {% if project %}<th>Onboarding</th>{% endif %}
+          {% for c in columns %}<th class="bo-col" title="{{ c.tutorial.title }}"><a href="{% url 'backoffice:tutorial_detail' c.tutorial.pk %}" class="line-clamp-2 hover:text-brand-700">{{ c.tutorial.title }}</a><span class="mt-1 block font-mono text-[10px] font-normal text-slate-400">{% if c.tutorial.project %}{{ c.tutorial.project.code }}{% else %}All{% endif %} · {% if c.percent is not None %}{{ c.percent }}%{% else %}—{% endif %}</span></th>{% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+      {% for row in matrix %}
+        <tr>
+          <td class="sticky left-0 z-10 min-w-52 bg-white">{% include "backoffice/components/person.html" with u=row.user link=True sub=row.member.team.name|default:row.user.employee_id %}</td>
+          <td class="min-w-36">{% include "backoffice/components/meter.html" with value=row.percent done=row.done total=row.assigned %}</td>
+          {% if project %}<td class="min-w-28 text-xs">{% if row.onboarding.total %}<span class="bo-num font-medium text-slate-800">{{ row.onboarding.done }}/{{ row.onboarding.total }}</span>{% if row.member.qualified_at %} <span class="badge badge-success !px-1.5">{% icon "badge-check" class="h-3 w-3" %}</span>{% endif %}<span class="block max-w-36 truncate text-[11px] text-slate-400">{% if row.onboarding.next %}{{ row.onboarding.next }}{% else %}complete{% endif %}</span>{% else %}<span class="bo-muted">—</span>{% endif %}</td>{% endif %}
+          {% for cell in row.cells %}
+            <td class="text-center">
+              {% with p=cell.p %}
+              {% if not p or not p.assigned %}<span class="bo-cell is-none" title="Not assigned">—</span>
+              {% elif p.status == "completed" %}<span class="bo-cell is-done" title="Watched {{ p.completed_at|date:'j M Y, H:i' }}">{% icon "check" class="h-3 w-3" %}{{ p.completed_at|date:"j M" }}</span>
+              {% elif p.status == "in_progress" %}<span class="bo-cell is-progress" title="In progress">{{ p.percent|floatformat:0 }}%</span>
+              {% else %}<span class="bo-cell is-todo" title="Not started{% if p.due_at %} · due {{ p.due_at|date:'j M' }}{% endif %}">0%</span>{% endif %}
+              {% endwith %}
+            </td>
+          {% endfor %}
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% include "components/pagination.html" with page=page %}
+  {% elif not columns %}
+    {% include "components/empty_state.html" with icon="graduation-cap" title="No required tutorials" text="Publish required tutorials for this audience to track completion here." %}
+  {% else %}
+    {% include "components/empty_state.html" with icon="users" title="No employees match" %}
+  {% endif %}
+</div>
+{% endblock %}

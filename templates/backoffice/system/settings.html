@@ -1,0 +1,69 @@
+{% extends "backoffice/base.html" %}
+{% load backoffice_tags %}
+{% block content %}
+<div class="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]">
+  <div class="min-w-0 space-y-6">
+    <form method="post" class="card scroll-mt-24" id="company" novalidate>{% csrf_token %}
+      <input type="hidden" name="form" value="company">
+      <div class="card-header"><div><h2 class="card-title">Company information</h2><p class="mt-0.5 text-xs text-slate-500">Shown on the public website (contact page, footer) and in every email.</p></div></div>
+      <div class="card-body space-y-5">
+        {% include "components/form_errors.html" with form=company_form %}
+        <div class="grid gap-5 sm:grid-cols-2">
+          {% include "components/field.html" with field=company_form.email %}
+          {% include "components/field.html" with field=company_form.careers_email %}
+          {% include "components/field.html" with field=company_form.phone %}
+          {% include "components/field.html" with field=company_form.whatsapp %}
+          {% include "components/field.html" with field=company_form.address class="sm:col-span-2" %}
+          {% include "components/field.html" with field=company_form.business_hours class="sm:col-span-2" %}
+        </div>
+        <fieldset class="rounded-xl bg-slate-50 p-4 ring-1 ring-slate-200">
+          <legend class="px-1 text-sm font-semibold text-slate-900">Map</legend>
+          <div class="space-y-4">{% include "components/field.html" with field=company_form.show_map %}{% include "components/field.html" with field=company_form.map_embed_url %}</div>
+        </fieldset>
+        <fieldset class="rounded-xl bg-slate-50 p-4 ring-1 ring-slate-200">
+          <legend class="px-1 text-sm font-semibold text-slate-900">Social links</legend>
+          <div class="grid gap-4 sm:grid-cols-2">
+            {% include "components/field.html" with field=company_form.linkedin %}
+            {% include "components/field.html" with field=company_form.facebook %}
+            {% include "components/field.html" with field=company_form.x %}
+            {% include "components/field.html" with field=company_form.youtube %}
+          </div>
+        </fieldset>
+      </div>
+      <div class="flex justify-end border-t border-slate-100 px-5 py-4"><button class="btn btn-primary">Save company information</button></div>
+    </form>
+
+    <form method="post" class="card scroll-mt-24" id="notifications" novalidate>{% csrf_token %}
+      <input type="hidden" name="form" value="notifications">
+      <div class="card-header"><div><h2 class="card-title">Notification recipients</h2><p class="mt-0.5 text-xs text-slate-500">Who is emailed about new quote requests, contact messages, job applications and signups.</p></div></div>
+      <div class="card-body space-y-3">
+        {% include "components/field.html" with field=notif_form.admin_emails %}
+        {% if admin_env_emails %}<p class="text-xs text-slate-500">Also configured on the server (ADMIN_NOTIFICATION_EMAILS): {{ admin_env_emails|join:", " }}</p>{% endif %}
+      </div>
+      <div class="flex justify-end border-t border-slate-100 px-5 py-4"><button class="btn btn-primary">Save recipients</button></div>
+    </form>
+
+    {% if audit is not None %}
+    <section class="card">
+      <div class="card-header"><h2 class="card-title">Recent activity</h2><a href="{% url 'backoffice:audit_log' %}" class="text-xs font-medium text-brand-600">Full audit log</a></div>
+      {% include "backoffice/system/_audit_rows.html" with rows=audit %}
+    </section>
+    {% endif %}
+  </div>
+
+  <aside class="min-w-0 space-y-6">
+    <section class="card">
+      <div class="card-header"><h2 class="card-title">System</h2><span class="badge badge-neutral">read-only</span></div>
+      <dl class="divide-y divide-slate-100">
+        {% for label, value in system %}<div class="flex items-start justify-between gap-4 px-5 py-2.5 text-sm"><dt class="shrink-0 text-slate-500">{{ label }}</dt><dd class="min-w-0 text-right break-words text-slate-900">{{ value|default:"—" }}</dd></div>{% endfor %}
+        <div class="flex items-center justify-between gap-4 px-5 py-2.5 text-sm"><dt class="text-slate-500">Email outbox</dt><dd><a href="{% url 'backoffice:email_list' %}?status=pending" class="bo-link">{{ email_counts.pending }} pending</a>{% if email_counts.failed %} · <a href="{% url 'backoffice:email_list' %}?status=failed" class="font-medium text-red-600">{{ email_counts.failed }} failed</a>{% endif %}</dd></div>
+      </dl>
+      <p class="border-t border-slate-100 px-5 py-3 text-xs leading-5 text-slate-500">These come from the server's <code class="font-mono">.env</code> file. Change them in cPanel and restart the Python app.</p>
+    </section>
+    <section class="card">
+      <div class="card-header"><h2 class="card-title">Tutorial categories</h2><a href="{% url 'backoffice:category_list' %}" class="text-xs font-medium text-brand-600">Manage</a></div>
+      <div class="card-body flex flex-wrap gap-1.5">{% for c in categories %}<span class="bo-chip">{{ c.name }}</span>{% empty %}<span class="text-sm text-slate-500">None yet.</span>{% endfor %}</div>
+    </section>
+  </aside>
+</div>
+{% endblock %}

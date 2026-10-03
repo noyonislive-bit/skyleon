@@ -78,6 +78,7 @@ def record_feedback_heartbeat(recipient: FeedbackRecipient, *, duration, ranges,
     result = apply_heartbeat(
         stored_ranges=recipient.watched_ranges, duration=duration, reported_ranges=ranges, position=position,
         last_heartbeat_at=recipient.last_heartbeat_at, now=now, threshold_percent=settings.VIDEO_COMPLETION_THRESHOLD,
+        first_viewed_at=recipient.first_viewed_at,
     )
     recipient.watched_ranges = [list(r) for r in result.ranges]
     recipient.watched_seconds = result.watched_seconds

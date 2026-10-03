@@ -1,0 +1,49 @@
+{% load backoffice_tags %}
+{% comment %} Question editor (static/js/test-builder.js). Context: qform, formset, action, submit_label, cancel_url {% endcomment %}
+<form method="post" action="{{ action }}" class="space-y-5" data-question-form novalidate>{% csrf_token %}
+  {% if qform.non_field_errors %}
+    <div class="alert alert-error" role="alert">{% icon "alert-circle" class="mt-0.5 h-4 w-4 shrink-0" %}<div>{% for e in qform.non_field_errors %}<p>{{ e }}</p>{% endfor %}{% for e in formset.non_form_errors %}<p>{{ e }}</p>{% endfor %}</div></div>
+  {% elif formset.non_form_errors %}
+    <div class="alert alert-error" role="alert">{% icon "alert-circle" class="mt-0.5 h-4 w-4 shrink-0" %}<div>{% for e in formset.non_form_errors %}<p>{{ e }}</p>{% endfor %}</div></div>
+  {% endif %}
+  <div class="grid gap-4 sm:grid-cols-[minmax(0,1fr)_8rem]">
+    {% include "components/field.html" with field=qform.qtype %}
+    {% include "components/field.html" with field=qform.points %}
+  </div>
+  {% include "components/field.html" with field=qform.prompt label="Question" %}
+  <div>
+    <label class="label">{{ qform.media.label }}</label>
+    {% uploader qform.media kind="media" purpose="question" compact=True note=False %}
+    <p class="help-text">Image-based or video-based question: show a frame, a clip or an annotation to judge.</p>
+  </div>
+
+  <div data-options-block>
+    <div class="mb-2 flex items-end justify-between gap-3">
+      <div><p class="label !mb-0">Answer options</p><p class="help-text !mt-0.5" data-options-hint>Tick the correct answer. Add an image to an option for “select the correct segmentation / description” questions.</p></div>
+    </div>
+    {{ formset.management_form }}
+    <div class="space-y-2" data-option-list>
+      {% for f in formset %}{% include "backoffice/tests/_option_row.html" with f=f %}{% endfor %}
+    </div>
+    <template data-option-template>{% include "backoffice/tests/_option_row.html" with f=formset.empty_form %}</template>
+    <button type="button" class="btn btn-ghost btn-sm mt-2" data-option-add>{% icon "plus" class="h-4 w-4" %} Add option</button>
+  </div>
+
+  <div data-tf-block hidden>
+    <p class="label">{{ qform.tf_answer.label }}</p>
+    <div class="grid max-w-sm grid-cols-2 gap-2">
+      {% for radio in qform.tf_answer %}
+        <label class="choice-pill">{{ radio.tag }} {{ radio.choice_label }}</label>
+      {% endfor %}
+    </div>
+    {% for e in qform.tf_answer.errors %}<p class="field-error">{{ e }}</p>{% endfor %}
+    <p class="help-text">The statement in the question is true or false — options are created automatically.</p>
+  </div>
+
+  {% include "components/field.html" with field=qform.explanation %}
+  <div class="flex flex-wrap justify-end gap-2 border-t border-slate-100 pt-4">
+    {% if cancel_url %}<a href="{{ cancel_url }}" class="btn btn-ghost">Cancel</a>{% endif %}
+    {% if another %}<button class="btn btn-secondary" name="then" value="another">Save &amp; add another</button>{% endif %}
+    <button class="btn btn-primary">{{ submit_label|default:"Save question" }}</button>
+  </div>
+</form>

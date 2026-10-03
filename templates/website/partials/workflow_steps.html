@@ -1,6 +1,7 @@
 {% comment %} 5-step client workflow (light surface). Requires workflow. {% endcomment %}
+<div class="relative">
+<span class="absolute top-[38px] right-[10%] left-[10%] hidden h-px bg-gradient-to-r from-brand-200 via-accent-300 to-brand-200 lg:block" aria-hidden="true"></span>
 <ol class="relative grid gap-4 sm:grid-cols-2 lg:grid-cols-5 lg:gap-0">
-  <span class="absolute top-[38px] right-[10%] left-[10%] hidden h-px bg-gradient-to-r from-brand-200 via-accent-300 to-brand-200 lg:block" aria-hidden="true"></span>
   {% for step in workflow %}
     <li class="reveal relative lg:px-3" style="transition-delay: {{ forloop.counter0 }}00ms">
       <div class="flex h-full flex-col rounded-2xl bg-white p-5 ring-1 ring-slate-200 lg:items-center lg:bg-transparent lg:p-0 lg:text-center lg:ring-0">
@@ -14,3 +15,4 @@
     </li>
   {% endfor %}
 </ol>
+</div>

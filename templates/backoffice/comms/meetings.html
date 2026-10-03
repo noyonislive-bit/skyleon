@@ -1,0 +1,33 @@
+{% extends "backoffice/base.html" %}
+{% load backoffice_tags %}
+{% block page_actions %}<a href="{% url 'backoffice:meeting_create' %}" class="btn btn-primary btn-sm">{% icon "calendar-clock" class="h-4 w-4" %} Schedule meeting</a>{% endblock %}
+{% block content %}
+<nav class="tabs mb-5"><a href="?" class="tab{% if when == 'upcoming' %} is-active{% endif %}">Upcoming</a><a href="?when=past" class="tab{% if when == 'past' %} is-active{% endif %}">Past</a></nav>
+{% if page.object_list %}
+<div class="card">
+  <ul class="bo-list">
+    {% for m in page %}
+      <li class="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center">
+        <span class="flex w-14 shrink-0 flex-col items-center rounded-xl bg-slate-50 py-1.5 ring-1 ring-slate-200">
+          <span class="font-mono text-[10px] text-slate-500 uppercase">{{ m.starts_at|date:"M" }}</span>
+          <span class="text-lg leading-6 font-semibold text-slate-900">{{ m.starts_at|date:"j" }}</span>
+          <span class="font-mono text-[10px] text-slate-500">{{ m.starts_at|date:"D" }}</span>
+        </span>
+        <a href="{% url 'backoffice:meeting_detail' m.pk %}" class="min-w-0 flex-1">
+          <span class="flex flex-wrap items-center gap-2"><span class="font-medium text-slate-900 hover:text-brand-700">{{ m.title }}</span>{% if m.live %}<span class="badge badge-success"><span class="dot animate-pulse-soft bg-emerald-500"></span> Live now</span>{% endif %}</span>
+          <span class="block text-xs text-slate-500">{{ m.starts_at|date:"H:i" }}–{{ m.ends_at|date:"H:i" }} · {{ m.duration_min }} min · {% if m.project %}{{ m.project.code }}{% else %}Company-wide{% endif %} · {{ m.invitee_count }} invited</span>
+        </a>
+        <div class="flex shrink-0 items-center gap-2">
+          {% if m.meeting_url %}<a href="{{ m.meeting_url }}" target="_blank" rel="noopener" class="btn btn-secondary btn-sm">{% icon "external-link" class="h-3.5 w-3.5" %} Join link</a>{% endif %}
+          {% if m.can_edit %}<a href="{% url 'backoffice:meeting_edit' m.pk %}" class="bo-icon-btn" title="Edit">{% icon "pencil" class="h-4 w-4" %}</a>{% endif %}
+          <a href="{% url 'backoffice:meeting_detail' m.pk %}" class="bo-icon-btn" title="Details">{% icon "chevron-right" class="h-4 w-4" %}</a>
+        </div>
+      </li>
+    {% endfor %}
+  </ul>
+  {% include "components/pagination.html" with page=page %}
+</div>
+{% else %}
+  <div class="card">{% url 'backoffice:meeting_create' as new_url %}{% include "components/empty_state.html" with icon="calendar-clock" title="No meetings" text="Schedule a calibration call or training with a Meet, Zoom or Teams link." action_url=new_url action_label="Schedule meeting" %}</div>
+{% endif %}
+{% endblock %}

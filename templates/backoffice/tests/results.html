@@ -1,0 +1,83 @@
+{% extends "backoffice/base.html" %}
+{% load backoffice_tags %}
+{% block page_header %}
+<div class="bo-header">
+  <div class="min-w-0">
+    <p class="eyebrow mb-2">Results</p>
+    <h1 class="page-title">{{ test.title }}</h1>
+    <p class="page-subtitle">{{ test.get_kind_display }}{% if test.project %} · {{ test.project.code }}{% endif %} · pass ≥ {{ test.passing_score }}%{% if linked %} · feedback {{ linked.display_number }}{% endif %}</p>
+  </div>
+  <div class="flex flex-wrap gap-2">
+    <a href="{% querystring format='csv' rows=None %}" class="btn btn-secondary btn-sm">{% icon "download" class="h-4 w-4" %} CSV (per employee)</a>
+    <a href="{% querystring format='csv' rows='attempts' %}" class="btn btn-secondary btn-sm">{% icon "download" class="h-4 w-4" %} CSV (all attempts)</a>
+    <a href="{% url 'backoffice:test_builder' test.pk %}" class="btn btn-secondary btn-sm">{% icon "list-checks" class="h-4 w-4" %} Questions</a>
+  </div>
+</div>
+{% endblock %}
+{% block content %}
+<section class="grid grid-cols-2 gap-3 sm:grid-cols-4" aria-label="Summary">
+  <div class="stat"><p class="stat-label">Assigned</p><p class="stat-value !text-2xl">{{ summary.assigned }}</p><p class="stat-meta">{{ summary.people }} people in total</p></div>
+  <div class="stat"><p class="stat-label">Took the test</p><p class="stat-value !text-2xl">{{ summary.takers }}</p><p class="stat-meta">{{ summary.people|sub:summary.takers }} haven't yet</p></div>
+  <div class="stat"><p class="stat-label">Pass rate</p><p class="stat-value !text-2xl">{% if pass_rate is not None %}{{ pass_rate }}%{% else %}—{% endif %}</p><div class="bo-meter mt-2{% if pass_rate >= 100 %} is-good{% endif %}"><span style="width: {{ pass_rate|default:0 }}%"></span></div></div>
+  <div class="stat"><p class="stat-label">Average score</p><p class="stat-value !text-2xl">{% if summary.avg is not None %}{{ summary.avg|floatformat:0 }}%{% else %}—{% endif %}</p><p class="stat-meta">across submitted attempts</p></div>
+</section>
+
+<section class="card mt-6">
+  <div class="card-header"><h2 class="card-title">By employee</h2></div>
+  <form method="get" class="bo-filters" data-autosubmit>
+    {% include "backoffice/components/search.html" with value=filters.q placeholder="Employee name or ID" %}
+    <select name="result" class="select" aria-label="Result">
+      <option value="">All results</option>
+      <option value="passed"{% if filters.result == "passed" %} selected{% endif %}>Passed</option>
+      <option value="failed"{% if filters.result == "failed" %} selected{% endif %}>Failed / review</option>
+      <option value="pending"{% if filters.result == "pending" %} selected{% endif %}>Not taken / in progress</option>
+    </select>
+  </form>
+  {% if rows %}
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>Employee</th><th>Result</th><th class="num">Best score</th><th class="num">Attempts</th><th>Last submitted</th><th>Assigned</th><th></th></tr></thead>
+      <tbody>
+      {% for r in rows %}
+        <tr>
+          <td class="min-w-48">{% include "backoffice/components/person.html" with u=r.user link=True %}</td>
+          <td>{% if r.state.status == "passed" %}{% status_badge "passed" "Passed" %}{% elif r.state.status == "review" %}{% status_badge "review" "Failed · can retry" %}{% elif r.state.status == "locked" %}{% status_badge "failed" "Failed · no attempts left" %}{% elif r.state.status == "in_progress" %}{% status_badge "in_progress" "In progress" %}{% else %}{% status_badge "pending" "Not taken" %}{% endif %}</td>
+          <td class="num bo-num font-semibold text-slate-900">{% if r.best is not None %}{{ r.best|floatformat:0 }}%{% else %}<span class="font-normal text-slate-400">—</span>{% endif %}</td>
+          <td class="num bo-num text-xs">{{ r.attempts }}{% if test.attempt_limit %} / {{ test.attempt_limit }}{% endif %}</td>
+          <td class="text-xs whitespace-nowrap">{{ r.last_submitted|date:"j M Y, H:i"|default:"—" }}</td>
+          <td class="text-xs whitespace-nowrap text-slate-500">{% if r.assignment %}{{ r.assignment.assigned_at|date:"j M Y" }}{% else %}self-started{% endif %}</td>
+          <td>{% if r.last %}<a href="{% url 'backoffice:attempt_detail' r.last.pk %}" class="bo-icon-btn" title="Latest attempt">{% icon "chevron-right" class="h-4 w-4" %}</a>{% endif %}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+    {% include "components/empty_state.html" with icon="users" title="Nobody yet" text="Assign or publish the test to see results here." %}
+  {% endif %}
+</section>
+
+<section class="card mt-6">
+  <div class="card-header"><h2 class="card-title">All attempts</h2><span class="text-xs text-slate-500">{{ attempts|length }} submitted</span></div>
+  {% if attempts %}
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>Employee</th><th class="num">Attempt</th><th class="num">Score</th><th class="num">Points</th><th>Result</th><th>Submitted</th><th></th></tr></thead>
+      <tbody>
+      {% for a in attempts %}
+        <tr>
+          <td class="min-w-44"><a href="{% url 'backoffice:employee_detail' a.user.pk %}" class="font-medium text-slate-900 hover:text-brand-700">{{ a.user.name }}</a></td>
+          <td class="num bo-num">#{{ a.attempt_number }}</td>
+          <td class="num bo-num font-semibold text-slate-900">{{ a.score|floatformat:0 }}%</td>
+          <td class="num bo-num text-xs text-slate-500">{{ a.points_earned }}/{{ a.points_total }}</td>
+          <td>{% if a.passed %}{% status_badge "passed" "Passed" %}{% else %}{% status_badge "failed" "Failed" %}{% endif %}{% if a.data.late %} <span class="badge badge-warning">Late</span>{% endif %}</td>
+          <td class="text-xs whitespace-nowrap">{{ a.submitted_at|date:"j M Y, H:i" }}</td>
+          <td><a href="{% url 'backoffice:attempt_detail' a.pk %}" class="btn btn-ghost btn-sm">Answers {% icon "chevron-right" class="h-3.5 w-3.5" %}</a></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}<p class="px-5 py-6 text-sm text-slate-500">No submitted attempts yet.</p>{% endif %}
+</section>
+{% endblock %}

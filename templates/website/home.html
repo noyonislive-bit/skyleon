@@ -93,11 +93,11 @@
       <p class="eyebrow-dark"><span class="h-1.5 w-1.5 rounded-full bg-label-amber"></span>Key strength</p>
       <h2 class="section-title mt-4">Specialized in Human Action &amp; Video Understanding</h2>
       <p class="lead-dark mt-5">Action annotation is one of our core areas and a current major project focus. Our teams are trained to make the precise, repeatable decisions action datasets depend on — when an action starts, which hand performs it and which object is involved.</p>
-      <ul class="mt-8 grid gap-x-6 gap-y-3 sm:grid-cols-2">
+      <ul class="mt-8 grid grid-cols-2 gap-x-4 gap-y-3 sm:gap-x-6">
         {% for name, text, icon_name in specialization %}
-          <li class="flex items-start gap-3">
-            <span class="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-white/[0.05] text-accent-300 ring-1 ring-white/10">{% icon icon_name class="h-3.5 w-3.5" %}</span>
-            <span><span class="block text-sm font-semibold text-white">{{ name }}</span><span class="block text-[13px] leading-5 text-slate-400">{{ text }}</span></span>
+          <li class="flex items-center gap-3 sm:items-start">
+            <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-white/[0.05] text-accent-300 ring-1 ring-white/10 sm:mt-0.5">{% icon icon_name class="h-3.5 w-3.5" %}</span>
+            <span><span class="block text-sm font-semibold text-white">{{ name }}</span><span class="hidden text-[13px] leading-5 text-slate-400 sm:block">{{ text }}</span></span>
           </li>
         {% endfor %}
       </ul>

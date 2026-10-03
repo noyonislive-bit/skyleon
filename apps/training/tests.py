@@ -41,3 +41,18 @@ class HeartbeatTests(SimpleTestCase):
                             last_heartbeat_at=NOW, now=NOW + timedelta(seconds=60), threshold_percent=90)
         self.assertEqual(r.watched_seconds, 50)
         self.assertEqual(r.accepted_seconds, 0)
+
+
+class RapidFireTests(SimpleTestCase):
+    def test_many_quick_heartbeats_cannot_accumulate(self):
+        """Firing heartbeats in a tight loop must not add coverage faster than real playback."""
+        ranges, last, first = [], None, NOW
+        t = NOW
+        for i in range(200):
+            t = t + timedelta(milliseconds=50)
+            r = apply_heartbeat(stored_ranges=ranges, duration=600, reported_ranges=[[0, 600]], position=600,
+                                last_heartbeat_at=last, now=t, threshold_percent=90, first_viewed_at=first)
+            ranges, last = r.ranges, t
+        elapsed = (t - first).total_seconds()  # 10 s of wall clock
+        self.assertLessEqual(r.watched_seconds, (elapsed + 15) * 2 + 0.01)
+        self.assertFalse(r.completed)

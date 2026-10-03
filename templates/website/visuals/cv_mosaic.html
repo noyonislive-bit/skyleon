@@ -1,0 +1,9 @@
+{% comment %} 2×2 mosaic of computer-vision annotation previews (Solutions hero). {% endcomment %}
+<div class="relative grid grid-cols-2 gap-3 sm:gap-4">
+  {% for kind, label in mosaic %}
+    <figure class="ws-window {% if forloop.counter == 2 %}sm:translate-y-6{% elif forloop.counter == 3 %}sm:-translate-y-2{% elif forloop.counter == 4 %}sm:translate-y-4{% endif %}">
+      {% with "website/visuals/cv_"|add:kind|add:".html" as tpl %}{% include tpl %}{% endwith %}
+      <figcaption class="flex items-center justify-between border-t border-white/10 px-3 py-2 font-mono text-[10px] text-slate-400"><span>{{ label }}</span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400"></span></figcaption>
+    </figure>
+  {% endfor %}
+</div>

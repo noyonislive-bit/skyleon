@@ -1,0 +1,19 @@
+{% if rows %}
+<div class="table-wrap">
+  <table class="table">
+    <thead><tr><th>When</th><th>Who</th><th>Action</th><th>Object</th><th>Details</th><th>IP</th></tr></thead>
+    <tbody>
+    {% for a in rows %}
+      <tr>
+        <td class="text-xs whitespace-nowrap text-slate-500" title="{{ a.created_at|date:'j M Y, H:i:s' }}">{{ a.created_at|date:"j M, H:i" }}</td>
+        <td class="text-sm whitespace-nowrap">{% if a.actor %}{{ a.actor.name }}{% else %}<span class="bo-muted">system</span>{% endif %}</td>
+        <td><span class="bo-chip font-mono">{{ a.action }}</span></td>
+        <td class="text-xs whitespace-nowrap text-slate-500">{% if a.entity_type %}{{ a.entity_type }} #{{ a.entity_id }}{% else %}—{% endif %}</td>
+        <td class="max-w-xs truncate font-mono text-[11px] text-slate-500" title="{{ a.meta }}">{% for k, v in a.meta.items %}{{ k }}={{ v }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</td>
+        <td class="font-mono text-[11px] text-slate-400">{{ a.ip_address|default:"" }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}<p class="px-5 py-6 text-sm text-slate-500">No activity recorded yet.</p>{% endif %}

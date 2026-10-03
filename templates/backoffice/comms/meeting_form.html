@@ -1,0 +1,32 @@
+{% extends "backoffice/base.html" %}
+{% load backoffice_tags %}
+{% block content %}
+<form method="post" class="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]" novalidate>{% csrf_token %}
+  <div class="card card-body min-w-0 space-y-5">
+    {% include "components/form_errors.html" %}
+    {% include "components/field.html" with field=form.title %}
+    <div class="grid gap-5 sm:grid-cols-3">
+      {% include "components/field.html" with field=form.starts_at class="sm:col-span-2" %}
+      {% include "components/field.html" with field=form.duration_min %}
+    </div>
+    {% include "components/field.html" with field=form.meeting_url %}
+    {% include "components/field.html" with field=form.agenda %}
+  </div>
+  <aside class="min-w-0 space-y-6">
+    <div class="card card-body space-y-4">
+      <h2 class="bo-section">Invitees</h2>
+      {% include "components/field.html" with field=form.project %}
+      <div>
+        <div class="space-y-2">{% for radio in form.audience %}<label class="choice-pill">{{ radio.tag }} {{ radio.choice_label }}</label>{% endfor %}</div>
+        {% for e in form.audience.errors %}<p class="field-error">{{ e }}</p>{% endfor %}
+      </div>
+      <div data-show-if="audience=selected">{% include "backoffice/components/picker.html" with field=form.invitees %}</div>
+      <p class="text-xs leading-5 text-slate-500">New invitees get an in-app notification and an email with the link.{% if meeting %} If you change the time or link, existing invitees are told too.{% endif %}</p>
+    </div>
+    <div class="card card-body space-y-2">
+      <button class="btn btn-primary w-full">{% if meeting %}Save meeting{% else %}{% icon "send" class="h-4 w-4" %} Schedule &amp; invite{% endif %}</button>
+      <a href="{% if meeting %}{% url 'backoffice:meeting_detail' meeting.pk %}{% else %}{% url 'backoffice:meeting_list' %}{% endif %}" class="btn btn-ghost w-full">Cancel</a>
+    </div>
+  </aside>
+</form>
+{% endblock %}

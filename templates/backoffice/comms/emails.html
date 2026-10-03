@@ -1,0 +1,43 @@
+{% extends "backoffice/base.html" %}
+{% load backoffice_tags %}
+{% block page_actions %}
+  {% if retry_count %}
+  <form method="post" action="{% url 'backoffice:email_retry' %}" data-confirm="Retry delivery of all failed and pending emails now?">{% csrf_token %}<button class="btn btn-primary btn-sm">{% icon "refresh-cw" class="h-4 w-4" %} Retry failed &amp; pending ({{ retry_count }})</button></form>
+  {% endif %}
+{% endblock %}
+{% block content %}
+<div class="mb-4 bo-segment flex-wrap">
+  <a href="?" class="{% if not filters.status %}is-active{% endif %}">All</a>
+  {% for v, l in statuses %}<a href="?status={{ v }}" class="{% if filters.status == v %}is-active{% endif %}">{{ l }} <span class="bo-num text-slate-400">{{ counts|get_item:v|default:0 }}</span></a>{% endfor %}
+</div>
+<div class="card">
+  <form method="get" class="bo-filters" data-autosubmit>
+    {% if filters.status %}<input type="hidden" name="status" value="{{ filters.status }}">{% endif %}
+    {% include "backoffice/components/search.html" with value=filters.q placeholder="Recipient or subject" %}
+    <select name="template" class="select" aria-label="Template"><option value="">All templates</option>{% for t in templates %}{% if t %}<option value="{{ t }}"{% if filters.template == t %} selected{% endif %}>{{ t }}</option>{% endif %}{% endfor %}</select>
+  </form>
+  {% if page.object_list %}
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>To</th><th>Subject</th><th>Template</th><th>Status</th><th class="num">Attempts</th><th>Created</th><th>Sent</th></tr></thead>
+      <tbody>
+      {% for e in page %}
+        <tr>
+          <td class="text-sm whitespace-nowrap">{{ e.to }}</td>
+          <td class="min-w-64"><a href="{% url 'backoffice:email_detail' e.pk %}" class="font-medium text-slate-900 hover:text-brand-700">{{ e.subject|truncatechars:70 }}</a>{% if e.last_error %}<span class="block max-w-md truncate text-xs text-red-600" title="{{ e.last_error }}">{{ e.last_error }}</span>{% endif %}</td>
+          <td><span class="bo-chip font-mono">{{ e.template|default:"—" }}</span></td>
+          <td>{% status_badge e.status e.get_status_display %}</td>
+          <td class="num bo-num">{{ e.attempts }}</td>
+          <td class="text-xs whitespace-nowrap text-slate-500">{{ e.created_at|date:"j M, H:i" }}</td>
+          <td class="text-xs whitespace-nowrap text-slate-500">{{ e.sent_at|date:"j M, H:i"|default:"—" }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% include "components/pagination.html" with page=page %}
+  {% else %}
+    {% include "components/empty_state.html" with icon="mail" title="No emails" %}
+  {% endif %}
+</div>
+{% endblock %}

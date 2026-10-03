@@ -1,0 +1,35 @@
+{% extends "backoffice/base.html" %}
+{% load backoffice_tags %}
+{% block page_header %}
+<div class="bo-header">
+  <div class="min-w-0">
+    <p class="eyebrow mb-2">{% if is_past %}Past meeting{% else %}Upcoming meeting{% endif %}</p>
+    <h1 class="page-title">{{ meeting.title }}</h1>
+    <p class="page-subtitle">{{ meeting.starts_at|date:"l j F Y, H:i" }}–{{ ends_at|date:"H:i" }} ({{ meeting.duration_min }} min) · {% if meeting.project %}{{ meeting.project.name }}{% else %}Company-wide{% endif %}</p>
+  </div>
+  <div class="flex flex-wrap gap-2">
+    {% if meeting.meeting_url %}<a href="{{ meeting.meeting_url }}" target="_blank" rel="noopener" class="btn btn-primary btn-sm">{% icon "external-link" class="h-4 w-4" %} Open meeting link</a>{% endif %}
+    {% if can_edit %}
+      <a href="{% url 'backoffice:meeting_edit' meeting.pk %}" class="btn btn-secondary btn-sm">{% icon "pencil" class="h-4 w-4" %} Edit</a>
+      <form method="post" action="{% url 'backoffice:meeting_cancel' meeting.pk %}" data-confirm="{% if is_past %}Delete this past meeting?{% else %}Cancel this meeting? All {{ invites|length }} invitees are notified.{% endif %}">{% csrf_token %}<button class="btn btn-danger-soft btn-sm">{% icon "x-circle" class="h-4 w-4" %} {% if is_past %}Delete{% else %}Cancel meeting{% endif %}</button></form>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+{% block content %}
+<div class="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
+  <section class="card min-w-0">
+    <div class="card-header"><h2 class="card-title">Agenda</h2></div>
+    <div class="card-body">
+      {% if meeting.agenda %}<p class="text-sm leading-6 whitespace-pre-line text-slate-700">{{ meeting.agenda }}</p>{% else %}<p class="text-sm text-slate-500">No agenda.</p>{% endif %}
+      {% if meeting.meeting_url %}<div class="mt-5 flex items-center gap-2 rounded-lg bg-slate-50 p-3 ring-1 ring-slate-200"><span class="min-w-0 flex-1 truncate font-mono text-xs text-slate-700">{{ meeting.meeting_url }}</span><button type="button" class="btn btn-secondary btn-sm" data-copy="{{ meeting.meeting_url }}">Copy</button></div>{% endif %}
+      <p class="mt-5 text-xs text-slate-500">Scheduled by {{ meeting.created_by.name|default:"—" }} on {{ meeting.created_at|date:"j M Y" }}.</p>
+    </div>
+  </section>
+  <section class="card min-w-0">
+    <div class="card-header"><h2 class="card-title">Invitees</h2><span class="text-xs text-slate-500">{{ invites|length }}</span></div>
+    {% if invites %}<ul class="bo-list max-h-[28rem] overflow-y-auto">{% for i in invites %}<li class="px-5 py-2.5">{% include "backoffice/components/person.html" with u=i.user link=True %}</li>{% endfor %}</ul>
+    {% else %}<p class="px-5 py-4 text-sm text-slate-500">Nobody invited.</p>{% endif %}
+  </section>
+</div>
+{% endblock %}

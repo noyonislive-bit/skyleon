@@ -1,0 +1,9 @@
+{% extends "backoffice/base.html" %}
+{% load backoffice_tags %}
+{% block content %}
+<div class="card">
+  <form method="get" class="bo-filters">{% include "backoffice/components/search.html" with value=filters.q placeholder="Action, person or object type" %}<button class="btn btn-secondary btn-sm sm:!w-auto">Search</button></form>
+  {% include "backoffice/system/_audit_rows.html" with rows=page %}
+  {% include "components/pagination.html" with page=page %}
+</div>
+{% endblock %}

@@ -1,0 +1,49 @@
+{% extends "website/base_site.html" %}
+{% block content %}
+{% include "website/partials/legal_layout.html" with title="Privacy Policy" updated="October 2026" %}
+<section class="bg-white py-16 sm:py-20">
+  <div class="container-page">
+    <article class="legal mx-auto max-w-3xl">
+      <p>This policy explains how {{ brand.legal_name }} ("{{ brand.name }}", "we", "us") collects, uses and protects personal information submitted through this website. It does not cover data that clients provide to us for annotation projects — that data is governed by the agreement with each client.</p>
+
+      <h2>Information we collect</h2>
+      <ul>
+        <li><strong>Quote requests:</strong> your name, company, email, phone number, project details and any files you choose to upload.</li>
+        <li><strong>Contact messages:</strong> your name, email, company, phone number and message.</li>
+        <li><strong>Job applications:</strong> your contact details, location, experience, skills, availability, CV, portfolio link and any sample files.</li>
+        <li><strong>Technical information:</strong> your IP address and basic request information, used for security, spam prevention and rate limiting.</li>
+      </ul>
+
+      <h2>How we use it</h2>
+      <ul>
+        <li>To respond to your request, prepare proposals and communicate about potential projects.</li>
+        <li>To evaluate job applications and contact applicants whose profile matches an available project.</li>
+        <li>To protect the website against spam and abuse.</li>
+        <li>To meet legal or regulatory obligations where they apply.</li>
+      </ul>
+      <p>We do not sell personal information, and we do not use files you send us for any purpose other than evaluating and delivering your project or application.</p>
+
+      <h2>Cookies</h2>
+      <p>This website uses only cookies that are necessary for it to work — for example, a security cookie that protects forms against cross-site request forgery, and a session cookie when you sign in to a portal. We do not use advertising cookies.</p>
+
+      <h2>Sharing</h2>
+      <p>Information is accessible only to team members who need it. We may use trusted service providers (for example, hosting and email delivery) who process data on our behalf. We may disclose information if required by law.</p>
+
+      <h2>Retention</h2>
+      <p>We keep information only as long as needed for the purposes above. Unsuccessful job applications and inactive enquiries are deleted or anonymised after a reasonable period, unless you ask us to keep them.</p>
+
+      <h2>Security</h2>
+      <p>Uploaded files are stored privately and are not publicly accessible. Access is limited to authorised team members. No method of transmission or storage is completely secure, but we take reasonable measures to protect your information.</p>
+
+      <h2>Your choices</h2>
+      <p>You can ask us to access, correct or delete your personal information{% if company.email %} by emailing <a href="mailto:{{ company.email }}">{{ company.email }}</a>{% else %} by contacting us{% endif %}. Depending on where you live, you may have additional rights under local data-protection law.</p>
+
+      <h2>Changes</h2>
+      <p>We may update this policy from time to time. The "last updated" date above shows when it was last changed.</p>
+
+      <h2>Contact</h2>
+      <p>Questions about this policy? <a href="{% url 'website:contact' %}">Contact us</a>{% if company.email %} or write to <a href="mailto:{{ company.email }}">{{ company.email }}</a>{% endif %}.</p>
+    </article>
+  </div>
+</section>
+{% endblock %}

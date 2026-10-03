@@ -75,6 +75,7 @@ def record_tutorial_heartbeat(progress: TutorialProgress, *, duration, ranges, p
         last_heartbeat_at=progress.last_heartbeat_at,
         now=now,
         threshold_percent=settings.VIDEO_COMPLETION_THRESHOLD,
+        first_viewed_at=progress.first_viewed_at,
     )
     progress.watched_ranges = [list(r) for r in result.ranges]
     progress.watched_seconds = result.watched_seconds

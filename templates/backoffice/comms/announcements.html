@@ -1,0 +1,35 @@
+{% extends "backoffice/base.html" %}
+{% load backoffice_tags %}
+{% block page_actions %}<a href="{% url 'backoffice:announcement_create' %}" class="btn btn-primary btn-sm">{% icon "megaphone" class="h-4 w-4" %} New announcement</a>{% endblock %}
+{% block content %}
+<form method="get" class="mb-4" data-autosubmit>
+  <select name="project" class="select sm:!w-72" aria-label="Audience"><option value="">All audiences</option><option value="global"{% if filters.project == "global" %} selected{% endif %}>Everyone</option>{% for p in projects %}<option value="{{ p.pk }}"{% if filters.project == p.pk|stringformat:"s" %} selected{% endif %}>{{ p.code }} · {{ p.name }}</option>{% endfor %}</select>
+</form>
+{% if page.object_list %}
+<div class="space-y-4">
+  {% for a in page %}
+    <article class="card">
+      <div class="flex flex-col gap-4 p-5 sm:flex-row sm:items-start">
+        <span class="bo-stat-icon {% if a.priority == 'important' %}!bg-amber-50 !text-amber-600 !ring-amber-100{% endif %}">{% icon "megaphone" class="h-4 w-4" %}</span>
+        <div class="min-w-0 flex-1">
+          <div class="flex flex-wrap items-center gap-2">
+            <h2 class="text-base font-semibold text-slate-900">{{ a.title }}</h2>
+            {% if a.pinned %}<span class="badge badge-brand">{% icon "bookmark" class="h-3 w-3" %} Pinned</span>{% endif %}
+            {% if a.priority == "important" %}{% status_badge "important" "Important" %}{% endif %}
+          </div>
+          <p class="mt-0.5 text-xs text-slate-500">{% if a.project %}{{ a.project.code }} · {{ a.project.name }}{% else %}Everyone{% endif %} · {{ a.published_at|date:"j M Y, H:i" }}{% if a.created_by %} · {{ a.created_by.name }}{% endif %}</p>
+          <div class="prose-content mt-3 line-clamp-4 !text-sm">{{ a.body|markdown }}</div>
+        </div>
+        <div class="flex shrink-0 items-center gap-3 sm:flex-col sm:items-end">
+          <div class="w-32">{% include "backoffice/components/meter.html" with value=a.read_count|bar_width:a.audience_size|floatformat:0|add:0 done=a.read_count total=a.audience_size unit="read" %}</div>
+          {% if a.can_edit %}<div class="flex gap-1"><a href="{% url 'backoffice:announcement_edit' a.pk %}" class="bo-icon-btn" title="Edit">{% icon "pencil" class="h-4 w-4" %}</a><form method="post" action="{% url 'backoffice:announcement_delete' a.pk %}" data-confirm="Delete “{{ a.title }}”?">{% csrf_token %}<button class="bo-icon-btn is-danger" title="Delete">{% icon "trash-2" class="h-4 w-4" %}</button></form></div>{% endif %}
+        </div>
+      </div>
+    </article>
+  {% endfor %}
+</div>
+<div class="card mt-4">{% include "components/pagination.html" with page=page %}</div>
+{% else %}
+  <div class="card">{% url 'backoffice:announcement_create' as new_url %}{% include "components/empty_state.html" with icon="megaphone" title="No announcements" text="Share news with everyone or with one project." action_url=new_url action_label="New announcement" %}</div>
+{% endif %}
+{% endblock %}

@@ -16,7 +16,7 @@
                 <a href="{% url 'website:service_detail' s.slug %}" class="menu-link">
                   <span class="menu-icon">{% icon s.icon class="h-[18px] w-[18px]" %}</span>
                   <span>
-                    <span class="menu-link-title flex items-center gap-2">{{ s.name }}{% if s.badge %}<span class="dot animate-pulse-soft bg-label-amber" title="{{ s.badge }}"></span>{% endif %}</span>
+                    <span class="menu-link-title block">{{ s.name }}</span>
                     <span class="menu-link-text block">{{ s.short }}</span>
                   </span>
                 </a>

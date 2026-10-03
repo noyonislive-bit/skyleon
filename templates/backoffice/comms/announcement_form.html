@@ -1,0 +1,24 @@
+{% extends "backoffice/base.html" %}
+{% load backoffice_tags %}
+{% block content %}
+<form method="post" class="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]" novalidate>{% csrf_token %}
+  <div class="card card-body min-w-0 space-y-5">
+    {% include "components/form_errors.html" %}
+    {% include "components/field.html" with field=form.title %}
+    {% include "components/field.html" with field=form.body hint="Markdown supported: **bold**, lists, links." %}
+  </div>
+  <aside class="min-w-0 space-y-6">
+    <div class="card card-body space-y-4">
+      {% include "components/field.html" with field=form.project %}
+      {% include "components/field.html" with field=form.priority %}
+      {% include "components/field.html" with field=form.pinned %}
+      {% if form.send_email %}{% include "components/field.html" with field=form.send_email %}{% endif %}
+      <p class="text-xs leading-5 text-slate-500">{% if announcement %}Editing doesn't notify anyone again.{% else %}Every active employee in the audience gets an in-app notification{% if form.send_email %} (and an email if ticked){% endif %}.{% endif %}</p>
+    </div>
+    <div class="card card-body space-y-2">
+      <button class="btn btn-primary w-full">{% if announcement %}Save changes{% else %}{% icon "send" class="h-4 w-4" %} Publish announcement{% endif %}</button>
+      <a href="{% url 'backoffice:announcement_list' %}" class="btn btn-ghost w-full">Cancel</a>
+    </div>
+  </aside>
+</form>
+{% endblock %}

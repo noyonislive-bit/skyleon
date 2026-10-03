@@ -189,7 +189,7 @@ class Command(BaseCommand):
             ("Which of these are valid hand labels? (select all)", QuestionType.MULTI_SELECT,
              [("Left hand", True), ("Right hand", True), ("Both hands", True), ("Some hand", False)], ""),
         ], passing=75, attempts=3, author=trainer)
-        publish_test(onboarding_test, assign=False)
+        publish_test(onboarding_test)  # assigns it to every ACT-01 employee
 
         steps = [
             (OnboardingStepType.WELCOME, "Welcome & project introduction", "Meet the project and its goals.", "Welcome to **ACT-01**! You'll segment egocentric videos into atomic actions and write a description for each segment.", {}),

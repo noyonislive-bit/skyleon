@@ -1,0 +1,48 @@
+{% extends "backoffice/base.html" %}
+{% load static backoffice_tags %}
+{% block page_header %}
+<div class="bo-header">
+  <div class="flex min-w-0 items-center gap-4">
+    <span class="flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-2xl {% if attempt.passed %}bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200{% elif attempt.submitted_at %}bg-red-50 text-red-700 ring-1 ring-red-200{% else %}bg-slate-100 text-slate-500{% endif %}">
+      <span class="text-lg leading-5 font-semibold">{% if attempt.score is not None %}{{ attempt.score|floatformat:0 }}%{% else %}—{% endif %}</span>
+    </span>
+    <div class="min-w-0">
+      <div class="flex flex-wrap items-center gap-2"><h1 class="page-title">{{ attempt.user.name }}</h1>{% if not attempt.submitted_at %}{% status_badge "in_progress" "In progress" %}{% elif attempt.passed %}{% status_badge "passed" "Passed" %}{% else %}{% status_badge "failed" "Failed" %}{% endif %}{% if attempt.data.late %}<span class="badge badge-warning">Submitted late</span>{% endif %}</div>
+      <p class="page-subtitle">{{ test.title }} · attempt {{ attempt.attempt_number }} · {{ attempt.points_earned|default:0 }}/{{ attempt.points_total|default:0 }} points · started {{ attempt.started_at|date:"j M Y, H:i" }}{% if attempt.submitted_at %} · submitted {{ attempt.submitted_at|date:"H:i" }} ({{ attempt.started_at|timesince:attempt.submitted_at }}){% endif %}</p>
+    </div>
+  </div>
+  <div class="flex flex-wrap gap-2">
+    {% for o in others %}<a href="{% url 'backoffice:attempt_detail' o.pk %}" class="btn btn-sm {% if o.pk == attempt.pk %}btn-primary{% else %}btn-secondary{% endif %}">#{{ o.attempt_number }}{% if o.score is not None %} · {{ o.score|floatformat:0 }}%{% endif %}</a>{% endfor %}
+  </div>
+</div>
+{% endblock %}
+{% block content %}
+<div class="space-y-4">
+  {% for item in items %}
+    <article class="card">
+      <div class="flex items-start gap-4 p-5">
+        <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold {% if not item.answered %}bg-slate-100 text-slate-500{% elif item.correct %}bg-emerald-100 text-emerald-700{% else %}bg-red-100 text-red-700{% endif %}">{% if not item.answered %}{{ item.n }}{% elif item.correct %}{% icon "check" class="h-3.5 w-3.5" %}{% else %}{% icon "x" class="h-3.5 w-3.5" %}{% endif %}</span>
+        <div class="min-w-0 flex-1">
+          <div class="flex flex-wrap items-center gap-2 text-xs text-slate-500"><span>Question {{ item.n }}</span><span>·</span><span>{{ item.question.get_qtype_display }}</span><span>·</span><span>{{ item.points }}/{{ item.question.points }} pt</span></div>
+          <p class="mt-1 font-medium whitespace-pre-line text-slate-900">{{ item.question.prompt }}</p>
+          {% if item.question.media %}<div class="mt-3 max-w-sm overflow-hidden rounded-lg ring-1 ring-slate-200">{% if item.question.media.kind == "video" %}<video controls preload="metadata" class="w-full bg-ink-950" data-src="{% asset_url item.question.media %}"{% if item.question.media.is_hls %} data-hls data-hls-lib="{% static 'vendor/hls.min.js' %}"{% endif %}></video>{% else %}<img src="{% asset_url item.question.media %}" alt="" class="w-full">{% endif %}</div>{% endif %}
+          <ul class="mt-3 grid gap-2 sm:grid-cols-2">
+            {% for o in item.options %}
+              <li class="bo-answer {% if o.is_correct %}is-correct{% elif o.selected %}is-wrong{% else %}is-plain{% endif %}">
+                <span class="mt-0.5 shrink-0">{% if o.selected %}{% icon "circle-dot" class="h-4 w-4" %}{% else %}{% icon "circle" class="h-4 w-4 opacity-40" %}{% endif %}</span>
+                <span class="min-w-0 flex-1">{% if o.option.media %}<img src="{% asset_url o.option.media %}" alt="" class="mb-1.5 max-h-28 rounded-md" loading="lazy">{% endif %}{{ o.option.text }}</span>
+                <span class="shrink-0 text-[11px] font-semibold">{% if o.selected and o.is_correct %}Chosen · correct{% elif o.selected %}Chosen{% elif o.is_correct %}Correct answer{% endif %}</span>
+              </li>
+            {% endfor %}
+          </ul>
+          {% if not item.answered %}<p class="mt-2 text-xs text-slate-500">Not answered.</p>{% endif %}
+          {% if item.question.explanation %}<p class="mt-3 flex gap-1.5 text-xs text-slate-500">{% icon "info" class="mt-px h-3.5 w-3.5 shrink-0" %}<span>{{ item.question.explanation }}</span></p>{% endif %}
+        </div>
+      </div>
+    </article>
+  {% empty %}
+    <div class="card">{% include "components/empty_state.html" with icon="clipboard-list" title="No answers recorded" %}</div>
+  {% endfor %}
+</div>
+{% endblock %}
+{% block page_scripts %}{% endblock %}

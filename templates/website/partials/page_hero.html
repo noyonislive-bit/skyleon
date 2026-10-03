@@ -22,5 +22,6 @@
       {% endif %}
     </div>
     {% if visual %}<div class="min-w-0">{% include visual %}</div>{% endif %}
+    {% if not visual and not no_deco %}<div class="pointer-events-none absolute top-1/2 right-8 hidden w-[31%] max-w-[440px] -translate-y-[38%] opacity-80 xl:block">{% include "website/visuals/hero_deco.html" %}</div>{% endif %}
   </div>
 </section>

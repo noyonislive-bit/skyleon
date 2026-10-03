@@ -1,0 +1,15 @@
+{% load backoffice_tags %}
+<div class="bo-option-row" data-option-row>
+  {{ f.id }}
+  <label class="bo-correct" title="Mark as a correct answer">{{ f.is_correct }}<span>Correct</span></label>
+  <div class="min-w-0 flex-1 space-y-2">
+    {{ f.text }}
+    {% for e in f.text.errors %}<p class="field-error">{{ e }}</p>{% endfor %}
+    <div data-option-media{% if not f.media.value %} hidden{% endif %}>{% uploader f.media kind="image" purpose="option" compact=True note=False %}</div>
+  </div>
+  <div class="flex shrink-0 items-center gap-1 self-end sm:self-start">
+    <button type="button" class="bo-icon-btn" title="Add an image (e.g. “select the correct segmentation”)" data-option-image>{% icon "image" class="h-4 w-4" %}</button>
+    <button type="button" class="bo-icon-btn is-danger" title="Remove option" data-option-remove>{% icon "x" class="h-4 w-4" %}</button>
+    <span hidden>{{ f.DELETE }}</span>
+  </div>
+</div>

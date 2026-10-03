@@ -6,13 +6,13 @@ from dataclasses import dataclass, field
 
 from django.conf import settings
 from django.core.paginator import Paginator
-from django.urls import reverse
+from django.db.models import Count, Sum
 from django.utils.http import url_has_allowed_host_and_scheme
 
+from apps.assessments.models import TestAssignment
 from apps.assessments.services import test_state
 from apps.storage.models import MediaStatus
 from apps.storage.services import media_url
-
 from apps.training.progress import GRACE_SECONDS, MAX_PLAYBACK_RATE
 
 from .scope import attempts_by_test
@@ -173,9 +173,6 @@ def tests_with_state(scope, qs=None):
     [{"test", "state", "badge", "due_at", "feedback", "recipient"}] for the visible tests (or `qs`),
     using two extra queries in total (attempts + assignments).
     """
-    from apps.assessments.models import TestAssignment
-    from django.db.models import Count, Sum
-
     qs = qs if qs is not None else scope.tests()
     tests = list(
         qs.select_related("project", "feedback").annotate(
@@ -221,7 +218,3 @@ def feedback_gate(scope, test):
     if not recipient.watched_at:
         return recipient, "Watch the feedback video first — the test unlocks once you've watched it."
     return recipient, None
-
-
-def test_url(test):
-    return reverse("portal:test_detail", args=[test.pk])

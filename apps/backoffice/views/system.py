@@ -49,7 +49,7 @@ def settings_view(request):
     system = [
         ("Storage backend", "Object storage (S3-compatible)" if backend == "s3" else "Private server folder (local, signed streaming URLs)"),
         ("Bucket / folder", settings.S3_BUCKET if backend == "s3" else "storage/ (outside public_html)"),
-        ("Email backend", settings.EMAIL_BACKEND.rsplit(".", 1)[-1].replace("EmailBackend", "") or settings.EMAIL_BACKEND),
+        ("Email backend", _email_backend_label(settings.EMAIL_BACKEND)),
         ("Send email immediately", "Yes (cron retries failures)" if settings.EMAIL_SEND_IMMEDIATELY else "No (cron job delivers)"),
         ("From address", settings.DEFAULT_FROM_EMAIL),
         ("Video completion threshold", f"{settings.VIDEO_COMPLETION_THRESHOLD}% of the video really played"),
@@ -74,6 +74,17 @@ def settings_view(request):
         "categories": TutorialCategory.objects.all(),
         "audit": AuditLog.objects.select_related("actor").order_by("-created_at")[:12] if has_permission(request.user, "audit.view") else None,
     })
+
+
+def _email_backend_label(path):
+    name = path.rsplit(".", 2)[-2] if path.count(".") >= 2 else path
+    return {
+        "smtp": "SMTP (cPanel mail server)",
+        "console": "Console — emails are printed to the server log, not sent",
+        "locmem": "In-memory (tests)",
+        "filebased": "Files on disk",
+        "dummy": "Disabled",
+    }.get(name, path)
 
 
 @permission_required_code("audit.view")

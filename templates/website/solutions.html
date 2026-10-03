@@ -1,7 +1,7 @@
 {% extends "website/base_site.html" %}
 {% block content %}
 {% url 'website:quote' as quote_url %}{% url 'website:services' as services_url %}
-{% include "website/partials/page_hero.html" with eyebrow="Annotation solutions" title="Annotation that trains computer vision models." lead="Computer vision models learn from labelled examples. How complete, precise and consistent those labels are sets the ceiling for what your model can learn." primary_url=quote_url primary_label="Request a Quote" secondary_url=services_url secondary_label="Explore services" %}
+{% include "website/partials/page_hero.html" with eyebrow="Annotation solutions" title="Annotation that trains computer vision models." lead="Computer vision models learn from labelled examples. How complete, precise and consistent those labels are sets the ceiling for what your model can learn." primary_url=quote_url primary_label="Request a Quote" secondary_url=services_url secondary_label="Explore services" visual="website/visuals/cv_mosaic.html" %}
 
 {# How annotation trains CV models #}
 <section class="section bg-white">
@@ -70,13 +70,13 @@
         <p class="lead mt-5">Detailed guides to the most common annotation projects we support — what we deliver, how the workflow runs and how quality is checked.</p>
       </div>
     </div>
-    <div class="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <div class="mt-12 grid gap-4 md:grid-cols-2">
       {% for p in solution_pages %}
         <a href="{% url 'website:solution_detail' p.slug %}" class="reveal card card-lift group flex items-start gap-4 p-5">
           <span class="icon-tile">{% icon p.icon class="h-5 w-5" %}</span>
           <span class="min-w-0">
             <span class="flex items-center gap-1.5 font-semibold text-slate-900">{{ p.name }}<span class="text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-brand-600">{% icon "arrow-right" class="h-4 w-4" %}</span></span>
-            <span class="mt-1 block text-sm leading-6 text-slate-600">{{ p.lead|truncatewords:18 }}</span>
+            <span class="mt-1 block text-sm leading-6 text-slate-600">{{ p.lead|truncatewords:22 }}</span>
           </span>
         </a>
       {% endfor %}

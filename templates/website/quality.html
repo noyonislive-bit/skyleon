@@ -52,15 +52,15 @@
       <div class="relative mx-auto aspect-square w-full max-w-[460px]">
         <svg viewBox="0 0 400 400" class="absolute inset-0 h-full w-full" aria-hidden="true">
           <circle cx="200" cy="200" r="150" fill="none" stroke="#c7cbff" stroke-width="2" stroke-dasharray="6 8" class="animate-dash"/>
-          <circle cx="200" cy="200" r="96" fill="#fff" stroke="#e2e8f0"/>
-          <g fill="#6563f2"><path d="M346 186 l8 14 l8 -14z" transform="rotate(0 354 200)"/><path d="M186 54 l14 -8 l0 16z"/><path d="M54 214 l-8 -14 l-8 14z"/><path d="M214 346 l-14 8 l0 -16z"/></g>
+          <circle cx="200" cy="200" r="66" fill="#fff" stroke="#e2e8f0"/>
+          <g fill="#6563f2"><circle cx="306" cy="94" r="4"/><circle cx="306" cy="306" r="4"/><circle cx="94" cy="306" r="4"/><circle cx="94" cy="94" r="4"/></g>
         </svg>
         <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
           <span class="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-600 to-accent-500 text-white shadow-glow">{% icon "rotate-ccw" class="h-5 w-5" %}</span>
-          <p class="mt-3 text-sm font-semibold text-slate-900">Continuous<br>improvement</p>
+          <p class="mt-2 text-[12px] leading-tight font-semibold text-slate-900">Continuous<br>improvement</p>
         </div>
         {% for step in loop_steps %}
-          <div class="absolute w-[36%] -translate-x-1/2 -translate-y-1/2 rounded-xl bg-white p-3 text-center shadow-card ring-1 ring-slate-200 sm:p-3.5" style="left: {{ step.x }}%; top: {{ step.y }}%">
+          <div class="absolute w-[30%] -translate-x-1/2 -translate-y-1/2 rounded-xl bg-white p-3 text-center shadow-card ring-1 ring-slate-200 sm:p-3.5" style="left: {{ step.x }}%; top: {{ step.y }}%">
             <p class="font-mono text-[10px] text-brand-600">{{ forloop.counter|stringformat:"02d" }}</p>
             <p class="mt-0.5 text-[12.5px] leading-snug font-semibold text-slate-900 sm:text-sm">{{ step.name }}</p>
           </div>

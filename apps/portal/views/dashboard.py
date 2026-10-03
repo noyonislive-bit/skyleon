@@ -1,6 +1,15 @@
 from datetime import timedelta
 
-from django.db.models import Avg, CharField, Count, FloatField, OuterRef, Q, Subquery, Value
+from django.db.models import (
+    Avg,
+    CharField,
+    Count,
+    FloatField,
+    OuterRef,
+    Q,
+    Subquery,
+    Value,
+)
 from django.db.models.functions import Coalesce
 from django.shortcuts import render
 from django.utils import timezone

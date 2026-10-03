@@ -1,0 +1,27 @@
+{% extends "backoffice/base.html" %}
+{% load backoffice_tags %}
+{% block page_header %}
+<div class="bo-header">
+  <div class="min-w-0">
+    <div class="flex flex-wrap items-center gap-2">{% status_badge email.status email.get_status_display %}<span class="bo-chip font-mono">{{ email.template|default:"no template" }}</span></div>
+    <h1 class="page-title mt-2">{{ email.subject }}</h1>
+    <p class="page-subtitle">To {{ email.to }} · created {{ email.created_at|date:"j M Y, H:i:s" }}{% if email.sent_at %} · sent {{ email.sent_at|date:"j M Y, H:i:s" }}{% endif %} · {{ email.attempts }} attempt{{ email.attempts|pluralize }}</p>
+  </div>
+  {% if email.status != "sent" %}
+  <form method="post" action="{% url 'backoffice:email_retry' %}">{% csrf_token %}<input type="hidden" name="pk" value="{{ email.pk }}"><button class="btn btn-primary btn-sm">{% icon "refresh-cw" class="h-4 w-4" %} Retry now</button></form>
+  {% endif %}
+</div>
+{% endblock %}
+{% block content %}
+{% if email.last_error %}<div class="alert alert-error mb-5">{% icon "alert-circle" class="mt-0.5 h-4 w-4 shrink-0" %}<p class="font-mono text-xs break-all">{{ email.last_error }}</p></div>{% endif %}
+<div class="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]">
+  <section class="card min-w-0 overflow-hidden">
+    <div class="card-header"><h2 class="card-title">HTML version</h2><span class="text-xs text-slate-500">Rendered in a sandbox — scripts and links are disabled</span></div>
+    <iframe title="Email preview" sandbox="" referrerpolicy="no-referrer" class="h-[640px] w-full bg-slate-100" srcdoc="{{ email.html }}"></iframe>
+  </section>
+  <section class="card min-w-0">
+    <div class="card-header"><h2 class="card-title">Plain-text version</h2></div>
+    <pre class="max-h-[640px] overflow-auto p-5 font-mono text-xs leading-5 whitespace-pre-wrap text-slate-700">{{ email.text }}</pre>
+  </section>
+</div>
+{% endblock %}

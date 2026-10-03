@@ -1,0 +1,27 @@
+{% extends "backoffice/base.html" %}
+{% load backoffice_tags %}
+{% block content %}
+{% if linked %}<div class="alert alert-info mb-5">{% icon "link" class="mt-0.5 h-4 w-4 shrink-0" %}<p>This test belongs to feedback <a class="font-semibold underline" href="{% url 'backoffice:feedback_detail' linked.pk %}">{{ linked.display_number }} · {{ linked.topic }}</a> and is assigned to its recipients.</p></div>{% endif %}
+<form method="post" class="card" novalidate>{% csrf_token %}
+  <div class="card-body space-y-6">
+    {% include "components/form_errors.html" %}
+    <div class="grid gap-5 sm:grid-cols-6">
+      {% include "components/field.html" with field=form.title class="sm:col-span-4" %}
+      {% include "components/field.html" with field=form.kind class="sm:col-span-2" %}
+      {% include "components/field.html" with field=form.description class="sm:col-span-6" hint="Shown before the employee starts." %}
+      {% include "components/field.html" with field=form.project class="sm:col-span-3" %}
+      {% include "components/field.html" with field=form.passing_score class="sm:col-span-1" %}
+      {% include "components/field.html" with field=form.attempt_limit class="sm:col-span-1" hint="Empty = unlimited" %}
+      {% include "components/field.html" with field=form.time_limit_min class="sm:col-span-1" hint="Empty = none" %}
+    </div>
+    <div class="grid gap-3 sm:grid-cols-2">
+      <div class="rounded-lg p-3 ring-1 ring-slate-200">{% include "components/field.html" with field=form.shuffle_questions %}</div>
+      <div class="rounded-lg p-3 ring-1 ring-slate-200">{% include "components/field.html" with field=form.reveal_answers %}</div>
+    </div>
+  </div>
+  <div class="flex justify-end gap-2 border-t border-slate-100 px-5 py-4">
+    <a href="{% if test %}{% url 'backoffice:test_builder' test.pk %}{% else %}{% url 'backoffice:test_list' %}{% endif %}" class="btn btn-ghost">Cancel</a>
+    <button class="btn btn-primary">{% if test %}Save settings{% else %}Create &amp; add questions{% endif %}</button>
+  </div>
+</form>
+{% endblock %}

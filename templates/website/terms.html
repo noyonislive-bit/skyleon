@@ -1,0 +1,39 @@
+{% extends "website/base_site.html" %}
+{% block content %}
+{% include "website/partials/legal_layout.html" with title="Terms of Use" updated="October 2026" %}
+<section class="bg-white py-16 sm:py-20">
+  <div class="container-page">
+    <article class="legal mx-auto max-w-3xl">
+      <p>These terms govern your use of the {{ brand.name }} website. By using the website, you agree to them. Annotation services are provided under separate written agreements with each client; these terms do not replace those agreements.</p>
+
+      <h2>Use of the website</h2>
+      <ul>
+        <li>Use the website lawfully and do not attempt to disrupt it, gain unauthorised access or submit malicious files.</li>
+        <li>Information you submit through forms must be accurate, and you must have the right to share any files you upload.</li>
+        <li>Portal areas are for authorised users only. Keep your login credentials confidential.</li>
+      </ul>
+
+      <h2>Content</h2>
+      <p>Website content, including text, graphics and illustrations, belongs to {{ brand.legal_name }} unless stated otherwise. Annotation interfaces shown on this website are illustrations and do not depict client data.</p>
+
+      <h2>No offer or warranty</h2>
+      <p>Information on this website is provided for general purposes. It is not a binding offer; scope, timelines, pricing and quality criteria are agreed in writing for each project. The website is provided "as is", without warranties of any kind.</p>
+
+      <h2>Limitation of liability</h2>
+      <p>To the extent permitted by law, {{ brand.name }} is not liable for indirect or consequential losses arising from the use of this website.</p>
+
+      <h2>Links</h2>
+      <p>Links to third-party websites are provided for convenience. We are not responsible for their content or practices.</p>
+
+      <h2>Privacy</h2>
+      <p>How we handle personal information is described in our <a href="{% url 'website:privacy' %}">Privacy Policy</a>.</p>
+
+      <h2>Changes</h2>
+      <p>We may update these terms from time to time. Continued use of the website means you accept the current version.</p>
+
+      <h2>Contact</h2>
+      <p>Questions about these terms? <a href="{% url 'website:contact' %}">Contact us</a>{% if company.email %} at <a href="mailto:{{ company.email }}">{{ company.email }}</a>{% endif %}.</p>
+    </article>
+  </div>
+</section>
+{% endblock %}

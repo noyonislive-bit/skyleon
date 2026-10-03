@@ -13,13 +13,32 @@ from django.urls import reverse
 from django.utils import timezone
 
 from apps.accounts.models import Role, User, UserStatus
-from apps.assessments.models import Question, QuestionOption, QuestionType, Test, TestAssignment, TestAttempt
-from apps.comms.models import Announcement, AnnouncementRead, Meeting, MeetingInvite, Notification
+from apps.assessments.models import (
+    Question,
+    QuestionOption,
+    QuestionType,
+    Test,
+    TestAssignment,
+    TestAttempt,
+)
+from apps.comms.models import (
+    Announcement,
+    AnnouncementRead,
+    Meeting,
+    MeetingInvite,
+    Notification,
+)
 from apps.core.choices import ContentStatus, ProgressStatus
 from apps.feedback.models import Feedback, FeedbackRecipient
 from apps.projects.models import Guideline, GuidelineAck, Project, ProjectMember, Team
 from apps.storage.models import MediaAsset, MediaKind, MediaProvider, MediaStatus
-from apps.training.models import OnboardingCompletion, OnboardingStep, OnboardingStepType, Tutorial, TutorialProgress
+from apps.training.models import (
+    OnboardingCompletion,
+    OnboardingStep,
+    OnboardingStepType,
+    Tutorial,
+    TutorialProgress,
+)
 
 PASSWORD = "Portal@12345"
 PUB = ContentStatus.PUBLISHED
@@ -254,13 +273,13 @@ class HeartbeatTests(PortalTestBase):
         data = self.hb(self.url(), {"duration": 100, "position": 100, "ranges": [[0, 100]]}).json()
         self.assertFalse(data["completed"])
         watched = data["watched_seconds"]
-        # 8 s after the first view: coverage (≈68 s) is already above 2×8 + 30 → the next heartbeat is skipped.
+        self.assertLessEqual(watched, (4 + 15) * 2 + 0.5)  # service ceiling: 2× (time since first view + grace)
+        # 8 s after the first view the total still cannot run ahead of 2× wall-clock time.
         now = timezone.now()
         rows.update(last_heartbeat_at=now - timedelta(seconds=4), first_viewed_at=now - timedelta(seconds=8))
         data = self.hb(self.url(), {"duration": 100, "position": 100, "ranges": [[0, 100]]}).json()
-        self.assertTrue(data["throttled"])
         self.assertFalse(data["completed"])
-        self.assertEqual(data["watched_seconds"], watched)
+        self.assertLessEqual(data["watched_seconds"], (8 + 15) * 2 + 0.5)
 
     def test_real_viewing_completes(self):
         self.hb(self.url(), {"duration": 100, "position": 30, "ranges": [[0, 30]]})
@@ -447,6 +466,17 @@ class OnboardingTests(PortalTestBase):
         resp = self.c.get(reverse("portal:onboarding"))
         self.assertContains(resp, "Mark as complete")
         self.assertEqual(resp.context["overall_total"], 3)
+
+    def test_completed_track_shows_celebration(self):
+        OnboardingCompletion.objects.create(step=self.step1, user=self.emp)
+        OnboardingCompletion.objects.create(step=self.step3, user=self.emp)
+        TutorialProgress.objects.filter(tutorial=self.tut_a, user=self.emp).update(
+            status=ProgressStatus.COMPLETED, completed_at=timezone.now(), percent=100
+        )
+        resp = self.c.get(reverse("portal:onboarding"))
+        self.assertEqual(resp.context["overall_percent"], 100)
+        self.assertContains(resp, "Onboarding complete")
+        self.assertNotContains(resp, "Mark as complete")
 
     def test_guideline_ack_records_version(self):
         self.c.post(reverse("portal:guideline_ack", args=["alpha", self.guideline.pk]))

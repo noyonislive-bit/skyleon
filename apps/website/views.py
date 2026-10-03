@@ -203,6 +203,7 @@ def solutions(request):
         crumbs=[("Solutions", None)],
         schema=[seo.service("Computer vision annotation", description, request.path, "Data annotation", [s["name"] for s in c.CV_SOLUTIONS])],
         cv_solutions=c.CV_SOLUTIONS, solution_pages=c.SOLUTION_PAGES, statements=c,
+        mosaic=[("detection", "object detection"), ("segmentation", "segmentation"), ("pose", "pose / keypoints"), ("tracking", "tracking")],
     )
 
 

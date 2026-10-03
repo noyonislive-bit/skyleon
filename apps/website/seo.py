@@ -83,7 +83,10 @@ def breadcrumb_list(crumbs, current_path: str) -> dict | None:
     """crumbs: [(label, url_or_None), …] without Home; the last item is the current page."""
     if not crumbs:
         return None
-    items = [("Home", "/")] + [(label, url or current_path) for label, url in crumbs]
+    last = len(crumbs) - 1
+    items = [("Home", "/")] + [
+        (label, url or current_path) for i, (label, url) in enumerate(crumbs) if url or i == last
+    ]
     return {
         "@type": "BreadcrumbList",
         "itemListElement": [
