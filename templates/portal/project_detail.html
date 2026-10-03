@@ -10,21 +10,21 @@
     <div class="relative flex flex-col gap-5 sm:flex-row sm:items-center">
       <span class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl font-mono text-sm font-semibold text-white ring-1 ring-white/20" style="background: {{ project.color }}">{{ project.code|slice:":3" }}</span>
       <div class="min-w-0 flex-1">
-        <p class="eyebrow-dark">{{ project.code }} · {{ project.get_status_display }}</p>
+        <p class="eyebrow-dark">{{ project.code }} · {{ project.status|label_bn:"project_status" }}</p>
         <h1 class="mt-2 text-2xl font-semibold tracking-tight text-white sm:text-3xl">{{ project.name }}</h1>
         {% if project.summary %}<p class="mt-2 max-w-2xl text-sm leading-6 text-slate-400">{{ project.summary }}</p>{% endif %}
       </div>
       <div class="flex flex-wrap gap-2 sm:flex-col sm:items-end">
-        {% if member.qualified_at %}<span class="badge badge-success">{% icon "badge-check" class="h-3 w-3" %} Qualified</span>{% else %}<span class="badge bg-amber-400/15 text-amber-200 ring-amber-300/30">In onboarding</span>{% endif %}
+        {% if member.qualified_at %}<span class="badge badge-success">{% icon "badge-check" class="h-3 w-3" %} কোয়ালিফাইড</span>{% else %}<span class="badge bg-amber-400/15 text-amber-200 ring-amber-300/30">অনবোর্ডিং চলছে</span>{% endif %}
       </div>
     </div>
   </div>
   <dl class="grid grid-cols-2 divide-slate-100 sm:grid-cols-3 lg:grid-cols-6 lg:divide-x">
-    <div class="px-5 py-4"><dt class="kv-label">Your role</dt><dd class="kv-value">{{ member.get_role_display }}</dd></div>
-    <div class="px-5 py-4"><dt class="kv-label">Team</dt><dd class="kv-value">{{ member.team.name|default:"—" }}</dd></div>
-    <div class="px-5 py-4"><dt class="kv-label">{% if member.team %}Teammates{% else %}Project members{% endif %}</dt><dd class="kv-value">{{ teammates }}{% if member.team %} <span class="text-xs font-normal text-slate-500">· {{ project_members }} on project</span>{% endif %}</dd></div>
-    <div class="px-5 py-4"><dt class="kv-label">Platform</dt><dd class="kv-value">{{ project.platform|default:"—" }}</dd></div>
-    <div class="col-span-2 px-5 py-4"><dt class="kv-label">Annotation type</dt><dd class="kv-value">{{ project.annotation_type|default:"—" }}</dd></div>
+    <div class="px-5 py-4"><dt class="kv-label">আপনার ভূমিকা</dt><dd class="kv-value">{{ member.role|label_bn:"member_role" }}</dd></div>
+    <div class="px-5 py-4"><dt class="kv-label">টিম</dt><dd class="kv-value">{{ member.team.name|default:"—" }}</dd></div>
+    <div class="px-5 py-4"><dt class="kv-label">{% if member.team %}টিমের অন্য সদস্য{% else %}প্রজেক্টের অন্য সদস্য{% endif %}</dt><dd class="kv-value">{{ teammates }} জন{% if member.team %} <span class="text-xs font-normal text-slate-500">· প্রজেক্টে মোট {{ project_members }} জন</span>{% endif %}</dd></div>
+    <div class="px-5 py-4"><dt class="kv-label">প্ল্যাটফর্ম</dt><dd class="kv-value">{{ project.platform|default:"—" }}</dd></div>
+    <div class="col-span-2 px-5 py-4"><dt class="kv-label">অ্যানোটেশনের ধরন</dt><dd class="kv-value">{{ project.annotation_type|default:"—" }}</dd></div>
   </dl>
 </section>
 
@@ -32,47 +32,47 @@
   <div class="min-w-0 space-y-6 xl:col-span-2">
     {% if project.description %}
     <section class="card">
-      <div class="card-header"><h2 class="card-title">About this project</h2></div>
+      <div class="card-header"><h2 class="card-title">প্রজেক্ট সম্পর্কে</h2></div>
       <div class="card-body prose-content">{{ project.description|markdown }}</div>
     </section>
     {% endif %}
 
     <section id="guidelines" class="card scroll-mt-24" aria-labelledby="guidelines-title">
       <div class="card-header">
-        <h2 id="guidelines-title" class="card-title flex items-center gap-2">{% icon "book-open" class="h-4 w-4 text-slate-400" %} Guidelines</h2>
-        {% if guidelines_unread %}<span class="badge badge-warning">{{ guidelines_unread }} to read</span>{% elif guidelines %}<span class="badge badge-success">All read</span>{% endif %}
+        <h2 id="guidelines-title" class="card-title flex items-center gap-2">{% icon "book-open" class="h-4 w-4 text-slate-400" %} গাইডলাইন</h2>
+        {% if guidelines_unread %}<span class="badge badge-warning">{{ guidelines_unread }}টি পড়া বাকি</span>{% elif guidelines %}<span class="badge badge-success">সব পড়া হয়েছে</span>{% endif %}
       </div>
       {% if guidelines %}
       <ul class="divide-y divide-slate-100">
         {% for g in guidelines %}
         <li>
           <a href="{% url 'portal:guideline_detail' project.slug g.pk %}" class="list-row">
-            <span class="icon-tile h-10 w-10 bg-sky-50 text-sky-600 ring-sky-100">{% icon "file-text" class="h-5 w-5" %}</span>
+            <span class="icon-tile h-10 w-10 bg-teal-50 text-teal-600 ring-teal-100">{% icon "file-text" class="h-5 w-5" %}</span>
             <span class="min-w-0 flex-1">
               <span class="block text-sm font-semibold text-slate-900">{{ g.title }} <span class="font-mono text-xs font-normal text-slate-400">v{{ g.version }}</span></span>
-              <span class="meta-row mt-1"><span>Updated {{ g.updated_at|date:"M j, Y" }}</span>{% if g.document %}<span class="inline-flex items-center gap-1">{% icon "paperclip" class="h-3 w-3" %} Attachment</span>{% endif %}</span>
+              <span class="meta-row mt-1"><span>আপডেট: {{ g.updated_at|date:"j M Y" }}</span>{% if g.document %}<span class="inline-flex items-center gap-1">{% icon "paperclip" class="h-3 w-3" %} সংযুক্ত ফাইল</span>{% endif %}</span>
             </span>
-            {% if g.ack_current %}<span class="badge badge-success">{% icon "check" class="h-3 w-3" %} Read</span>{% elif g.my_ack %}<span class="badge badge-warning">Updated</span>{% else %}<span class="badge badge-neutral">Not read</span>{% endif %}
+            {% if g.ack_current %}<span class="badge badge-success">{% icon "check" class="h-3 w-3" %} পড়া হয়েছে</span>{% elif g.my_ack %}<span class="badge badge-warning">আপডেট হয়েছে</span>{% else %}<span class="badge badge-neutral">পড়া হয়নি</span>{% endif %}
           </a>
         </li>
         {% endfor %}
       </ul>
       {% else %}
-        {% include "portal/includes/empty.html" with icon="book-open" title="No guidelines yet" compact=True %}
+        {% include "portal/includes/empty.html" with icon="book-open" title="এখনো কোনো গাইডলাইন নেই" compact=True %}
       {% endif %}
     </section>
 
     <section class="card" aria-labelledby="ptut-title">
       <div class="card-header">
-        <h2 id="ptut-title" class="card-title flex items-center gap-2">{% icon "graduation-cap" class="h-4 w-4 text-slate-400" %} Project training</h2>
-        <a href="{% url 'portal:training' %}?project={{ project.slug }}" class="text-xs font-semibold text-brand-600 hover:text-brand-700">All →</a>
+        <h2 id="ptut-title" class="card-title flex items-center gap-2">{% icon "graduation-cap" class="h-4 w-4 text-slate-400" %} প্রজেক্টের ট্রেনিং</h2>
+        <a href="{% url 'portal:training' %}?project={{ project.slug }}" class="text-xs font-semibold text-brand-600 hover:text-brand-700">সব →</a>
       </div>
       {% if tutorials %}
       <div class="grid gap-4 p-5 sm:grid-cols-2">
         {% for t in tutorials %}{% include "portal/includes/tutorial_card.html" with t=t %}{% endfor %}
       </div>
       {% else %}
-        {% include "portal/includes/empty.html" with icon="graduation-cap" title="No project training yet" compact=True %}
+        {% include "portal/includes/empty.html" with icon="graduation-cap" title="এখনো প্রজেক্টের কোনো ট্রেনিং নেই" compact=True %}
       {% endif %}
     </section>
   </div>
@@ -83,19 +83,19 @@
       <div class="flex items-center gap-4">
         <div class="ring-progress h-16 w-16 {% if onboarding.completed %}is-complete{% endif %}" style="--p: {{ onboarding.percent }}"><span class="text-sm font-semibold tabular-nums">{{ onboarding.percent }}%</span></div>
         <div class="min-w-0">
-          <h2 class="card-title">Onboarding</h2>
-          <p class="text-xs text-slate-500">{{ onboarding.done }} of {{ onboarding.total }} steps</p>
-          {% if onboarding.next %}<p class="mt-1 truncate text-xs text-slate-700">Next: {{ onboarding.next.step.title }}</p>{% endif %}
+          <h2 class="card-title">অনবোর্ডিং</h2>
+          <p class="text-xs text-slate-500">{{ onboarding.total }}টির মধ্যে {{ onboarding.done }}টি ধাপ সম্পন্ন</p>
+          {% if onboarding.next %}<p class="mt-1 truncate text-xs text-slate-700">এরপর: {{ onboarding.next.step.title }}</p>{% endif %}
         </div>
       </div>
-      <a href="{% url 'portal:onboarding' %}#track-{{ project.pk }}" class="btn btn-secondary btn-sm mt-4 w-full">{% if onboarding.completed %}View onboarding{% else %}Continue onboarding{% endif %}</a>
+      <a href="{% url 'portal:onboarding' %}#track-{{ project.pk }}" class="btn btn-secondary btn-sm mt-4 w-full">{% if onboarding.completed %}অনবোর্ডিং দেখুন{% else %}অনবোর্ডিং চালিয়ে যান{% endif %}</a>
     </section>
     {% endif %}
 
     <section class="card" aria-labelledby="pfb-title">
       <div class="card-header">
-        <h2 id="pfb-title" class="card-title flex items-center gap-2">{% icon "message-square-warning" class="h-4 w-4 text-slate-400" %} Feedback</h2>
-        <a href="{% url 'portal:feedback' %}?tab=all" class="text-xs font-semibold text-brand-600 hover:text-brand-700">All →</a>
+        <h2 id="pfb-title" class="card-title flex items-center gap-2">{% icon "message-square-warning" class="h-4 w-4 text-slate-400" %} ফিডব্যাক</h2>
+        <a href="{% url 'portal:feedback' %}?tab=all" class="text-xs font-semibold text-brand-600 hover:text-brand-700">সব →</a>
       </div>
       {% if feedback %}
       <ul class="divide-y divide-slate-100">
@@ -104,35 +104,35 @@
           <span class="font-mono text-sm font-semibold {% if not r.first_viewed_at %}text-amber-800{% else %}text-slate-500{% endif %}">{{ r.feedback.display_number }}</span>
           <span class="min-w-0 flex-1">
             <span class="block truncate text-sm {% if not r.first_viewed_at %}font-semibold text-slate-900{% else %}text-slate-700{% endif %}">{{ r.feedback.topic }}</span>
-            <span class="meta-row mt-1">{% severity_badge r.feedback %}{% if not r.first_viewed_at %}<span class="badge badge-brand">New</span>{% elif r.watched_at %}<span class="text-emerald-700">Watched</span>{% endif %}{% if r.test_passed %}<span class="text-emerald-700">Test {{ r.best_score|floatformat:0 }}%</span>{% endif %}</span>
+            <span class="meta-row mt-1">{% severity_badge r.feedback %}{% if not r.first_viewed_at %}<span class="badge badge-brand">নতুন</span>{% elif r.watched_at %}<span class="text-emerald-700">দেখা হয়েছে</span>{% endif %}{% if r.test_passed %}<span class="text-emerald-700">টেস্ট {{ r.best_score|floatformat:0 }}%</span>{% endif %}</span>
           </span>
         </a></li>
         {% endfor %}
       </ul>
       {% else %}
-        {% include "portal/includes/empty.html" with icon="message-square-warning" title="No feedback on this project" compact=True %}
+        {% include "portal/includes/empty.html" with icon="message-square-warning" title="এই প্রজেক্টে কোনো ফিডব্যাক নেই" compact=True %}
       {% endif %}
     </section>
 
     <section class="card" aria-labelledby="ptest-title">
       <div class="card-header">
-        <h2 id="ptest-title" class="card-title flex items-center gap-2">{% icon "clipboard-check" class="h-4 w-4 text-slate-400" %} Tests</h2>
-        <a href="{% url 'portal:tests' %}?tab=all" class="text-xs font-semibold text-brand-600 hover:text-brand-700">All →</a>
+        <h2 id="ptest-title" class="card-title flex items-center gap-2">{% icon "clipboard-check" class="h-4 w-4 text-slate-400" %} টেস্ট</h2>
+        <a href="{% url 'portal:tests' %}?tab=all" class="text-xs font-semibold text-brand-600 hover:text-brand-700">সব →</a>
       </div>
       {% if tests %}
       <ul class="divide-y divide-slate-100">
         {% for r in tests %}
         <li><a href="{% url 'portal:test_detail' r.test.pk %}" class="list-row">
-          <span class="icon-tile h-8 w-8 rounded-lg bg-violet-50 text-violet-600 ring-violet-100">{% icon r.test.kind|kind_icon class="h-4 w-4" %}</span>
+          <span class="icon-tile h-8 w-8 rounded-lg bg-emerald-50 text-emerald-600 ring-emerald-100">{% icon r.test.kind|kind_icon class="h-4 w-4" %}</span>
           <span class="min-w-0 flex-1">
             <span class="block truncate text-sm font-medium text-slate-900">{{ r.test.title }}</span>
-            <span class="meta-row mt-1">{% tone_badge r.badge.tone r.badge.label %}{% if r.state.best_score is not None %}<span>Best {{ r.state.best_score|floatformat:0 }}%</span>{% endif %}</span>
+            <span class="meta-row mt-1">{% tone_badge r.badge.tone r.badge.label %}{% if r.state.best_score is not None %}<span>সেরা স্কোর {{ r.state.best_score|floatformat:0 }}%</span>{% endif %}</span>
           </span>
         </a></li>
         {% endfor %}
       </ul>
       {% else %}
-        {% include "portal/includes/empty.html" with icon="clipboard-check" title="No tests on this project" compact=True %}
+        {% include "portal/includes/empty.html" with icon="clipboard-check" title="এই প্রজেক্টে কোনো টেস্ট নেই" compact=True %}
       {% endif %}
     </section>
   </aside>

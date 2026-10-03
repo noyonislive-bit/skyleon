@@ -26,13 +26,14 @@ from ..helpers import (
     trusted_duration,
 )
 from ..scope import portal_api, portal_view
+from ..templatetags.portal_tags import choice_bn
 from .dashboard import NEW_DAYS, annotate_progress
 
 STATUS_FILTERS = [
-    ("required", "Required"),
-    ("not_started", "Not started"),
-    ("in_progress", "In progress"),
-    ("completed", "Completed"),
+    ("required", "বাধ্যতামূলক"),
+    ("not_started", "শুরু হয়নি"),
+    ("in_progress", "চলছে"),
+    ("completed", "সম্পন্ন"),
 ]
 
 
@@ -75,12 +76,12 @@ def training(request):
         "filtered": any(f.values()),
         "categories": categories,
         "projects": [m.project for m in scope.memberships],
-        "cadences": Cadence.choices,
+        "cadences": [(value, choice_bn("cadence", value)) for value in Cadence.values],
         "status_filters": STATUS_FILTERS,
         "new_since": now - timedelta(days=NEW_DAYS),
-        "page_title": "Training library",
-        "page_subtitle": "Project tutorials, daily & weekly training videos and reference material.",
-        "crumbs": crumbs(("Training", None)),
+        "page_title": "ট্রেনিং লাইব্রেরি",
+        "page_subtitle": "প্রজেক্টের টিউটোরিয়াল, দৈনিক ও সাপ্তাহিক ট্রেনিং ভিডিও আর রেফারেন্স ম্যাটেরিয়াল।",
+        "crumbs": crumbs(("ট্রেনিং", None)),
     })
 
 
@@ -124,7 +125,7 @@ def tutorial_detail(request, pk):
         "onboarding_steps": steps,
         "is_new": is_new,
         "new_since": timezone.now() - timedelta(days=NEW_DAYS),
-        "crumbs": crumbs(("Training", reverse("portal:training")), (tutorial.title, None)),
+        "crumbs": crumbs(("ট্রেনিং", reverse("portal:training")), (tutorial.title, None)),
     })
 
 
@@ -133,13 +134,13 @@ def tutorial_heartbeat(request, pk):
     scope = request.portal
     tutorial = scope.tutorials().select_related("video").filter(pk=pk).first()
     if tutorial is None:
-        return JsonResponse({"error": "not found"}, status=404)
+        return JsonResponse({"error": "টিউটোরিয়ালটি পাওয়া যায়নি।"}, status=404)
     if tutorial.video is None:
-        return JsonResponse({"error": "this tutorial has no video"}, status=400)
+        return JsonResponse({"error": "এই টিউটোরিয়ালে কোনো ভিডিও নেই।"}, status=400)
     data = read_json(request)
     duration = trusted_duration(tutorial.video, data.get("duration"))
     if duration is None:
-        return JsonResponse({"error": "unknown duration"}, status=400)
+        return JsonResponse({"error": "ভিডিওর দৈর্ঘ্য জানা যায়নি।"}, status=400)
     progress = get_or_create_progress(tutorial, request.user)
     throttled = False
     with transaction.atomic():
@@ -158,5 +159,5 @@ def tutorial_heartbeat(request, pk):
         "watched_seconds": round(progress.watched_seconds, 1),
         "position": progress.last_position_sec,
         "throttled": throttled,
-        "completed_at": date_format(completed_at, "M j, Y · H:i") if completed_at else None,
+        "completed_at": date_format(completed_at, "j M Y · H:i") if completed_at else None,
     })

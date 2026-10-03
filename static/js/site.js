@@ -27,6 +27,44 @@
     });
   });
 
+  // Dropdown menus: <div data-dropdown><button data-dropdown-button>…<div data-dropdown-menu hidden> ---
+  const closeDropdown = (dd, focusButton) => {
+    const btn = dd.querySelector("[data-dropdown-button]");
+    const menu = dd.querySelector("[data-dropdown-menu]");
+    if (!menu || menu.hidden) return;
+    menu.hidden = true;
+    btn && btn.setAttribute("aria-expanded", "false");
+    if (focusButton && btn) btn.focus();
+  };
+  $$("[data-dropdown]").forEach((dd) => {
+    const btn = dd.querySelector("[data-dropdown-button]");
+    const menu = dd.querySelector("[data-dropdown-menu]");
+    if (!btn || !menu) return;
+    const items = () => Array.from(menu.querySelectorAll("[role=menuitem]"));
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const open = menu.hidden;
+      $$("[data-dropdown]").forEach((other) => other !== dd && closeDropdown(other));
+      menu.hidden = !open;
+      btn.setAttribute("aria-expanded", String(open));
+      if (open && e.detail === 0 && items()[0]) items()[0].focus(); // opened with the keyboard
+    });
+    menu.addEventListener("keydown", (e) => {
+      const list = items();
+      const i = list.indexOf(document.activeElement);
+      if (e.key === "ArrowDown") { e.preventDefault(); (list[i + 1] || list[0]).focus(); }
+      if (e.key === "ArrowUp") { e.preventDefault(); (list[i - 1] || list[list.length - 1]).focus(); }
+      if (e.key === "Escape") closeDropdown(dd, true);
+      if (e.key === "Tab") closeDropdown(dd);
+    });
+  });
+  document.addEventListener("click", (e) => {
+    $$("[data-dropdown]").forEach((dd) => { if (!dd.contains(e.target)) closeDropdown(dd); });
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") $$("[data-dropdown]").forEach((dd) => closeDropdown(dd, dd.contains(document.activeElement)));
+  });
+
   // Dismissible alerts -----------------------------------------------------
   $$("[data-dismiss]").forEach((b) => b.addEventListener("click", () => b.closest(".alert")?.remove()));
 

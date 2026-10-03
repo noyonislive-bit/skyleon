@@ -30,4 +30,9 @@ urlpatterns = [
     path("admin/guides/steps/<int:step_id>/edit/", manage_views.step_form, name="manage_step_edit"),
     path("admin/guides/steps/<int:step_id>/delete/", manage_views.step_delete, name="manage_step_delete"),
     path("admin/guides/steps/<int:step_id>/move/", manage_views.step_move, name="manage_step_move"),
+    path("admin/guides/<int:pk>/task-errors/new/", manage_views.error_form, name="manage_error_new"),
+    path("admin/guides/task-errors/<int:error_id>/edit/", manage_views.error_form, name="manage_error_edit"),
+    path("admin/guides/task-errors/<int:error_id>/delete/", manage_views.error_delete, name="manage_error_delete"),
+    path("admin/guides/task-errors/<int:error_id>/move/", manage_views.error_move, name="manage_error_move"),
+    path("admin/guides/verify/<str:kind>/<int:obj_id>/", manage_views.verify, name="manage_verify"),
 ]

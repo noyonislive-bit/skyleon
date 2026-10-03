@@ -29,10 +29,12 @@ NEW_DAYS = 7
 def greeting(now) -> str:
     hour = timezone.localtime(now).hour
     if hour < 12:
-        return "Good morning"
-    if hour < 17:
-        return "Good afternoon"
-    return "Good evening"
+        return "শুভ সকাল"
+    if hour < 15:
+        return "শুভ দুপুর"
+    if hour < 18:
+        return "শুভ বিকেল"
+    return "শুভ সন্ধ্যা"
 
 
 def annotate_progress(qs, user):

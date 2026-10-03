@@ -24,10 +24,10 @@ def add_recipients(feedback: Feedback, users, *, notify_users=True) -> int:
         assign_test(feedback.test, new, notify_users=False)
     if notify_users and new:
         notify(
-            new, NotificationType.FEEDBACK, f"New feedback {feedback.display_number}: {feedback.topic}",
-            "You have a new project feedback video." if feedback.video_id else "You have new project feedback.",
+            new, NotificationType.FEEDBACK, f"নতুন ফিডব্যাক {feedback.display_number}: {feedback.topic}",
+            "আপনার জন্য নতুন একটি ফিডব্যাক ভিডিও এসেছে।" if feedback.video_id else "আপনার জন্য নতুন ফিডব্যাক এসেছে।",
             reverse("portal:feedback_detail", args=[feedback.number]),
-            email_template="new_feedback", email_subject=f"New project feedback {feedback.display_number}: {feedback.topic}",
+            email_template="new_feedback", email_subject=f"নতুন প্রজেক্ট ফিডব্যাক {feedback.display_number}: {feedback.topic}",
             context={"feedback": feedback},
         )
     return len(new)

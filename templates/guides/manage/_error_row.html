@@ -1,0 +1,23 @@
+{# One Task Error example in the guide editor. Context: err (ErrorNode). #}
+<div class="g-ed-err" id="{{ err.anchor }}">
+  <span class="mt-0.5 text-red-600">{% icon "shield-alert" class="h-4 w-4" %}</span>
+  <div class="min-w-0 flex-1">
+    <a href="{% url 'guides:manage_error_edit' err.obj.pk %}" class="text-sm font-medium text-slate-800 hover:text-brand-700" lang="bn">Task Error {{ err.number }} · {{ err.obj.title }}</a>
+    <p class="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+      <span>#{{ err.anchor }}</span>
+      {% if err.obj.video_url %}<span class="inline-flex items-center gap-1 text-brand-700">{% icon "circle-play" class="h-3 w-3" %} video{% if err.video.segment %} {{ err.video.segment }}{% endif %}</span>{% endif %}
+      {% if not err.obj.correct_method %}<span class="text-amber-700">no correct method yet</span>{% endif %}
+      {% if err.obj.source_ref %}<span>{% icon "file-text" class="inline h-3 w-3" %} {{ err.obj.source_ref|truncatechars:60 }}</span>{% endif %}
+    </p>
+  </div>
+  <div class="flex items-center gap-1">
+    <form method="post" action="{% url 'guides:manage_verify' 'error' err.obj.pk %}">{% csrf_token %}
+      {% if err.obj.verified_at %}<button name="verified" value="0" class="g-ver is-ok" title="Verified {{ err.obj.verified_at|date:'j M Y' }} — click to undo">{% icon "check" class="h-3 w-3" %} Verified</button>
+      {% else %}<button name="verified" value="1" class="g-ver is-pending" title="Mark as checked against the original document and video">Verify</button>{% endif %}
+    </form>
+    <form method="post" action="{% url 'guides:manage_error_move' err.obj.pk %}">{% csrf_token %}<button name="direction" value="up" class="btn btn-ghost btn-sm btn-icon" title="Move up">{% icon "arrow-up" class="h-4 w-4" %}</button></form>
+    <form method="post" action="{% url 'guides:manage_error_move' err.obj.pk %}">{% csrf_token %}<button name="direction" value="down" class="btn btn-ghost btn-sm btn-icon" title="Move down">{% icon "arrow-down" class="h-4 w-4" %}</button></form>
+    <a href="{% url 'guides:manage_error_edit' err.obj.pk %}" class="btn btn-ghost btn-sm">Edit</a>
+    <form method="post" action="{% url 'guides:manage_error_delete' err.obj.pk %}" data-confirm="Delete this Task Error example?">{% csrf_token %}<button class="btn btn-ghost btn-sm btn-icon text-red-600" title="Delete">{% icon "trash-2" class="h-4 w-4" %}</button></form>
+  </div>
+</div>

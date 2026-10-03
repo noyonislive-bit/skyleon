@@ -1,4 +1,5 @@
 {% extends "portal/base.html" %}
+{% load portal_tags %}
 {% block content %}
 {% include "portal/includes/profile_tabs.html" %}
 {% with u=request.user %}
@@ -10,36 +11,36 @@
       <div class="-mt-10 px-5 pb-5">
         {% include "components/avatar.html" with user=u size="relative h-20 w-20 text-2xl ring-4" %}
         <h2 class="mt-3 text-lg font-semibold text-slate-900">{{ u.name }}</h2>
-        <p class="text-sm text-slate-500">{{ u.title|default:u.get_role_display }}</p>
+        <p class="text-sm text-slate-500">{% if u.title %}{{ u.title }}{% else %}{{ u.role|label_bn:"user_role" }}{% endif %}</p>
         <dl class="mt-5 space-y-3 text-sm">
-          <div class="flex items-center justify-between gap-3"><dt class="text-slate-500">Employee ID</dt><dd class="flex items-center gap-1.5 font-mono font-semibold text-slate-900">{{ u.employee_id|default:"—" }}{% if u.employee_id %}<button type="button" class="rounded p-0.5 text-slate-400 hover:text-slate-700" data-copy="{{ u.employee_id }}" title="Copy employee ID" aria-label="Copy employee ID">{% icon "copy" class="h-3.5 w-3.5" %}</button>{% endif %}</dd></div>
-          <div class="flex items-center justify-between gap-3"><dt class="text-slate-500">Email</dt><dd class="truncate font-medium text-slate-900">{{ u.email }}</dd></div>
-          <div class="flex items-center justify-between gap-3"><dt class="text-slate-500">Role</dt><dd class="font-medium text-slate-900">{{ u.get_role_display }}</dd></div>
-          <div class="flex items-center justify-between gap-3"><dt class="text-slate-500">Status</dt><dd>{% status_badge u.status u.get_status_display %}</dd></div>
-          <div class="flex items-center justify-between gap-3"><dt class="text-slate-500">Member since</dt><dd class="font-medium text-slate-900">{{ u.date_joined|date:"M j, Y" }}</dd></div>
+          <div class="flex items-center justify-between gap-3"><dt class="text-slate-500">এমপ্লয়ি আইডি</dt><dd class="flex items-center gap-1.5 font-mono font-semibold text-slate-900">{{ u.employee_id|default:"—" }}{% if u.employee_id %}<button type="button" class="rounded p-0.5 text-slate-400 hover:text-slate-700" data-portal-copy="{{ u.employee_id }}" title="এমপ্লয়ি আইডি কপি করুন" aria-label="এমপ্লয়ি আইডি কপি করুন">{% icon "copy" class="h-3.5 w-3.5" %}</button>{% endif %}</dd></div>
+          <div class="flex items-center justify-between gap-3"><dt class="text-slate-500">ইমেইল</dt><dd class="truncate font-medium text-slate-900">{{ u.email }}</dd></div>
+          <div class="flex items-center justify-between gap-3"><dt class="text-slate-500">ভূমিকা</dt><dd class="font-medium text-slate-900">{{ u.role|label_bn:"user_role" }}</dd></div>
+          <div class="flex items-center justify-between gap-3"><dt class="text-slate-500">অবস্থা</dt><dd>{% status_badge u.status u.status|label_bn:"user_status" %}</dd></div>
+          <div class="flex items-center justify-between gap-3"><dt class="text-slate-500">যোগ দিয়েছেন</dt><dd class="font-medium text-slate-900">{{ u.date_joined|date:"j M Y" }}</dd></div>
         </dl>
       </div>
       <div class="grid grid-cols-3 divide-x divide-slate-100 border-t border-slate-100 text-center">
-        <div class="px-2 py-3"><p class="text-lg font-semibold text-slate-900">{{ stats.completed }}</p><p class="text-[11px] text-slate-500">Videos done</p></div>
-        <div class="px-2 py-3"><p class="text-lg font-semibold text-slate-900">{{ stats.attempts }}</p><p class="text-[11px] text-slate-500">Test attempts</p></div>
-        <div class="px-2 py-3"><p class="text-lg font-semibold text-slate-900">{{ stats.passed }}</p><p class="text-[11px] text-slate-500">Passed</p></div>
+        <div class="px-2 py-3"><p class="text-lg font-semibold text-slate-900">{{ stats.completed }}</p><p class="text-[11px] text-slate-500">ভিডিও শেষ</p></div>
+        <div class="px-2 py-3"><p class="text-lg font-semibold text-slate-900">{{ stats.attempts }}</p><p class="text-[11px] text-slate-500">টেস্টের চেষ্টা</p></div>
+        <div class="px-2 py-3"><p class="text-lg font-semibold text-slate-900">{{ stats.passed }}</p><p class="text-[11px] text-slate-500">পাস</p></div>
       </div>
     </section>
 
     <section class="card">
-      <div class="card-header"><h2 class="card-title">My projects</h2></div>
+      <div class="card-header"><h2 class="card-title">আমার প্রজেক্ট</h2></div>
       {% if memberships %}
       <ul class="divide-y divide-slate-100">
         {% for m in memberships %}
         <li><a href="{% url 'portal:project_detail' m.project.slug %}" class="flex items-center gap-3 px-5 py-3 hover:bg-slate-50">
           <span class="dot h-2.5 w-2.5" style="background: {{ m.project.color }}"></span>
-          <span class="min-w-0 flex-1"><span class="block truncate text-sm font-medium text-slate-900">{{ m.project.name }}</span><span class="text-xs text-slate-500">{{ m.get_role_display }}{% if m.team %} · {{ m.team.name }}{% endif %}</span></span>
-          {% if m.qualified_at %}<span class="badge badge-success">Qualified</span>{% endif %}
+          <span class="min-w-0 flex-1"><span class="block truncate text-sm font-medium text-slate-900">{{ m.project.name }}</span><span class="text-xs text-slate-500">{{ m.role|label_bn:"member_role" }}{% if m.team %} · {{ m.team.name }}{% endif %}</span></span>
+          {% if m.qualified_at %}<span class="badge badge-success">কোয়ালিফাইড</span>{% endif %}
         </a></li>
         {% endfor %}
       </ul>
       {% else %}
-        {% include "portal/includes/empty.html" with icon="briefcase" title="No projects yet" compact=True %}
+        {% include "portal/includes/empty.html" with icon="briefcase" title="এখনো কোনো প্রজেক্ট নেই" compact=True %}
       {% endif %}
     </section>
   </aside>
@@ -47,7 +48,7 @@
   <div class="space-y-6 xl:col-span-2">
     <!-- Edit profile -->
     <section class="card" aria-labelledby="edit-title">
-      <div class="card-header"><h2 id="edit-title" class="card-title">Personal information</h2></div>
+      <div class="card-header"><h2 id="edit-title" class="card-title">ব্যক্তিগত তথ্য</h2></div>
       <form method="post" class="card-body" novalidate>{% csrf_token %}
         <input type="hidden" name="action" value="profile">
         {% include "components/form_errors.html" with form=profile_form %}
@@ -60,15 +61,15 @@
           {% include "components/field.html" with field=profile_form.bio class="sm:col-span-2" %}
         </div>
         <div class="mt-6 flex items-center justify-end gap-3 border-t border-slate-100 pt-5">
-          <p class="mr-auto text-xs text-slate-500">Your email and employee ID can only be changed by an administrator.</p>
-          <button type="submit" class="btn btn-primary">{% icon "save" class="h-4 w-4" %} Save changes</button>
+          <p class="mr-auto text-xs text-slate-500">ইমেইল আর এমপ্লয়ি আইডি শুধু অ্যাডমিন বদলাতে পারবেন।</p>
+          <button type="submit" class="btn btn-primary">{% icon "save" class="h-4 w-4" %} সেভ করুন</button>
         </div>
       </form>
     </section>
 
     <!-- Password -->
     <section id="security" class="card scroll-mt-24" aria-labelledby="pw-title">
-      <div class="card-header"><h2 id="pw-title" class="card-title flex items-center gap-2">{% icon "key-round" class="h-4 w-4 text-slate-400" %} Change password</h2></div>
+      <div class="card-header"><h2 id="pw-title" class="card-title flex items-center gap-2">{% icon "key-round" class="h-4 w-4 text-slate-400" %} পাসওয়ার্ড বদলান</h2></div>
       <form method="post" class="card-body" novalidate>{% csrf_token %}
         <input type="hidden" name="action" value="password">
         {% include "components/form_errors.html" with form=password_form %}
@@ -78,7 +79,7 @@
           {% include "components/field.html" with field=password_form.new_password2 %}
         </div>
         <div class="mt-6 flex justify-end border-t border-slate-100 pt-5">
-          <button type="submit" class="btn btn-secondary">{% icon "lock" class="h-4 w-4" %} Update password</button>
+          <button type="submit" class="btn btn-secondary">{% icon "lock" class="h-4 w-4" %} পাসওয়ার্ড আপডেট করুন</button>
         </div>
       </form>
     </section>

@@ -5,14 +5,25 @@
   <a href="{% url 'guides:manage_progress' guide.pk %}" class="btn btn-secondary">{% icon "bar-chart-3" class="h-4 w-4" %} Progress</a>
   <form method="post" action="{% url 'guides:manage_publish' guide.pk %}">{% csrf_token %}
     {% if guide.is_published %}<button name="action" value="unpublish" class="btn btn-secondary">Unpublish</button>
+    {% elif verification.pending %}<button name="force" value="1" class="btn btn-secondary" data-confirm-click="{{ verification.pending }} item(s) are not verified against the original document and video yet. Publish anyway?">{% icon "send" class="h-4 w-4" %} Publish anyway</button>
     {% else %}<button class="btn btn-success">{% icon "send" class="h-4 w-4" %} Publish</button>{% endif %}
   </form>
 {% endblock %}
 {% block content %}
 <div class="mb-5 flex flex-wrap items-center gap-2 text-sm text-slate-500">
   {% status_badge guide.status guide.get_status_display %}
-  <span>{{ outline.sections|length }} sections · {{ outline.total }} steps · {{ outline.video_count }} videos · ~{{ outline.minutes }} min</span>
+  <span>{{ outline.sections|length }} sections · {{ outline.total }} steps · {{ outline.video_count }} videos · {{ outline.error_count }} Task Error examples · ~{{ outline.minutes }} min</span>
   <span class="text-slate-300">·</span><span>{{ guide.project.name|default:"All employees" }}</span>
+</div>
+
+<div class="alert {% if verification.complete %}alert-success{% else %}alert-warning{% endif %} mb-6">
+  {% icon "file-check" class="mt-0.5 h-4 w-4 shrink-0" %}
+  <div class="flex-1 text-sm">
+    <p class="font-semibold">Source of truth: {{ verification.verified }} of {{ verification.total }} items verified against the original document and video{% if verification.total %} ({{ verification.percent }}%){% endif %}.</p>
+    <p class="mt-0.5">Order of authority: original document → original video → actual workflow → Bangla text → portal. Rules and the order of steps must not be changed — only the presentation.
+      Mark a step or Task Error example as verified after checking its Bangla text against the original text <em>and</em> the video segment it points to. Editing it later clears the mark.
+      {% if guide.source_url %}<a href="{{ guide.source_url }}" target="_blank" rel="noopener noreferrer" class="font-semibold underline">Open the original document</a>.{% endif %}</p>
+  </div>
 </div>
 
 <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
@@ -48,16 +59,24 @@
             {% if node.obj.video_url %}<span class="inline-flex items-center gap-1 text-brand-700">{% icon "circle-play" class="h-3 w-3" %} video</span>{% endif %}
             {% if node.obj.actions %}<span class="inline-flex items-center gap-1">{% icon "keyboard" class="h-3 w-3" %} {{ node.obj.actions|length }} buttons</span>{% endif %}
             {% if node.obj.body_en %}<span>EN original</span>{% endif %}
+            {% if node.video.segment %}<span class="font-mono">{{ node.video.segment }}</span>{% endif %}
+            {% if node.obj.source_ref %}<span title="Source in the original">{% icon "file-text" class="inline h-3 w-3" %} {{ node.obj.source_ref|truncatechars:60 }}</span>{% endif %}
             <span>~{{ node.minutes }} min</span>
           </p>
         </div>
         <div class="flex items-center gap-1">
+          <form method="post" action="{% url 'guides:manage_verify' 'step' node.obj.pk %}">{% csrf_token %}
+            {% if node.obj.verified_at %}<button name="verified" value="0" class="g-ver is-ok" title="Verified {{ node.obj.verified_at|date:'j M Y' }}{% if node.obj.verified_by %} by {{ node.obj.verified_by.name }}{% endif %} — click to undo">{% icon "check" class="h-3 w-3" %} Verified</button>
+            {% else %}<button name="verified" value="1" class="g-ver is-pending" title="Mark as checked against the original document and video">Verify</button>{% endif %}
+          </form>
+          <a href="{% url 'guides:manage_error_new' guide.pk %}?step={{ node.obj.pk }}" class="btn btn-ghost btn-sm btn-icon text-red-600" title="Add a Task Error example to this step">{% icon "shield-alert" class="h-4 w-4" %}</a>
           <form method="post" action="{% url 'guides:manage_step_move' node.obj.pk %}">{% csrf_token %}<button name="direction" value="up" class="btn btn-ghost btn-sm btn-icon" title="Move up" {% if forloop.first %}disabled{% endif %}>{% icon "arrow-up" class="h-4 w-4" %}</button></form>
           <form method="post" action="{% url 'guides:manage_step_move' node.obj.pk %}">{% csrf_token %}<button name="direction" value="down" class="btn btn-ghost btn-sm btn-icon" title="Move down" {% if forloop.last %}disabled{% endif %}>{% icon "arrow-down" class="h-4 w-4" %}</button></form>
           <a href="{% url 'guides:manage_step_edit' node.obj.pk %}" class="btn btn-ghost btn-sm">Edit</a>
           <form method="post" action="{% url 'guides:manage_step_delete' node.obj.pk %}" data-confirm="Delete this step?">{% csrf_token %}<button class="btn btn-ghost btn-sm btn-icon text-red-600" title="Delete step">{% icon "trash-2" class="h-4 w-4" %}</button></form>
         </div>
       </div>
+      {% for err in node.errors %}{% include "guides/manage/_error_row.html" %}{% endfor %}
       {% empty %}
       <p class="px-5 py-3 text-sm text-slate-500">No steps yet — <a class="font-medium text-brand-600" href="{% url 'guides:manage_step_new' sec.obj.pk %}">add the first step</a>.</p>
       {% endfor %}
@@ -65,6 +84,19 @@
     {% empty %}
       {% include "components/empty_state.html" with icon="list-tree" title="No sections yet" text="Start with a section (e.g. “ভূমিকা” / Introduction), then add its steps." %}
     {% endfor %}
+    <div class="g-ed-sec" id="{{ outline.errors_anchor }}">
+      <div class="g-ed-sec-head">
+        <span class="g-ed-num text-red-600">{% icon "shield-alert" class="h-4 w-4" %}</span>
+        <div class="min-w-0 flex-1">
+          <p class="font-semibold text-slate-900">Task Error examples</p>
+          <p class="text-xs text-slate-500">Mistakes the original document or video shows as Task Errors — each with what went wrong, why, how to avoid it and the correct method. Attach them to their step (shield button on a step) or add general ones here.</p>
+        </div>
+        <a href="{% url 'guides:manage_error_new' guide.pk %}" class="btn btn-secondary btn-sm">{% icon "plus" class="h-4 w-4" %} General example</a>
+      </div>
+      {% for err in outline.guide_errors %}{% include "guides/manage/_error_row.html" %}{% empty %}
+      <p class="px-5 py-3 text-sm text-slate-500">{{ outline.error_count }} example(s) attached to steps · no general examples.</p>
+      {% endfor %}
+    </div>
   </div>
 
   {# ── Guide settings ── #}

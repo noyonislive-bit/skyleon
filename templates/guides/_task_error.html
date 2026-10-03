@@ -1,0 +1,55 @@
+{% load guides_tags %}{% comment %}
+  A Task Error example (from the original document / video) as its own clearly marked card.
+  Context: err (ErrorNode), guide. Same four questions every time: কী ভুল · কেন ভুল · কীভাবে এড়াবেন · সঠিক পদ্ধতি.
+{% endcomment %}{% with e=err.obj video=err.video %}
+<article id="{{ err.anchor }}" class="g-err" aria-labelledby="h-{{ err.anchor }}" tabindex="-1" data-g-error="{{ err.anchor }}">
+  <header class="g-err-head">
+    <span class="g-err-icon" aria-hidden="true">{% icon "shield-alert" class="h-5 w-5" %}</span>
+    <div class="min-w-0 flex-1">
+      <p class="g-err-badge">Task Error উদাহরণ {{ err.label }}{% if err.step %}<span class="g-err-badge-step"> · ধাপ {{ err.step.label }}</span>{% endif %}</p>
+      <h4 id="h-{{ err.anchor }}" class="g-err-title">{{ e.title }}</h4>
+      <p class="g-err-lead">এই কাজটি এভাবে ভুল করলে <strong>Task Error</strong> হিসেবে গণ্য হবে।</p>
+    </div>
+    <a href="#{{ err.anchor }}" class="g-icon-btn g-err-link" data-g-copy-link title="এই উদাহরণের লিংক কপি করুন" aria-label="এই উদাহরণের লিংক কপি করুন">{% icon "link" class="h-4 w-4" %}</a>
+  </header>
+
+  <div class="g-err-body{% if video %} has-video{% endif %}">
+    {% if video %}
+    <section class="g-err-video" aria-label="মূল ভিডিওতে ভুলটি">
+      <p class="g-panel-label is-dark">{% icon "circle-play" class="h-3.5 w-3.5" %} মূল ভিডিওতে ভুলটি</p>
+      {% guide_video video title=e.title caption=e.video_caption %}
+    </section>
+    {% endif %}
+    <dl class="g-err-points">
+      <div class="g-err-pt is-what">
+        <dt>{% icon "circle-x" class="h-4 w-4" %} কী ভুল হয়েছে</dt>
+        <dd class="prose-content g-prose">{{ e.what_wrong|guide_md }}</dd>
+      </div>
+      {% if e.why_wrong %}
+      <div class="g-err-pt is-why">
+        <dt>{% icon "circle-help" class="h-4 w-4" %} কেন এটা ভুল</dt>
+        <dd class="prose-content g-prose">{{ e.why_wrong|guide_md }}</dd>
+      </div>
+      {% endif %}
+      {% if e.how_to_avoid %}
+      <div class="g-err-pt is-avoid">
+        <dt>{% icon "shield-check" class="h-4 w-4" %} কীভাবে এড়াবেন</dt>
+        <dd class="prose-content g-prose">{{ e.how_to_avoid|guide_md }}</dd>
+      </div>
+      {% endif %}
+      {% if e.correct_method %}
+      <div class="g-err-pt is-correct">
+        <dt>{% icon "circle-check" class="h-4 w-4" %} সঠিক পদ্ধতি</dt>
+        <dd class="prose-content g-prose">{{ e.correct_method|guide_md }}</dd>
+      </div>
+      {% endif %}
+    </dl>
+  </div>
+  {% if e.source_text_en %}
+  <details class="g-en g-err-en">
+    <summary>{% icon "languages" class="h-4 w-4" %}<span class="g-en-open">মূল ইংরেজি দেখুন</span><span class="g-en-close">মূল ইংরেজি লুকান</span>{% icon "chevron-down" class="g-en-chev h-4 w-4" %}</summary>
+    <div class="prose-content g-en-body" lang="en">{{ e.source_text_en|markdown }}</div>
+  </details>
+  {% endif %}
+</article>
+{% endwith %}

@@ -6,14 +6,14 @@
     crumbs                       → [{"label", "url"}] breadcrumb trail (helpers.crumbs)
   Sidebar/top-bar counts come from request.portal.counts (computed once per request).
 {% endcomment %}
-{% block title %}{% block browser_title %}{{ page_title|default:"Dashboard" }}{% endblock %} · Employee portal · {{ brand.name }}{% endblock %}
-{% block shell_label %}Employee portal{% endblock %}
+{% block title %}{% block browser_title %}{{ page_title|default:"ড্যাশবোর্ড" }}{% endblock %} · এমপ্লয়ি পোর্টাল · {{ brand.name }}{% endblock %}
+{% block shell_label %}এমপ্লয়ি পোর্টাল{% endblock %}
 {% block home_url %}{% url 'portal:dashboard' %}{% endblock %}
 {% block sidebar_nav %}{% include "portal/includes/sidebar.html" %}{% endblock %}
 {% block breadcrumbs %}
-<nav aria-label="Breadcrumb">
+<nav aria-label="আপনি এখন যেখানে আছেন">
   <ol class="flex min-w-0 items-center gap-1.5">
-    <li class="{% if crumbs %}hidden sm:block{% endif %} shrink-0"><a href="{% url 'portal:dashboard' %}" class="rounded hover:text-slate-900">{% if crumbs %}Portal{% else %}<span class="font-medium text-slate-900">Dashboard</span>{% endif %}</a></li>
+    <li class="{% if crumbs %}hidden sm:block{% endif %} shrink-0"><a href="{% url 'portal:dashboard' %}" class="rounded hover:text-slate-900">{% if crumbs %}পোর্টাল{% else %}<span class="font-medium text-slate-900">ড্যাশবোর্ড</span>{% endif %}</a></li>
     {% for c in crumbs %}
       <li class="hidden shrink-0 text-slate-300 sm:block" aria-hidden="true">{% icon "chevron-right" class="h-3.5 w-3.5" %}</li>
       {% if forloop.last %}

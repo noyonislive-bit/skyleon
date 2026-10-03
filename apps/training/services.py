@@ -41,9 +41,9 @@ def assign_tutorial(tutorial: Tutorial, users, *, due_at=None, notify_users=True
     if notify_users and newly:
         link = reverse("portal:tutorial_detail", args=[tutorial.pk])
         notify(
-            newly, NotificationType.TRAINING, f"New training: {tutorial.title}",
-            "You have a new training module." + (" It is required." if tutorial.is_required else ""),
-            link, email_template="new_training", email_subject="You have a new training module",
+            newly, NotificationType.TRAINING, f"নতুন ট্রেনিং: {tutorial.title}",
+            "আপনার জন্য একটি নতুন ট্রেনিং মডিউল যোগ হয়েছে।" + (" এটি বাধ্যতামূলক।" if tutorial.is_required else ""),
+            link, email_template="new_training", email_subject=f"নতুন ট্রেনিং মডিউল: {tutorial.title}",
             context={"tutorial": tutorial},
         )
     return len(newly)

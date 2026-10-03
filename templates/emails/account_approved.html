@@ -1,7 +1,8 @@
 {% extends "emails/base.html" %}
+{% block lang %}bn{% endblock %}
 {% block content %}
-<h1 style="margin:0 0 12px;font-size:20px;line-height:28px;color:#0f172a">Welcome to {{ brand.name }}, {{ user.first_name }}!</h1>
-<p style="margin:0 0 12px;font-size:15px;line-height:24px">Your account has been approved. Your employee ID is <strong>{{ user.employee_id }}</strong> — you can sign in with it or with your email address.</p><p style="margin:0 0 12px;font-size:15px;line-height:24px">Next steps: open the portal, complete your onboarding, watch the required tutorials and take your training test.</p>{% if setup_url %}<p style="margin:0 0 12px;font-size:15px;line-height:24px">First, set your password using the secure link below (valid for 24 hours).</p>{% endif %}
-{% if setup_url %}{% include "emails/_button.html" with url=setup_url label="Set your password" %}{% else %}{% include "emails/_button.html" with url=login_url label="Open the portal" %}{% endif %}
-<p style="margin:16px 0 0;font-size:13px;color:#94a3b8">— The {{ brand.name }} team</p>
+<h1 style="margin:0 0 12px;font-size:20px;line-height:30px;color:#121c17">স্বাগতম, {{ user.first_name }}! আপনার অ্যাকাউন্ট চালু হয়েছে</h1>
+<p style="margin:0 0 12px;font-size:15px;line-height:26px">আপনার অ্যাকাউন্ট অনুমোদন করা হয়েছে। আপনার এমপ্লয়ি আইডি <strong>{{ user.employee_id }}</strong> — এই আইডি বা ইমেইল, যেকোনোটা দিয়েই লগইন করতে পারবেন।</p><p style="margin:0 0 12px;font-size:15px;line-height:26px">এরপর যা করবেন: পোর্টালে ঢুকে অনবোর্ডিং শেষ করুন, বাধ্যতামূলক টিউটোরিয়ালগুলো দেখুন আর ট্রেনিং টেস্ট দিন।</p>{% if setup_url %}<p style="margin:0 0 12px;font-size:15px;line-height:26px">শুরুতে নিচের নিরাপদ লিংক থেকে আপনার পাসওয়ার্ড ঠিক করে নিন (লিংকটা ২৪ ঘণ্টা কাজ করবে)।</p>{% endif %}
+{% if setup_url %}{% include "emails/_button.html" with url=setup_url label="পাসওয়ার্ড ঠিক করুন" %}{% else %}{% include "emails/_button.html" with url=login_url label="পোর্টালে লগইন করুন" %}{% endif %}
+<p style="margin:16px 0 0;font-size:13px;color:#91a199">— {{ brand.name }} টিম</p>
 {% endblock %}

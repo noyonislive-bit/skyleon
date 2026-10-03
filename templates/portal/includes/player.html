@@ -13,40 +13,40 @@
      data-completed="{{ player.completed|yesno:'1,0' }}">
   <div class="relative aspect-video bg-black">
     <video class="absolute inset-0 h-full w-full" controls playsinline preload="metadata" controlslist="nodownload" disablepictureinpicture
-           {% if player.poster %}poster="{{ player.poster }}"{% endif %} aria-label="{{ label|default:'Training video' }}" data-video></video>
+           {% if player.poster %}poster="{{ player.poster }}"{% endif %} aria-label="{{ label|default:'ট্রেনিং ভিডিও' }}" data-video></video>
     <div class="player-toast opacity-0" data-player-toast role="status" aria-live="polite"></div>
-    <noscript><div class="absolute inset-0 flex items-center justify-center p-6 text-center text-sm text-slate-300">Enable JavaScript to watch this video — your viewing progress is tracked automatically.</div></noscript>
+    <noscript><div class="absolute inset-0 flex items-center justify-center p-6 text-center text-sm text-slate-300">ভিডিওটি দেখতে ব্রাউজারে JavaScript চালু করুন — কতটুকু দেখলেন তা নিজে থেকেই রেকর্ড হয়।</div></noscript>
   </div>
   <div class="flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-white/10 bg-ink-900 px-4 py-3 text-xs text-slate-400">
     <div class="flex min-w-0 flex-1 basis-56 items-center gap-3">
       <span class="font-mono text-sm font-semibold text-white tabular-nums"><span data-progress-percent>{{ player.percent|floatformat:0 }}</span>%</span>
-      <div class="h-1.5 min-w-20 flex-1 overflow-hidden rounded-full bg-white/10" role="progressbar" aria-label="Watched (confirmed by server)" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ player.percent|pct }}" data-progress-meter>
+      <div class="h-1.5 min-w-20 flex-1 overflow-hidden rounded-full bg-white/10" role="progressbar" aria-label="দেখা হয়েছে (সার্ভারে সেভ হওয়া হিসাব)" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ player.percent|pct }}" data-progress-meter>
         <div class="h-full rounded-full transition-all duration-500 {% if player.completed %}bg-emerald-400{% else %}bg-accent-400{% endif %}" style="width: {{ player.percent|pct }}%" data-progress-bar></div>
       </div>
-      <span class="whitespace-nowrap">watched · {{ player.threshold }}% needed</span>
+      <span class="whitespace-nowrap">দেখা হয়েছে · দরকার {{ player.threshold }}%</span>
     </div>
     <span class="flex items-center gap-1.5 whitespace-nowrap" data-save-state>
-      {% if player.completed %}{% icon "circle-check-big" class="h-3.5 w-3.5 text-emerald-400" %} Completed{% else %}{% icon "cloud" class="h-3.5 w-3.5" %} Progress saves automatically{% endif %}
+      {% if player.completed %}{% icon "circle-check-big" class="h-3.5 w-3.5 text-emerald-400" %} সম্পন্ন{% else %}{% icon "cloud" class="h-3.5 w-3.5" %} অগ্রগতি নিজে থেকেই সেভ হয়{% endif %}
     </span>
   </div>
 </div>
 {% if player.enforce %}
-<p class="mt-2 flex items-start gap-1.5 text-xs text-slate-500" data-enforce-note>{% icon "lock" class="mt-px h-3.5 w-3.5 shrink-0" %} Skipping ahead is disabled until you've watched this video once. You can rewind at any time and play at up to 2× speed.</p>
+<p class="mt-2 flex items-start gap-1.5 text-xs text-slate-500" data-enforce-note>{% icon "lock" class="mt-px h-3.5 w-3.5 shrink-0" %} ভিডিওটি একবার পুরো না দেখা পর্যন্ত সামনে টেনে এগোনো যাবে না। পেছনে যেকোনো সময় যেতে পারবেন, আর সর্বোচ্চ 2× স্পিডে চালাতে পারবেন।</p>
 {% endif %}
 {% else %}
 <div class="flex aspect-video flex-col items-center justify-center rounded-2xl bg-ink-900 px-6 text-center ring-1 ring-ink-900/10">
   {% if player.state == "processing" %}
     <span class="flex h-12 w-12 items-center justify-center rounded-full bg-white/10 text-accent-300">{% icon "loader-circle" class="h-6 w-6 animate-spin" %}</span>
-    <p class="mt-4 text-sm font-semibold text-white">This video is still processing</p>
-    <p class="mt-1 max-w-sm text-sm text-slate-400">The upload hasn't finished yet. Check back in a few minutes — your progress will be tracked once it's available.</p>
+    <p class="mt-4 text-sm font-semibold text-white">ভিডিওটি এখনো প্রসেস হচ্ছে</p>
+    <p class="mt-1 max-w-sm text-sm text-slate-400">আপলোড এখনো শেষ হয়নি। কয়েক মিনিট পর আবার দেখুন — ভিডিও চালু হলেই আপনার অগ্রগতি রেকর্ড হবে।</p>
   {% elif player.state == "failed" %}
     <span class="flex h-12 w-12 items-center justify-center rounded-full bg-red-500/15 text-red-300">{% icon "video-off" class="h-6 w-6" %}</span>
-    <p class="mt-4 text-sm font-semibold text-white">This video is unavailable</p>
-    <p class="mt-1 max-w-sm text-sm text-slate-400">The video could not be processed. Please let your trainer know.</p>
+    <p class="mt-4 text-sm font-semibold text-white">ভিডিওটি এখন দেখা যাচ্ছে না</p>
+    <p class="mt-1 max-w-sm text-sm text-slate-400">ভিডিওটি প্রসেস করা যায়নি। আপনার ট্রেইনারকে জানান।</p>
   {% else %}
     <span class="flex h-12 w-12 items-center justify-center rounded-full bg-white/10 text-slate-300">{% icon "video-off" class="h-6 w-6" %}</span>
-    <p class="mt-4 text-sm font-semibold text-white">No video attached yet</p>
-    <p class="mt-1 max-w-sm text-sm text-slate-400">The video for this item hasn't been added. Read the notes below in the meantime.</p>
+    <p class="mt-4 text-sm font-semibold text-white">এখনো কোনো ভিডিও যোগ করা হয়নি</p>
+    <p class="mt-1 max-w-sm text-sm text-slate-400">এই অংশের ভিডিও এখনো দেওয়া হয়নি। ততক্ষণ নিচের লেখাটা পড়ে নিন।</p>
   {% endif %}
 </div>
 {% endif %}

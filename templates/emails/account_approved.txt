@@ -1,13 +1,13 @@
-{% autoescape off %}Hi {{ user.first_name }},
+{% autoescape off %}স্বাগতম, {{ user.first_name }}!
 
-Your {{ brand.name }} account has been approved.
-Employee ID: {{ user.employee_id }}
-Login: {{ login_url }}
-
-Next steps: complete your onboarding, watch the required tutorials and take your training test.
+আপনার {{ brand.name }} অ্যাকাউন্ট অনুমোদন করা হয়েছে।
+এমপ্লয়ি আইডি: {{ user.employee_id }}
+লগইন: {{ login_url }}
 {% if setup_url %}
-Set your password: {{ setup_url }}{% endif %}
+পাসওয়ার্ড ঠিক করুন (২৪ ঘণ্টা কাজ করবে): {{ setup_url }}
+{% endif %}
+এরপর অনবোর্ডিং শেষ করুন, বাধ্যতামূলক টিউটোরিয়াল দেখুন আর ট্রেনিং টেস্ট দিন।
 
-— The {{ brand.name }} team
+— {{ brand.name }} টিম
 {{ APP_URL }}
 {% endautoescape %}

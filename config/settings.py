@@ -82,6 +82,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "apps.core.middleware.AreaLanguageMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "apps.core.middleware.SecurityHeadersMiddleware",
@@ -99,6 +100,7 @@ TEMPLATES = [
         "OPTIONS": {
             "context_processors": [
                 "django.template.context_processors.request",
+                "django.template.context_processors.i18n",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "apps.core.context_processors.site",
@@ -192,7 +194,11 @@ X_FRAME_OPTIONS = "DENY"
 
 # ─── Internationalisation ───────────────────────────────────────────────────
 
-LANGUAGE_CODE = "en-us"
+LANGUAGE_CODE = "en"
+# Employee-facing pages (portal, practice lab, guides, login/signup) are shown in Bangla,
+# the admin panel and the public website in English — see apps.core.middleware.AreaLanguageMiddleware.
+LANGUAGES = [("en", "English"), ("bn", "বাংলা")]
+LOCALE_PATHS = [BASE_DIR / "locale"]
 TIME_ZONE = env("TIME_ZONE", "UTC")
 USE_I18N = True
 USE_TZ = True

@@ -1,0 +1,40 @@
+{% comment %} Top-right "My account" dropdown (app shell). Labels follow the page language. {% endcomment %}
+{% account_menu as m %}{% if m %}
+<div class="relative" data-dropdown>
+  <button type="button" class="flex items-center gap-2 rounded-full py-1 pr-1.5 pl-1 transition hover:bg-slate-100 sm:pr-2.5" data-dropdown-button aria-haspopup="menu" aria-expanded="false" aria-controls="account-menu" title="{{ m.title }}">
+    {% include "components/avatar.html" with user=request.user size="h-8 w-8 text-xs" %}
+    <span class="hidden min-w-0 text-left leading-tight md:block">
+      <span class="block max-w-[11rem] truncate text-sm font-semibold text-slate-900">{{ request.user.name }}</span>
+      <span class="block max-w-[11rem] truncate text-[11px] text-slate-500">{{ m.role }}</span>
+    </span>
+    {% icon "chevron-down" class="hidden h-4 w-4 text-slate-400 sm:block" %}
+  </button>
+  <div id="account-menu" class="absolute right-0 z-50 mt-2 w-72 origin-top-right overflow-hidden rounded-xl bg-white text-left shadow-xl ring-1 ring-slate-200 max-sm:fixed max-sm:inset-x-3 max-sm:top-16 max-sm:mt-1 max-sm:w-auto" role="menu" aria-label="{{ m.title }}" data-dropdown-menu hidden>
+    <div class="flex items-center gap-3 border-b border-slate-100 bg-slate-50/70 px-4 py-4">
+      {% include "components/avatar.html" with user=request.user size="h-11 w-11 text-sm" %}
+      <div class="min-w-0">
+        <p class="truncate text-sm font-semibold text-slate-900">{{ request.user.name }}</p>
+        <p class="truncate text-xs text-slate-500">{{ request.user.email }}</p>
+        <p class="mt-1 flex flex-wrap items-center gap-1.5">
+          <span class="badge badge-brand">{{ m.role }}</span>
+          {% if request.user.employee_id %}<span class="badge badge-neutral font-mono" title="{{ m.id_label }}">{{ request.user.employee_id }}</span>{% endif %}
+        </p>
+      </div>
+    </div>
+    {% for group in m.groups %}
+      <div class="py-1.5{% if not forloop.first %} border-t border-slate-100{% endif %}">
+        {% for link in group %}
+          <a href="{{ link.url }}" role="menuitem" class="flex items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-slate-900 focus:bg-slate-50 focus:outline-none">
+            <span class="text-slate-400">{% icon link.icon class="h-4 w-4" %}</span>{{ link.label }}
+          </a>
+        {% endfor %}
+      </div>
+    {% endfor %}
+    <form method="post" action="{% url 'accounts:logout' %}" class="border-t border-slate-100 p-1.5">{% csrf_token %}
+      <button type="submit" role="menuitem" class="flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 focus:bg-red-50 focus:outline-none">
+        {% icon "log-out" class="h-4 w-4" %}{{ m.logout }}
+      </button>
+    </form>
+  </div>
+</div>
+{% endif %}

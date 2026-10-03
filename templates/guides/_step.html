@@ -53,6 +53,13 @@
     </section>
   </div>
 
+  {% if node.errors %}
+  <section class="g-step-errors" aria-label="এই ধাপের Task Error উদাহরণ">
+    <p class="g-step-errors-title">{% icon "shield-alert" class="h-4 w-4" %} এই ধাপে যে ভুলগুলো Task Error হয় — কাজের সময় অবশ্যই এড়িয়ে চলুন</p>
+    {% for err in node.errors %}{% include "guides/_task_error.html" %}{% endfor %}
+  </section>
+  {% endif %}
+
   {% if mode == "doc" %}
   <footer class="g-step-foot">
     <form method="post" action="{% url 'guides:done' st.pk %}" data-g-done-form>

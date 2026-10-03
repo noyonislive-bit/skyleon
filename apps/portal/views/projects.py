@@ -19,7 +19,7 @@ from .feedback import annotate_recipients
 def _project_or_404(scope, slug):
     member = next((m for m in scope.memberships if m.project.slug == slug), None)
     if member is None:
-        raise Http404("Project not found")
+        raise Http404("প্রজেক্টটি পাওয়া যায়নি")
     return member.project, member
 
 
@@ -40,9 +40,9 @@ def project_list(request):
     ]
     return render(request, "portal/project_list.html", {
         "rows": rows,
-        "page_title": "My projects",
-        "page_subtitle": "Projects you are assigned to, with their guidelines, training and onboarding.",
-        "crumbs": crumbs(("My projects", None)),
+        "page_title": "আমার প্রজেক্ট",
+        "page_subtitle": "যেসব প্রজেক্টে আপনি আছেন — সাথে তাদের গাইডলাইন, ট্রেনিং আর অনবোর্ডিং।",
+        "crumbs": crumbs(("আমার প্রজেক্ট", None)),
     })
 
 
@@ -89,7 +89,7 @@ def project_detail(request, slug):
         "feedback": feedback,
         "tests": tests,
         "onboarding": onboarding,
-        "crumbs": crumbs(("My projects", reverse("portal:projects")), (project.name, None)),
+        "crumbs": crumbs(("আমার প্রজেক্ট", reverse("portal:projects")), (project.name, None)),
     })
 
 
@@ -111,7 +111,9 @@ def guideline_detail(request, slug, pk):
         "document_url": media_url(document, request.user) if document else "",
         "document_download_url": media_url(document, request.user, download=True) if document else "",
         "others": others,
-        "crumbs": crumbs(("My projects", reverse("portal:projects")), (project.name, project.get_absolute_url()), (guideline.title, None)),
+        "crumbs": crumbs(
+            ("আমার প্রজেক্ট", reverse("portal:projects")), (project.name, project.get_absolute_url()), (guideline.title, None)
+        ),
     })
 
 
@@ -121,5 +123,5 @@ def guideline_ack(request, slug, pk):
     project, _ = _project_or_404(request.portal, slug)
     guideline = get_object_or_404(project.guidelines, pk=pk)
     GuidelineAck.objects.update_or_create(guideline=guideline, user=request.user, defaults={"version": guideline.version})
-    messages.success(request, f"Thanks — you've confirmed reading “{guideline.title}” v{guideline.version}.")
+    messages.success(request, f"ধন্যবাদ — “{guideline.title}” v{guideline.version} পড়েছেন বলে নিশ্চিত করেছেন।")
     return redirect("portal:guideline_detail", slug=project.slug, pk=guideline.pk)

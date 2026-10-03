@@ -14,6 +14,8 @@
  * Events (bubble from the [data-player] element):
  *   "player:progress"  detail = server response {percent, status, completed, watched_seconds, completed_at}
  *   "player:completed" detail = same, fired once when the server first reports completion
+ *
+ * Texts are Bangla (employee portal — see docs/BANGLA_STYLE.md).
  */
 (function () {
   "use strict";
@@ -103,11 +105,11 @@
               player.loadSource(src);
               player.attachMedia(v);
               player.on(Hls.Events.ERROR, (_e, data) => {
-                if (data && data.fatal) this.fail("The video stream could not be loaded. Please reload the page.");
+                if (data && data.fatal) this.fail("ভিডিও স্ট্রিম লোড হয়নি। পেজটি রিলোড করুন।");
               });
               this.hls = player;
             })
-            .catch(() => this.fail("This browser can't play this video stream."));
+            .catch(() => this.fail("এই ব্রাউজারে ভিডিও স্ট্রিমটি চলছে না।"));
         }
       } else {
         if (mime && !v.canPlayType(mime)) {
@@ -119,9 +121,9 @@
       v.addEventListener("error", () => {
         const code = v.error && v.error.code;
         if (code === 4 || this.unsupported) {
-          this.fail("This browser can't play this video format. Please use an up-to-date Chrome, Edge, Firefox or Safari.");
+          this.fail("এই ব্রাউজারে ভিডিওর ফরম্যাটটি চলে না। Chrome, Edge, Firefox বা Safari-র নতুন ভার্সন ব্যবহার করুন।");
         } else {
-          this.fail("The video could not be loaded. Your viewing link may have expired — reload the page.");
+          this.fail("ভিডিও লোড হয়নি। দেখার লিংকের মেয়াদ হয়তো শেষ — পেজটি রিলোড করুন।");
         }
       });
     }
@@ -153,14 +155,14 @@
         if (!this.enforce || this.completed) return;
         if (v.currentTime > this.furthest + SEEK_TOLERANCE) {
           v.currentTime = this.furthest;
-          this.toast("Skipping ahead is disabled until you've watched the whole video.");
+          this.toast("পুরো ভিডিও একবার না দেখা পর্যন্ত সামনে টেনে এগোনো যাবে না।");
         }
       });
 
       v.addEventListener("ratechange", () => {
         if (v.playbackRate > MAX_RATE) {
           v.playbackRate = MAX_RATE;
-          this.toast("Maximum playback speed is 2×.");
+          this.toast("সর্বোচ্চ স্পিড 2×।");
         }
       });
 
@@ -244,20 +246,20 @@
         this.completed = true;
         this.enforce = false;
         if (this.ui.bar) this.ui.bar.classList.replace("bg-accent-400", "bg-emerald-400");
-        this.setSave("done", "Completed — saved");
+        this.setSave("done", "সম্পন্ন — সেভ হয়েছে");
         document.querySelectorAll("[data-enforce-note]").forEach((el) => el.remove());
       } else {
-        const time = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-        this.setSave("ok", "Saved at " + time);
+        const time = new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+        this.setSave("ok", "সেভ হয়েছে " + time);
       }
       this.root.dispatchEvent(new CustomEvent("player:progress", { bubbles: true, detail: data }));
       if (justCompleted) this.root.dispatchEvent(new CustomEvent("player:completed", { bubbles: true, detail: data }));
     }
 
     saveError(status) {
-      if (status === 403 || status === 401) this.setSave("error", "Session expired — reload to keep saving progress");
-      else if (status === 404) this.setSave("error", "This video is no longer available");
-      else this.setSave("error", "Couldn't save progress — retrying");
+      if (status === 403 || status === 401) this.setSave("error", "সেশন শেষ — অগ্রগতি সেভ করতে পেজটি রিলোড করুন");
+      else if (status === 404) this.setSave("error", "ভিডিওটি আর পাওয়া যাচ্ছে না");
+      else this.setSave("error", "অগ্রগতি সেভ হয়নি — আবার চেষ্টা করছি");
       this.lastSignature = ""; // allow the next heartbeat to retry the same data
     }
 
@@ -265,7 +267,8 @@
       const el = this.ui.save;
       if (!el) return;
       const color = kind === "error" ? "text-amber-300" : kind === "done" ? "text-emerald-300" : "text-slate-400";
-      el.className = "flex items-center gap-1.5 whitespace-nowrap " + color;
+      // Error texts may wrap on narrow screens; the short status texts stay on one line.
+      el.className = "flex items-center gap-1.5 " + (kind === "error" ? "" : "whitespace-nowrap ") + color;
       el.textContent = text;
     }
 
@@ -292,7 +295,7 @@
   //   [data-progress-ring] (--p), [data-ring-percent], [data-watched-seconds], [data-status-badge]
   //   [data-complete-banner] (+ [data-complete-date]) revealed on completion
   //   [data-unlock-on-complete] buttons enabled on completion; [data-hide-when-complete] hidden, [data-show-when-complete] shown
-  const STATUS = { completed: ["success", "Completed"], in_progress: ["info", "In progress"], not_started: ["neutral", "Not started"] };
+  const STATUS = { completed: ["success", "সম্পন্ন"], in_progress: ["info", "চলছে"], not_started: ["neutral", "শুরু হয়নি"] };
   const mmss = (sec) => {
     const s = Math.max(0, Math.round(sec));
     const h = Math.floor(s / 3600);

@@ -63,9 +63,9 @@ def assign_test(test: Test, users, *, assigned_by=None, due_at=None, notify_user
     )
     if notify_users and new:
         notify(
-            new, NotificationType.TEST, f"New assessment: {test.title}", "You have a new assessment to complete.",
+            new, NotificationType.TEST, f"নতুন টেস্ট: {test.title}", "আপনার জন্য একটি নতুন টেস্ট দেওয়া হয়েছে।",
             reverse("portal:test_detail", args=[test.pk]), email_template="new_test",
-            email_subject="You have a new assessment to complete", context={"test": test},
+            email_subject=f"নতুন টেস্ট দিতে হবে: {test.title}", context={"test": test},
         )
     return len(new)
 

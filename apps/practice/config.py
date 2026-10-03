@@ -52,6 +52,30 @@ ACTION_LABELS = {
     "deselect": "Deselect clip",
 }
 
+# Shown in the employee portal's Shortcuts dialog (the admin settings page keeps the English list above).
+ACTION_LABELS_BN = {
+    "play_pause": "ভিডিও চালু / থামান",
+    "cut": "কাট — প্লেহেডের জায়গায় ক্লিপ শুরু / শেষ",
+    "loop": "বর্তমান অংশটা লুপে চালান",
+    "delete_clip": "সিলেক্ট করা ক্লিপ মুছুন",
+    "seek_back": "১ সেকেন্ড পেছনে",
+    "seek_forward": "১ সেকেন্ড সামনে",
+    "seek_back_big": "৫ সেকেন্ড পেছনে",
+    "seek_forward_big": "৫ সেকেন্ড সামনে",
+    "frame_back": "আগের ফ্রেম",
+    "frame_forward": "পরের ফ্রেম",
+    "set_start": "সিলেক্ট করা ক্লিপের শুরু প্লেহেডে আনুন",
+    "set_end": "সিলেক্ট করা ক্লিপের শেষ প্লেহেডে আনুন",
+    "prev_clip": "আগের ক্লিপ সিলেক্ট করুন",
+    "next_clip": "পরের ক্লিপ সিলেক্ট করুন",
+    "speed": "প্লেব্যাক স্পিড বদলান",
+    "zoom_in": "টাইমলাইন জুম ইন",
+    "zoom_out": "টাইমলাইন জুম আউট",
+    "zoom_fit": "পুরো টাইমলাইন দেখান (Fit)",
+    "undo": "Undo (আগের অবস্থায় ফেরা)",
+    "deselect": "ক্লিপ সিলেকশন বাতিল",
+}
+
 CUT_MODES = {
     "toggle": "N starts a clip at the playhead, N again ends it (gaps allowed between clips)",
     "split": "N cuts at the playhead — each cut closes a clip that starts at the previous cut",

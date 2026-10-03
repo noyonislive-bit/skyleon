@@ -1,9 +1,9 @@
 {% extends "portal/base.html" %}
 {% load portal_tags %}
-{% block page_actions %}<a href="{% url 'portal:results' %}" class="btn btn-secondary btn-sm">{% icon "trophy" class="h-3.5 w-3.5" %} Results history</a>{% endblock %}
+{% block page_actions %}<a href="{% url 'portal:results' %}" class="btn btn-secondary btn-sm">{% icon "trophy" class="h-3.5 w-3.5" %} ফলাফলের ইতিহাস</a>{% endblock %}
 {% block content %}
 <div class="card">
-  <nav class="tabs px-3" aria-label="Test filters">
+  <nav class="tabs px-3" aria-label="টেস্ট ফিল্টার">
     {% for t in tabs %}
       <a href="?tab={{ t.key }}" class="tab {% if tab == t.key %}is-active{% endif %}" {% if tab == t.key %}aria-current="page"{% endif %}>{{ t.label }} <span class="count">{{ t.count }}</span></a>
     {% endfor %}
@@ -12,27 +12,27 @@
   <div class="table-wrap hidden md:block">
     <table class="table">
       <thead>
-        <tr><th>Test</th><th>Status</th><th class="num">Best score</th><th class="num">Attempts</th><th>Due</th><th><span class="sr-only">Action</span></th></tr>
+        <tr><th>টেস্ট</th><th>অবস্থা</th><th class="num">সেরা স্কোর</th><th class="num">চেষ্টা</th><th>শেষ তারিখ</th><th><span class="sr-only">কী করবেন</span></th></tr>
       </thead>
       <tbody>
         {% for r in items %}{% with t=r.test s=r.state %}
         <tr>
           <td>
             <a href="{% url 'portal:test_detail' t.pk %}" class="flex items-center gap-3">
-              <span class="icon-tile h-9 w-9 rounded-lg bg-violet-50 text-violet-600 ring-violet-100">{% icon t.kind|kind_icon class="h-4 w-4" %}</span>
+              <span class="icon-tile h-9 w-9 rounded-lg bg-emerald-50 text-emerald-600 ring-emerald-100">{% icon t.kind|kind_icon class="h-4 w-4" %}</span>
               <span class="min-w-0">
                 <span class="block font-medium text-slate-900 hover:text-brand-700">{{ t.title }}</span>
-                <span class="text-xs text-slate-500">{{ t.get_kind_display }}{% if t.project %} · {{ t.project.code }}{% endif %}{% if r.feedback %} · {{ r.feedback.display_number }}{% endif %} · {{ t.question_count }} question{{ t.question_count|pluralize }}</span>
+                <span class="text-xs text-slate-500">{{ t.kind|label_bn:"test_kind" }}{% if t.project %} · {{ t.project.code }}{% endif %}{% if r.feedback %} · {{ r.feedback.display_number }}{% endif %} · {{ t.question_count }}টি প্রশ্ন</span>
               </span>
             </a>
           </td>
-          <td>{% tone_badge r.badge.tone r.badge.label %}{% if r.needs_video and r.is_open %}<span class="mt-1 block text-[11px] text-amber-700">Watch video first</span>{% endif %}</td>
+          <td>{% tone_badge r.badge.tone r.badge.label %}{% if r.needs_video and r.is_open %}<span class="mt-1 block text-[11px] text-amber-700">আগে ভিডিও দেখুন</span>{% endif %}</td>
           <td class="num font-mono">{% if s.best_score is not None %}{{ s.best_score|floatformat:0 }}%{% else %}—{% endif %}</td>
           <td class="num font-mono">{{ s.attempts_used }}{% if t.attempt_limit %}/{{ t.attempt_limit }}{% else %}<span class="text-slate-400"> / ∞</span>{% endif %}</td>
-          <td class="whitespace-nowrap {% if r.due_at and r.due_at < now and r.is_open %}font-medium text-red-600{% endif %}">{% if r.due_at %}{{ r.due_at|date:"M j, Y" }}{% else %}<span class="text-slate-400">—</span>{% endif %}</td>
+          <td class="whitespace-nowrap {% if r.due_at and r.due_at < now and r.is_open %}font-medium text-red-600{% endif %}">{% if r.due_at %}{{ r.due_at|date:"j M Y" }}{% else %}<span class="text-slate-400">—</span>{% endif %}</td>
           <td class="text-right">
             <a href="{% url 'portal:test_detail' t.pk %}" class="btn {% if r.is_open and not r.needs_video %}btn-primary{% else %}btn-secondary{% endif %} btn-sm">
-              {% if s.status == "passed" or s.status == "locked" %}View{% elif s.status == "in_progress" %}Resume{% elif s.status == "review" %}Retake{% else %}Start{% endif %}
+              {% if s.status == "passed" or s.status == "locked" %}দেখুন{% elif s.status == "in_progress" %}চালিয়ে যান{% elif s.status == "review" %}আবার চেষ্টা করুন{% else %}শুরু করুন{% endif %}
             </a>
           </td>
         </tr>
@@ -45,12 +45,12 @@
     {% for r in items %}{% with t=r.test s=r.state %}
     <li>
       <a href="{% url 'portal:test_detail' t.pk %}" class="flex items-start gap-3 px-4 py-4">
-        <span class="icon-tile h-9 w-9 rounded-lg bg-violet-50 text-violet-600 ring-violet-100">{% icon t.kind|kind_icon class="h-4 w-4" %}</span>
+        <span class="icon-tile h-9 w-9 rounded-lg bg-emerald-50 text-emerald-600 ring-emerald-100">{% icon t.kind|kind_icon class="h-4 w-4" %}</span>
         <span class="min-w-0 flex-1">
           <span class="block font-medium text-slate-900">{{ t.title }}</span>
-          <span class="mt-0.5 block text-xs text-slate-500">{{ t.get_kind_display }}{% if t.project %} · {{ t.project.code }}{% endif %}</span>
-          <span class="meta-row mt-2">{% tone_badge r.badge.tone r.badge.label %}<span>Best {% if s.best_score is not None %}{{ s.best_score|floatformat:0 }}%{% else %}—{% endif %}</span><span>{{ s.attempts_used }}{% if t.attempt_limit %}/{{ t.attempt_limit }}{% endif %} attempts</span>{% if r.due_at %}<span>Due {{ r.due_at|date:"M j" }}</span>{% endif %}</span>
-          {% if r.needs_video and r.is_open %}<span class="mt-1 block text-[11px] text-amber-700">Watch the feedback video first</span>{% endif %}
+          <span class="mt-0.5 block text-xs text-slate-500">{{ t.kind|label_bn:"test_kind" }}{% if t.project %} · {{ t.project.code }}{% endif %}</span>
+          <span class="meta-row mt-2">{% tone_badge r.badge.tone r.badge.label %}<span>সেরা স্কোর {% if s.best_score is not None %}{{ s.best_score|floatformat:0 }}%{% else %}—{% endif %}</span><span>চেষ্টা {{ s.attempts_used }}{% if t.attempt_limit %}/{{ t.attempt_limit }}{% endif %}</span>{% if r.due_at %}<span>শেষ তারিখ {{ r.due_at|date:"j M" }}</span>{% endif %}</span>
+          {% if r.needs_video and r.is_open %}<span class="mt-1 block text-[11px] text-amber-700">আগে ফিডব্যাক ভিডিওটি দেখুন</span>{% endif %}
         </span>
         {% icon "chevron-right" class="mt-2 h-4 w-4 text-slate-400" %}
       </a>
@@ -59,11 +59,11 @@
   </ul>
   {% else %}
     {% if tab == "pending" %}
-      {% include "portal/includes/empty.html" with icon="circle-check-big" title="No pending tests" text="You're up to date. New tests will appear here when they're assigned." %}
+      {% include "portal/includes/empty.html" with icon="circle-check-big" title="কোনো টেস্ট বাকি নেই" text="সব টেস্ট দেওয়া শেষ। নতুন টেস্ট দেওয়া হলে এখানে দেখাবে।" %}
     {% elif tab == "completed" %}
-      {% include "portal/includes/empty.html" with icon="trophy" title="No completed tests yet" text="Passed tests (and tests with no attempts left) are listed here." %}
+      {% include "portal/includes/empty.html" with icon="trophy" title="এখনো কোনো টেস্ট সম্পন্ন হয়নি" text="পাস করা টেস্ট (আর যেগুলোর সব চেষ্টা শেষ) এখানে থাকবে।" %}
     {% else %}
-      {% include "portal/includes/empty.html" with icon="clipboard-check" title="No tests assigned" text="Training, onboarding and feedback tests will show up here." %}
+      {% include "portal/includes/empty.html" with icon="clipboard-check" title="কোনো টেস্ট দেওয়া হয়নি" text="ট্রেনিং, অনবোর্ডিং আর ফিডব্যাক টেস্ট এখানে দেখাবে।" %}
     {% endif %}
   {% endif %}
 </div>

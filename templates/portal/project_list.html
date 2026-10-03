@@ -1,4 +1,5 @@
 {% extends "portal/base.html" %}
+{% load portal_tags %}
 {% block content %}
 {% if rows %}
 <div class="grid gap-5 lg:grid-cols-2">
@@ -11,36 +12,36 @@
         <div class="min-w-0 flex-1">
           <div class="flex flex-wrap items-center gap-2">
             <h2 class="text-lg font-semibold text-slate-900"><a href="{% url 'portal:project_detail' p.slug %}" class="hover:text-brand-700">{{ p.name }}</a></h2>
-            {% status_badge p.status p.get_status_display %}
+            {% status_badge p.status p.status|label_bn:"project_status" %}
           </div>
           <p class="mt-0.5 font-mono text-xs text-slate-500">{{ p.code }}{% if p.platform %} · {{ p.platform }}{% endif %}</p>
         </div>
       </div>
       {% if p.summary %}<p class="mt-4 text-sm leading-6 text-slate-600">{{ p.summary }}</p>{% endif %}
       <dl class="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <div><dt class="kv-label">Your role</dt><dd class="kv-value">{{ m.get_role_display }}</dd></div>
-        <div><dt class="kv-label">Team</dt><dd class="kv-value">{{ m.team.name|default:"—" }}</dd></div>
-        <div><dt class="kv-label">Guidelines</dt><dd class="kv-value">{{ p.n_guidelines|default:0 }}</dd></div>
-        <div><dt class="kv-label">Tutorials</dt><dd class="kv-value">{{ p.n_tutorials|default:0 }}</dd></div>
+        <div><dt class="kv-label">আপনার ভূমিকা</dt><dd class="kv-value">{{ m.role|label_bn:"member_role" }}</dd></div>
+        <div><dt class="kv-label">টিম</dt><dd class="kv-value">{{ m.team.name|default:"—" }}</dd></div>
+        <div><dt class="kv-label">গাইডলাইন</dt><dd class="kv-value">{{ p.n_guidelines|default:0 }}</dd></div>
+        <div><dt class="kv-label">টিউটোরিয়াল</dt><dd class="kv-value">{{ p.n_tutorials|default:0 }}</dd></div>
       </dl>
     </div>
     <div class="mt-auto flex flex-wrap items-center gap-4 border-t border-slate-100 bg-slate-50/60 px-6 py-4">
       <div class="min-w-0 flex-1">
         {% if m.qualified_at %}
-          <p class="flex items-center gap-1.5 text-sm font-medium text-emerald-700">{% icon "badge-check" class="h-4 w-4" %} Qualified {{ m.qualified_at|date:"M j, Y" }}</p>
+          <p class="flex items-center gap-1.5 text-sm font-medium text-emerald-700">{% icon "badge-check" class="h-4 w-4" %} কোয়ালিফাইড · {{ m.qualified_at|date:"j M Y" }}</p>
         {% elif r.onboarding %}
-          <div class="flex items-center justify-between text-xs"><span class="font-medium text-slate-700">Onboarding</span><span class="font-mono text-slate-500">{{ r.onboarding.done }}/{{ r.onboarding.total }}</span></div>
+          <div class="flex items-center justify-between text-xs"><span class="font-medium text-slate-700">অনবোর্ডিং</span><span class="font-mono text-slate-500">{{ r.onboarding.done }}/{{ r.onboarding.total }}</span></div>
           <div class="progress mt-1.5 h-1.5"><div class="progress-bar{% if r.onboarding.completed %} is-complete{% endif %}" style="width: {{ r.onboarding.percent }}%"></div></div>
         {% else %}
-          <p class="text-sm text-slate-500">Not yet qualified</p>
+          <p class="text-sm text-slate-500">এখনো কোয়ালিফাইড নন</p>
         {% endif %}
       </div>
-      <a href="{% url 'portal:project_detail' p.slug %}" class="btn btn-secondary btn-sm">Open project {% icon "arrow-right" class="h-3.5 w-3.5" %}</a>
+      <a href="{% url 'portal:project_detail' p.slug %}" class="btn btn-secondary btn-sm">প্রজেক্ট খুলুন {% icon "arrow-right" class="h-3.5 w-3.5" %}</a>
     </div>
   </article>
   {% endwith %}{% endfor %}
 </div>
 {% else %}
-  <div class="card">{% include "portal/includes/empty.html" with icon="briefcase" title="You're not on a project yet" text="Your manager will assign you to a project. Its guidelines, training and onboarding will then appear here." action_url="/portal/training/" action_label="Browse company training" %}</div>
+  <div class="card">{% include "portal/includes/empty.html" with icon="briefcase" title="আপনি এখনো কোনো প্রজেক্টে নেই" text="আপনার ম্যানেজার আপনাকে একটি প্রজেক্টে যুক্ত করবেন। তখন সেই প্রজেক্টের গাইডলাইন, ট্রেনিং আর অনবোর্ডিং এখানে দেখাবে।" action_url="/portal/training/" action_label="কোম্পানির ট্রেনিং দেখুন" %}</div>
 {% endif %}
 {% endblock %}

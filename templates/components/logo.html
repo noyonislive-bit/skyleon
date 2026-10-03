@@ -1,7 +1,7 @@
 {% comment %} Usage: {% include "components/logo.html" with dark=True uid="footer" %} — pass a unique uid when the logo appears more than once on a page. {% endcomment %}
 <span class="inline-flex items-center gap-2.5">
   <svg viewBox="0 0 32 32" class="h-8 w-8" aria-hidden="true">
-    <defs><linearGradient id="lg-{% if dark %}d{% else %}l{% endif %}{{ uid|default:'' }}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8183fa"/><stop offset="1" stop-color="#22d3ee"/></linearGradient></defs>
+    <defs><linearGradient id="lg-{% if dark %}d{% else %}l{% endif %}{{ uid|default:'' }}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#13ad69"/><stop offset="1" stop-color="#a8e04a"/></linearGradient></defs>
     <rect x="1" y="1" width="30" height="30" rx="9" fill="url(#lg-{% if dark %}d{% else %}l{% endif %}{{ uid|default:'' }})"/>
     <path d="M9 11.5h9.5a3.5 3.5 0 0 1 0 7H13.5a3.5 3.5 0 0 0 0 7H23" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/>
     <rect x="6.5" y="6.5" width="19" height="19" rx="2" fill="none" stroke="#fff" stroke-opacity=".45" stroke-width="1" stroke-dasharray="2.5 2.5"/>

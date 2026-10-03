@@ -1,42 +1,42 @@
 {% extends "portal/base.html" %}
 {% load portal_tags %}
-{% block browser_title %}Result · {{ test.title }}{% endblock %}
+{% block browser_title %}ফলাফল · {{ test.title }}{% endblock %}
 {% block content %}
 <section class="card overflow-hidden" aria-labelledby="result-title">
-  <div class="relative overflow-hidden px-6 py-8 sm:px-8 {% if attempt.passed %}bg-gradient-to-br from-emerald-50 via-white to-cyan-50{% else %}bg-gradient-to-br from-red-50 via-white to-amber-50{% endif %}">
+  <div class="relative overflow-hidden px-6 py-8 sm:px-8 {% if attempt.passed %}bg-gradient-to-br from-emerald-50 via-white to-teal-50{% else %}bg-gradient-to-br from-red-50 via-white to-amber-50{% endif %}">
     <div class="flex flex-col gap-6 sm:flex-row sm:items-center">
       <div class="ring-progress h-32 w-32 {% if attempt.passed %}is-complete{% else %}[--ring:var(--color-red-500)]{% endif %}" style="--p: {{ attempt.score|pct }}; --thickness: 10px">
-        <div class="text-center"><p class="text-3xl font-semibold text-slate-900 tabular-nums">{{ attempt.score|floatformat:0 }}<span class="text-lg text-slate-400">%</span></p><p class="text-[11px] text-slate-500">score</p></div>
+        <div class="text-center"><p class="text-3xl font-semibold text-slate-900 tabular-nums">{{ attempt.score|floatformat:0 }}<span class="text-lg text-slate-400">%</span></p><p class="text-[11px] text-slate-500">স্কোর</p></div>
       </div>
       <div class="min-w-0 flex-1">
         {% if attempt.passed %}
-          <p class="inline-flex items-center gap-1.5 rounded-full bg-emerald-500 px-3 py-1 text-xs font-semibold text-white">{% icon "award" class="h-3.5 w-3.5" %} Passed</p>
+          <p class="inline-flex items-center gap-1.5 rounded-full bg-emerald-500 px-3 py-1 text-xs font-semibold text-white">{% icon "award" class="h-3.5 w-3.5" %} পাস</p>
         {% else %}
-          <p class="inline-flex items-center gap-1.5 rounded-full bg-red-500 px-3 py-1 text-xs font-semibold text-white">{% icon "x-circle" class="h-3.5 w-3.5" %} Not passed</p>
+          <p class="inline-flex items-center gap-1.5 rounded-full bg-red-500 px-3 py-1 text-xs font-semibold text-white">{% icon "x-circle" class="h-3.5 w-3.5" %} পাস হয়নি</p>
         {% endif %}
         <h1 id="result-title" class="mt-3 text-2xl font-semibold tracking-tight text-slate-900">{{ test.title }}</h1>
         <p class="mt-1 text-sm text-slate-600">
-          {% if attempt.passed %}Great work — you reached the pass mark of {{ test.passing_score }}%.{% else %}You needed {{ test.passing_score }}% to pass.{% if can_retake %} Review the questions below and try again.{% endif %}{% endif %}
+          {% if attempt.passed %}দারুণ! আপনি পাস মার্ক {{ test.passing_score }}% ছুঁয়ে ফেলেছেন।{% else %}পাস করতে {{ test.passing_score }}% দরকার ছিল।{% if can_retake %} নিচের প্রশ্নগুলো দেখে নিয়ে আবার চেষ্টা করুন।{% endif %}{% endif %}
         </p>
         <dl class="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-sm">
-          <div><dt class="kv-label">Points</dt><dd class="mt-0.5 font-mono font-semibold text-slate-900">{{ attempt.points_earned }}/{{ attempt.points_total }}</dd></div>
-          <div><dt class="kv-label">Correct</dt><dd class="mt-0.5 font-mono font-semibold text-slate-900">{{ correct_count }}/{{ questions|length }}</dd></div>
-          <div><dt class="kv-label">Attempt</dt><dd class="mt-0.5 font-mono font-semibold text-slate-900">{{ attempt.attempt_number }}{% if test.attempt_limit %}/{{ test.attempt_limit }}{% endif %}</dd></div>
-          <div><dt class="kv-label">Submitted</dt><dd class="mt-0.5 font-medium text-slate-900">{{ attempt.submitted_at|date:"M j, Y · H:i" }}</dd></div>
-          {% if attempt.data.late %}<div><dt class="kv-label">Note</dt><dd class="mt-0.5"><span class="badge badge-warning">Submitted after the time limit</span></dd></div>{% endif %}
+          <div><dt class="kv-label">পয়েন্ট</dt><dd class="mt-0.5 font-mono font-semibold text-slate-900">{{ attempt.points_earned }}/{{ attempt.points_total }}</dd></div>
+          <div><dt class="kv-label">সঠিক</dt><dd class="mt-0.5 font-mono font-semibold text-slate-900">{{ correct_count }}/{{ questions|length }}</dd></div>
+          <div><dt class="kv-label">চেষ্টা</dt><dd class="mt-0.5 font-mono font-semibold text-slate-900">{{ attempt.attempt_number }}{% if test.attempt_limit %}/{{ test.attempt_limit }}{% endif %}</dd></div>
+          <div><dt class="kv-label">জমা দিয়েছেন</dt><dd class="mt-0.5 font-medium text-slate-900">{{ attempt.submitted_at|date:"j M Y · H:i" }}</dd></div>
+          {% if attempt.data.late %}<div><dt class="kv-label">নোট</dt><dd class="mt-0.5"><span class="badge badge-warning">সময় শেষ হওয়ার পরে জমা হয়েছে</span></dd></div>{% endif %}
         </dl>
       </div>
       <div class="flex shrink-0 flex-col gap-2 sm:items-end">
         {% if can_retake %}
           <form method="post" action="{% url 'portal:test_start' test.pk %}">{% csrf_token %}
-            <button type="submit" class="btn btn-primary">{% icon "rotate-ccw" class="h-4 w-4" %} {% if state.status == "in_progress" %}Resume attempt{% else %}Retake test{% endif %}</button>
+            <button type="submit" class="btn btn-primary">{% icon "rotate-ccw" class="h-4 w-4" %} {% if state.status == "in_progress" %}চেষ্টা চালিয়ে যান{% else %}আবার চেষ্টা করুন{% endif %}</button>
           </form>
-          {% if state.attempts_left is not None %}<p class="text-xs text-slate-500">{{ state.attempts_left }} attempt{{ state.attempts_left|pluralize }} left</p>{% endif %}
+          {% if state.attempts_left is not None %}<p class="text-xs text-slate-500">আর {{ state.attempts_left }}টি চেষ্টা বাকি</p>{% endif %}
         {% elif not attempt.passed and state.status == "locked" %}
-          <p class="max-w-56 text-xs text-slate-500 sm:text-right">No attempts left. Your trainer will follow up.</p>
+          <p class="max-w-56 text-xs text-slate-500 sm:text-right">আর কোনো চেষ্টা বাকি নেই। আপনার ট্রেইনার আপনার সাথে যোগাযোগ করবেন।</p>
         {% endif %}
-        {% if feedback %}<a href="{% url 'portal:feedback_detail' feedback.number %}" class="btn btn-secondary btn-sm">{% icon "message-square-warning" class="h-3.5 w-3.5" %} Back to {{ feedback.display_number }}</a>
-        {% else %}<a href="{% url 'portal:test_detail' test.pk %}" class="btn btn-ghost btn-sm">Test overview</a>{% endif %}
+        {% if feedback %}<a href="{% url 'portal:feedback_detail' feedback.number %}" class="btn btn-secondary btn-sm">{% icon "message-square-warning" class="h-3.5 w-3.5" %} {{ feedback.display_number }}-এ ফিরে যান</a>
+        {% else %}<a href="{% url 'portal:test_detail' test.pk %}" class="btn btn-ghost btn-sm">টেস্টের বিবরণ</a>{% endif %}
       </div>
     </div>
   </div>
@@ -44,8 +44,8 @@
 
 <section class="mt-6" aria-labelledby="review-title">
   <div class="mb-3 flex flex-wrap items-end justify-between gap-2">
-    <h2 id="review-title" class="text-base font-semibold text-slate-900">Question review</h2>
-    <p class="text-xs text-slate-500">{% if reveal %}Your answers compared with the correct answers.{% else %}Correct answers are not revealed for this test.{% endif %}</p>
+    <h2 id="review-title" class="text-base font-semibold text-slate-900">প্রশ্নগুলো মিলিয়ে দেখুন</h2>
+    <p class="text-xs text-slate-500">{% if reveal %}আপনার উত্তর আর সঠিক উত্তর পাশাপাশি দেখানো হলো।{% else %}এই টেস্টে সঠিক উত্তর দেখানো হয় না।{% endif %}</p>
   </div>
   <ol class="space-y-4">
     {% for q in questions %}
@@ -53,14 +53,14 @@
       <div class="card-body">
         <div class="flex items-start gap-3">
           {% if q.correct %}
-            <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white" aria-label="Correct">{% icon "check" class="h-4 w-4" stroke_width="3" %}</span>
+            <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white" aria-label="সঠিক">{% icon "check" class="h-4 w-4" stroke_width="3" %}</span>
           {% else %}
-            <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-red-500 text-white" aria-label="Incorrect">{% icon "x" class="h-4 w-4" stroke_width="3" %}</span>
+            <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-red-500 text-white" aria-label="ভুল">{% icon "x" class="h-4 w-4" stroke_width="3" %}</span>
           {% endif %}
           <div class="min-w-0 flex-1">
             <div class="flex flex-wrap items-center justify-between gap-2">
-              <p class="font-mono text-xs tracking-wider text-slate-400 uppercase">Question {{ q.index }}</p>
-              <span class="text-xs {% if q.correct %}text-emerald-700{% else %}text-red-600{% endif %}">{{ q.earned }}/{{ q.points }} pt{{ q.points|pluralize }}{% if not q.answered %} · not answered{% endif %}</span>
+              <p class="text-xs font-medium text-slate-400">প্রশ্ন {{ q.index }}</p>
+              <span class="text-xs {% if q.correct %}text-emerald-700{% else %}text-red-600{% endif %}">{{ q.earned }}/{{ q.points }} পয়েন্ট{% if not q.answered %} · উত্তর দেননি{% endif %}</span>
             </div>
             <p class="mt-1 font-semibold text-slate-900">{{ q.prompt|linebreaksbr }}</p>
             {% if q.media and not q.media.is_video %}<img src="{{ q.media.url }}" alt="" class="mt-3 max-h-64 rounded-lg ring-1 ring-slate-200">{% endif %}
@@ -69,17 +69,17 @@
               <ul class="mt-3 {% if q.image_options %}grid gap-2 sm:grid-cols-2 lg:grid-cols-3{% else %}space-y-2{% endif %}">
                 {% for o in q.options %}
                 <li class="review-option {% if o.is_correct %}is-correct{% elif o.selected %}is-wrong{% else %}is-neutral{% endif %} {% if q.image_options %}flex-col{% endif %}">
-                  {% if o.media %}<img src="{{ o.media.url }}" alt="Option {{ forloop.counter|letter }}" class="aspect-[4/3] w-full rounded-md bg-white object-contain" loading="lazy">{% endif %}
+                  {% if o.media %}<img src="{{ o.media.url }}" alt="অপশন {{ forloop.counter|letter }}" class="aspect-[4/3] w-full rounded-md bg-white object-contain" loading="lazy">{% endif %}
                   <span class="flex w-full items-start gap-2">
                     <span class="mt-0.5 shrink-0">{% if o.is_correct %}{% icon "check-circle-2" class="h-4 w-4 text-emerald-600" %}{% elif o.selected %}{% icon "x-circle" class="h-4 w-4 text-red-500" %}{% else %}{% icon "circle" class="h-4 w-4 text-slate-300" %}{% endif %}</span>
-                    <span class="flex-1">{{ o.text|default:"" }}{% if not o.text %}Option {{ forloop.counter|letter }}{% endif %}</span>
-                    <span class="flex shrink-0 gap-1">{% if o.selected %}<span class="badge {% if o.is_correct %}badge-success{% else %}badge-danger{% endif %}">Your answer</span>{% endif %}{% if o.is_correct and not o.selected %}<span class="badge badge-success">Correct answer</span>{% endif %}</span>
+                    <span class="flex-1">{{ o.text|default:"" }}{% if not o.text %}অপশন {{ forloop.counter|letter }}{% endif %}</span>
+                    <span class="flex shrink-0 gap-1">{% if o.selected %}<span class="badge {% if o.is_correct %}badge-success{% else %}badge-danger{% endif %}">আপনার উত্তর</span>{% endif %}{% if o.is_correct and not o.selected %}<span class="badge badge-success">সঠিক উত্তর</span>{% endif %}</span>
                   </span>
                 </li>
                 {% endfor %}
               </ul>
               {% if q.explanation %}
-                <div class="mt-3 flex gap-2 rounded-lg bg-sky-50 px-3.5 py-2.5 text-sm text-sky-900 ring-1 ring-sky-200">{% icon "lightbulb" class="mt-0.5 h-4 w-4 shrink-0 text-sky-600" %}<div class="prose-content text-sm text-sky-900">{{ q.explanation|markdown }}</div></div>
+                <div class="mt-3 flex gap-2 rounded-lg bg-teal-50 px-3.5 py-2.5 text-sm text-teal-900 ring-1 ring-teal-200">{% icon "lightbulb" class="mt-0.5 h-4 w-4 shrink-0 text-teal-600" %}<div class="prose-content text-sm text-teal-900">{{ q.explanation|markdown }}</div></div>
               {% endif %}
             {% endif %}
           </div>
@@ -92,12 +92,12 @@
 
 {% if history|length > 1 %}
 <section class="card mt-6">
-  <div class="card-header"><h2 class="card-title">All attempts on this test</h2></div>
+  <div class="card-header"><h2 class="card-title">এই টেস্টে আপনার সব চেষ্টা</h2></div>
   <ul class="divide-y divide-slate-100">
     {% for a in history %}
     <li><a href="{% url 'portal:result_detail' a.pk %}" class="flex items-center justify-between gap-3 px-5 py-3 text-sm hover:bg-slate-50 {% if a.pk == attempt.pk %}bg-brand-50/50{% endif %}" {% if a.pk == attempt.pk %}aria-current="page"{% endif %}>
-      <span class="text-slate-700">Attempt {{ a.attempt_number }} · {{ a.submitted_at|date:"M j, Y · H:i" }}</span>
-      <span class="flex items-center gap-2"><span class="font-mono font-semibold text-slate-900">{{ a.score|floatformat:0 }}%</span>{% if a.passed %}<span class="badge badge-success">Passed</span>{% else %}<span class="badge badge-danger">Failed</span>{% endif %}</span>
+      <span class="text-slate-700">চেষ্টা #{{ a.attempt_number }} · {{ a.submitted_at|date:"j M Y · H:i" }}</span>
+      <span class="flex items-center gap-2"><span class="font-mono font-semibold text-slate-900">{{ a.score|floatformat:0 }}%</span>{% if a.passed %}<span class="badge badge-success">পাস</span>{% else %}<span class="badge badge-danger">পাস হয়নি</span>{% endif %}</span>
     </a></li>
     {% endfor %}
   </ul>

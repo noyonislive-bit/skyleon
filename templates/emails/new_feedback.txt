@@ -1,12 +1,10 @@
-{% autoescape off %}Hi {{ user.first_name }},
-
-New QA feedback for {{ feedback.project.name }}:
+{% autoescape off %}{{ user.first_name }}, {{ feedback.project.name }} প্রজেক্টের জন্য নতুন QA ফিডব্যাক এসেছে:
 {{ feedback.display_number }} - {{ feedback.topic }}
 {% if feedback.summary %}{{ feedback.summary }}
-{% endif %}{% if feedback.video_id %}Please watch the feedback video{% else %}Please read the feedback{% endif %}{% if feedback.test_id %} and complete the short test{% endif %}.
-{% if link %}
-Open feedback: {{ link }}{% endif %}
+{% endif %}{% if feedback.video_id %}ফিডব্যাক ভিডিওটা পুরো দেখুন{% else %}ফিডব্যাকটা মন দিয়ে পড়ুন{% endif %}{% if feedback.test_id %}, তারপর ছোট টেস্টটা দিন{% endif %}।
 
-— The {{ brand.name }} team
+দেখুন: {{ link }}
+
+— {{ brand.name }} টিম
 {{ APP_URL }}
 {% endautoescape %}

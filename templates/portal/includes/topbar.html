@@ -1,13 +1,12 @@
 {% load portal_tags %}{% portal_counts as c %}{% with unread=c.notifications %}
 <div class="relative" data-notif>
-  <a href="{% url 'portal:notifications' %}" class="relative inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-slate-900" data-notif-toggle aria-haspopup="true" aria-expanded="false" aria-controls="notif-menu" title="Notifications">
+  <a href="{% url 'portal:notifications' %}" class="relative inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-slate-900" data-notif-toggle aria-haspopup="true" aria-expanded="false" aria-controls="notif-menu" title="নোটিফিকেশন">
     {% icon "bell" class="h-5 w-5" %}
-    <span class="sr-only">Notifications{% if unread %} ({{ unread }} unread){% endif %}</span>
+    <span class="sr-only">নোটিফিকেশন{% if unread %} ({{ unread }}টি পড়া হয়নি){% endif %}</span>
     {% if unread %}<span class="absolute top-1 right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] leading-none font-semibold text-white ring-2 ring-white" data-notif-count aria-hidden="true">{% if unread > 99 %}99+{% else %}{{ unread }}{% endif %}</span>{% endif %}
   </a>
   <div id="notif-menu" class="absolute right-0 z-50 mt-2 w-[min(23rem,calc(100vw-1.5rem))] overflow-hidden max-sm:fixed max-sm:inset-x-3 max-sm:top-16 max-sm:mt-1 max-sm:w-auto rounded-xl bg-white text-left shadow-xl ring-1 ring-slate-200" data-notif-panel data-src="{% url 'portal:notifications_menu' %}" hidden>
-    <div class="flex items-center justify-center gap-2 p-8 text-sm text-slate-500">{% icon "loader-circle" class="h-4 w-4 animate-spin" %} Loading…</div>
+    <div class="flex items-center justify-center gap-2 p-8 text-sm text-slate-500">{% icon "loader-circle" class="h-4 w-4 animate-spin" %} লোড হচ্ছে…</div>
   </div>
 </div>
-<a href="{% url 'portal:profile' %}" class="ml-1 rounded-full" title="My profile" aria-label="My profile">{% include "components/avatar.html" with user=request.user size="h-8 w-8 text-xs" %}</a>
 {% endwith %}

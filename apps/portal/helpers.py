@@ -22,7 +22,7 @@ RESTART_AT = 0.95  # resume from the start when the last position is past 95 %
 
 
 def crumbs(*items):
-    """[("Training", url), ("Title", None)] → breadcrumb list for templates/portal/base.html."""
+    """[("ট্রেনিং", url), ("Title", None)] → breadcrumb list for templates/portal/base.html."""
     return [{"label": label, "url": url} for label, url in items]
 
 
@@ -153,12 +153,13 @@ def player_config(asset, user, *, heartbeat_url, row, enforce, completed) -> Pla
 
 # ── Tests ────────────────────────────────────────────────────────────────────
 
+# Test state → badge label (Bangla, see docs/BANGLA_STYLE.md).
 STATUS_LABELS = {
-    "pending": "Not started",
-    "in_progress": "In progress",
-    "passed": "Passed",
-    "review": "Retake available",
-    "locked": "No attempts left",
+    "pending": "শুরু হয়নি",
+    "in_progress": "চলছে",
+    "passed": "পাস",
+    "review": "পাস হয়নি",
+    "locked": "আর চেষ্টা নেই",
 }
 STATUS_TONES = {"pending": "warning", "in_progress": "info", "passed": "success", "review": "danger", "locked": "neutral"}
 OPEN_STATUSES = {"pending", "in_progress", "review"}
@@ -214,7 +215,7 @@ def feedback_gate(scope, test):
         return None, None
     recipient = scope.recipients().filter(feedback=fb).first()
     if recipient is None:
-        return None, "This test belongs to feedback you did not receive."
+        return None, "এই টেস্টটি এমন একটি ফিডব্যাকের, যা আপনাকে পাঠানো হয়নি।"
     if not recipient.watched_at:
-        return recipient, "Watch the feedback video first — the test unlocks once you've watched it."
+        return recipient, "আগে ফিডব্যাক ভিডিওটি দেখুন — দেখা হলেই টেস্ট খুলে যাবে।"
     return recipient, None

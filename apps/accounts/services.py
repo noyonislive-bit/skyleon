@@ -60,8 +60,8 @@ def approve_user(user: User, by: User | None = None, *, send_email=True) -> User
             "login_url": absolute_url(reverse("accounts:login")),
             "setup_url": password_setup_url(user) if not user.has_usable_password() else None,
         }
-        queue_email(user.email, "Your account has been approved", "account_approved", context)
-        notify(user, NotificationType.ACCOUNT, "Welcome aboard!", "Your account has been approved.", reverse("portal:dashboard"))
+        queue_email(user.email, "আপনার অ্যাকাউন্ট অনুমোদন করা হয়েছে", "account_approved", context)
+        notify(user, NotificationType.ACCOUNT, "স্বাগতম!", "আপনার অ্যাকাউন্ট অনুমোদন করা হয়েছে।", reverse("portal:dashboard"))
     return user
 
 
@@ -97,7 +97,7 @@ def create_account(*, email, name, role=Role.EMPLOYEE, invited_by=None, approve=
         approve_user(user, invited_by, send_email=False)
     if send_invite:
         queue_email(
-            user.email, f"Your {('employee' if role == Role.EMPLOYEE else 'staff')} account is ready", "account_invite",
+            user.email, "আপনার অ্যাকাউন্ট তৈরি হয়েছে — পাসওয়ার্ড সেট করুন", "account_invite",
             {"user": user, "setup_url": password_setup_url(user), "login_url": absolute_url(reverse("accounts:login")), "invited_by": invited_by},
         )
     return user

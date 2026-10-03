@@ -17,15 +17,15 @@
             <span>clip_0142.mp4 · frame 318</span><span class="flex items-center gap-1.5 text-emerald-400"><span class="dot animate-pulse-soft bg-emerald-400"></span>QA passed</span>
           </div>
           <svg viewBox="0 0 400 220" class="mt-3 w-full rounded-lg bg-ink-800">
-            <defs><linearGradient id="tbl" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#1a2438"/><stop offset="1" stop-color="#101828"/></linearGradient></defs>
+            <defs><linearGradient id="tbl" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#113825"/><stop offset="1" stop-color="#0a291b"/></linearGradient></defs>
             <rect width="400" height="220" fill="url(#tbl)"/>
-            <rect x="0" y="150" width="400" height="70" fill="#273350" opacity=".55"/>
-            <rect x="215" y="102" width="44" height="52" rx="6" fill="#64748b" opacity=".6"/>
-            <path d="M120 175 C 150 140, 180 128, 212 122 L 226 116 C 232 114, 236 120, 230 126 L 214 140 C 190 158, 160 178, 130 196 Z" fill="#cbd5e1" opacity=".35"/>
-            <rect x="216" y="98" width="62" height="62" rx="3" fill="none" stroke="#22d3ee" stroke-width="2" class="animate-dash" stroke-dasharray="6 6"/>
-            <rect x="216" y="82" width="70" height="16" rx="3" fill="#22d3ee"/><text x="222" y="94" font-family="Geist Mono, monospace" font-size="10" fill="#05080f">cup · 0.97</text>
+            <rect x="0" y="150" width="400" height="70" fill="#1a4a33" opacity=".55"/>
+            <rect x="215" y="102" width="44" height="52" rx="6" fill="#63746b" opacity=".6"/>
+            <path d="M120 175 C 150 140, 180 128, 212 122 L 226 116 C 232 114, 236 120, 230 126 L 214 140 C 190 158, 160 178, 130 196 Z" fill="#c3cec8" opacity=".35"/>
+            <rect x="216" y="98" width="62" height="62" rx="3" fill="none" stroke="#34d399" stroke-width="2" class="animate-dash" stroke-dasharray="6 6"/>
+            <rect x="216" y="82" width="70" height="16" rx="3" fill="#34d399"/><text x="222" y="94" font-family="Geist Mono, monospace" font-size="10" fill="#02130c">cup · 0.97</text>
             <rect x="96" y="118" width="122" height="86" rx="3" fill="none" stroke="#a3e635" stroke-width="2"/>
-            <rect x="96" y="102" width="112" height="16" rx="3" fill="#a3e635"/><text x="102" y="114" font-family="Geist Mono, monospace" font-size="10" fill="#05080f">hand.right · 0.98</text>
+            <rect x="96" y="102" width="112" height="16" rx="3" fill="#a3e635"/><text x="102" y="114" font-family="Geist Mono, monospace" font-size="10" fill="#02130c">hand.right · 0.98</text>
             <g fill="#f472b6"><circle cx="212" cy="122" r="3"/><circle cx="226" cy="116" r="3"/><circle cx="172" cy="150" r="3"/><circle cx="140" cy="182" r="3"/></g>
           </svg>
           <div class="mt-3 grid grid-cols-[repeat(12,1fr)] gap-0.5">
@@ -33,10 +33,10 @@
           </div>
           <p class="mt-3 font-mono text-[11px] text-slate-400">“Right hand picks up a cup.” <span class="text-slate-500">· hand + action + object</span></p>
         </div>
-        <h2 class="mt-8 text-2xl font-semibold tracking-tight text-white">{% block panel_title %}Training, feedback and quality — in one place.{% endblock %}</h2>
-        <p class="mt-3 text-sm leading-6 text-slate-400">{% block panel_text %}Watch project tutorials, review daily QA feedback, take assessments and track your progress.{% endblock %}</p>
+        <h2 class="mt-8 text-2xl font-semibold tracking-tight text-white">{% block panel_title %}ট্রেনিং, ফিডব্যাক আর কোয়ালিটি — সব এক জায়গায়।{% endblock %}</h2>
+        <p class="mt-3 text-sm leading-6 text-slate-400">{% block panel_text %}প্রজেক্টের টিউটোরিয়াল দেখুন, প্রতিদিনের QA ফিডব্যাক বুঝে নিন, টেস্ট দিন আর নিজের অগ্রগতি দেখুন।{% endblock %}</p>
       </div>
-      <p class="font-mono text-[11px] text-slate-500">© {% now "Y" %} {{ brand.legal_name }} · Secure, role-based access</p>
+      <p class="{% if LANGUAGE_CODE == "bn" %}text-xs{% else %}font-mono text-[11px]{% endif %} text-slate-500">© {% now "Y" %} {{ brand.legal_name }} · {% if LANGUAGE_CODE == "bn" %}নিরাপদ, রোল-ভিত্তিক অ্যাক্সেস{% else %}Secure, role-based access{% endif %}</p>
     </div>
   </div>
 

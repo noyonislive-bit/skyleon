@@ -1,10 +1,15 @@
 from django import forms
 from django.contrib.auth import authenticate, password_validation
+from django.utils import translation
 from django.contrib.auth.forms import PasswordResetForm, SetPasswordForm
 
 from apps.core.forms import HoneypotMixin, StyledFormMixin
 
 from .models import User, UserStatus
+
+
+def is_bn() -> bool:
+    return (translation.get_language() or "").startswith("bn")
 
 
 class LoginForm(StyledFormMixin, forms.Form):
@@ -20,10 +25,21 @@ class LoginForm(StyledFormMixin, forms.Form):
         "suspended": "This account has been suspended. Please contact your manager.",
     }
 
+    error_messages_bn = {
+        "invalid": "ইমেইল/এমপ্লয়ি আইডি অথবা পাসওয়ার্ড ভুল হয়েছে। আবার চেষ্টা করুন।",
+        "suspended": "আপনার অ্যাকাউন্টটি স্থগিত (suspended) করা আছে। আপনার ম্যানেজারের সাথে যোগাযোগ করুন।",
+    }
+
     def __init__(self, request=None, *args, **kwargs):
         self.request = request
         self.user = None
         super().__init__(*args, **kwargs)
+        if is_bn():
+            self.error_messages = self.error_messages_bn
+            self.fields["identifier"].label = "ইমেইল বা এমপ্লয়ি আইডি"
+            self.fields["identifier"].widget.attrs["placeholder"] = "you@company.com অথবা SKY-0001"
+            self.fields["password"].label = "পাসওয়ার্ড"
+            self.fields["remember"].label = "আমাকে লগইন রাখুন"
 
     def clean(self):
         data = super().clean()
@@ -52,17 +68,32 @@ class SignupForm(StyledFormMixin, HoneypotMixin, forms.Form):
     password2 = forms.CharField(label="Confirm password", widget=forms.PasswordInput(attrs={"autocomplete": "new-password"}))
     agree = forms.BooleanField(label="I agree to keep all project data and training material confidential.")
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if is_bn():
+            labels = {
+                "name": "পুরো নাম", "email": "ইমেইল", "phone": "ফোন নম্বর", "location": "শহর / দেশ",
+                "password1": "পাসওয়ার্ড", "password2": "পাসওয়ার্ড আবার লিখুন",
+                "agree": "আমি প্রজেক্টের সব ডেটা আর ট্রেনিং ম্যাটেরিয়াল গোপন রাখব।",
+            }
+            for name, label in labels.items():
+                self.fields[name].label = label
+            self.fields["password1"].help_text = "কমপক্ষে ৮ অক্ষর। খুব সাধারণ বা শুধু সংখ্যার পাসওয়ার্ড দেবেন না।"
+
     def clean_email(self):
         email = self.cleaned_data["email"].strip().lower()
         if User.objects.filter(email__iexact=email).exists():
-            raise forms.ValidationError("An account with this email already exists. Try signing in or resetting your password.")
+            raise forms.ValidationError(
+                "এই ইমেইলে আগেই একটা অ্যাকাউন্ট আছে। লগইন করুন, অথবা পাসওয়ার্ড ভুলে গেলে রিসেট করুন।" if is_bn()
+                else "An account with this email already exists. Try signing in or resetting your password."
+            )
         return email
 
     def clean(self):
         data = super().clean()
         p1, p2 = data.get("password1"), data.get("password2")
         if p1 and p2 and p1 != p2:
-            self.add_error("password2", "The two passwords do not match.")
+            self.add_error("password2", "দুইবার লেখা পাসওয়ার্ড মিলছে না।" if is_bn() else "The two passwords do not match.")
         if p1:
             try:
                 password_validation.validate_password(p1, User(email=data.get("email", ""), name=data.get("name", "")))

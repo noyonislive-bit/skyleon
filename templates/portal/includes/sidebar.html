@@ -4,26 +4,26 @@
 {% nav_active "/portal/tests" as a_tests %}{% nav_active "/portal/results" as a_res %}
 {% nav_active "/portal/announcements" as a_ann %}{% nav_active "/portal/meetings" as a_meet %}{% nav_active "/portal/notifications" as a_notif %}
 {% nav_active "/portal/profile/" exact=True as a_prof %}{% nav_active "/portal/profile/history" as a_hist %}
-<a class="side-link {{ a_dash }}" href="{% url 'portal:dashboard' %}" {% if a_dash %}aria-current="page"{% endif %}>{% icon "layout-dashboard" class="h-4 w-4" %} Dashboard</a>
-<a class="side-link {{ a_onb }}" href="{% url 'portal:onboarding' %}" {% if a_onb %}aria-current="page"{% endif %}>{% icon "route" class="h-4 w-4" %} Onboarding</a>
+<a class="side-link {{ a_dash }}" href="{% url 'portal:dashboard' %}" {% if a_dash %}aria-current="page"{% endif %}>{% icon "layout-dashboard" class="h-4 w-4" %} ড্যাশবোর্ড</a>
+<a class="side-link {{ a_onb }}" href="{% url 'portal:onboarding' %}" {% if a_onb %}aria-current="page"{% endif %}>{% icon "route" class="h-4 w-4" %} অনবোর্ডিং</a>
 
-<p class="side-heading">Learning</p>
-<a class="side-link {{ a_train }}" href="{% url 'portal:training' %}" {% if a_train %}aria-current="page"{% endif %}>{% icon "graduation-cap" class="h-4 w-4" %} Training{% if c.training %}<span class="count bg-white/10 text-slate-200" title="{{ c.training }} required tutorial{{ c.training|pluralize }} to complete"><span class="sr-only">, required pending: </span>{{ c.training }}</span>{% endif %}</a>
-{% if practice_url %}{% nav_active "/portal/practice" as a_prac %}<a class="side-link {{ a_prac }}" href="{{ practice_url }}" {% if a_prac %}aria-current="page"{% endif %}>{% icon "clapperboard" class="h-4 w-4" %} Practice Lab</a>{% endif %}
-{% if guides_url %}{% nav_active "/portal/guides" as a_guides %}<a class="side-link {{ a_guides }}" href="{{ guides_url }}" {% if a_guides %}aria-current="page"{% endif %}>{% icon "book-open-check" class="h-4 w-4" %} Work guides</a>{% endif %}
-<a class="side-link {{ a_proj }}" href="{% url 'portal:projects' %}" {% if a_proj %}aria-current="page"{% endif %}>{% icon "briefcase" class="h-4 w-4" %} My projects</a>
-<a class="side-link {{ a_fb }}" href="{% url 'portal:feedback' %}" {% if a_fb %}aria-current="page"{% endif %}>{% icon "message-square-warning" class="h-4 w-4" %} Feedback{% if c.feedback %}<span class="count bg-amber-400 text-ink-950" title="{{ c.feedback }} unseen"><span class="sr-only">, unseen: </span>{{ c.feedback }}</span>{% endif %}</a>
-<a class="side-link {{ a_tests }}" href="{% url 'portal:tests' %}" {% if a_tests %}aria-current="page"{% endif %}>{% icon "clipboard-check" class="h-4 w-4" %} Tests{% if c.tests %}<span class="count" title="{{ c.tests }} pending"><span class="sr-only">, pending: </span>{{ c.tests }}</span>{% endif %}</a>
-<a class="side-link {{ a_res }}" href="{% url 'portal:results' %}" {% if a_res %}aria-current="page"{% endif %}>{% icon "trophy" class="h-4 w-4" %} Results</a>
+<p class="side-heading">শেখা ও কাজ</p>
+<a class="side-link {{ a_train }}" href="{% url 'portal:training' %}" {% if a_train %}aria-current="page"{% endif %}>{% icon "graduation-cap" class="h-4 w-4" %} ট্রেনিং{% if c.training %}<span class="count bg-white/10 text-slate-200" title="{{ c.training }}টি বাধ্যতামূলক টিউটোরিয়াল বাকি"><span class="sr-only">, বাধ্যতামূলক বাকি: </span>{{ c.training }}</span>{% endif %}</a>
+{% if practice_url %}{% nav_active "/portal/practice" as a_prac %}<a class="side-link {{ a_prac }}" href="{{ practice_url }}" {% if a_prac %}aria-current="page"{% endif %}>{% icon "clapperboard" class="h-4 w-4" %} প্র্যাকটিস ল্যাব</a>{% endif %}
+{% if guides_url %}{% nav_active "/portal/guides" as a_guides %}<a class="side-link {{ a_guides }}" href="{{ guides_url }}" {% if a_guides %}aria-current="page"{% endif %}>{% icon "book-open-check" class="h-4 w-4" %} কাজের গাইড</a>{% endif %}
+<a class="side-link {{ a_proj }}" href="{% url 'portal:projects' %}" {% if a_proj %}aria-current="page"{% endif %}>{% icon "briefcase" class="h-4 w-4" %} আমার প্রজেক্ট</a>
+<a class="side-link {{ a_fb }}" href="{% url 'portal:feedback' %}" {% if a_fb %}aria-current="page"{% endif %}>{% icon "message-square-warning" class="h-4 w-4" %} ফিডব্যাক{% if c.feedback %}<span class="count bg-amber-400 text-ink-950" title="{{ c.feedback }}টি এখনো দেখেননি"><span class="sr-only">, এখনো দেখেননি: </span>{{ c.feedback }}</span>{% endif %}</a>
+<a class="side-link {{ a_tests }}" href="{% url 'portal:tests' %}" {% if a_tests %}aria-current="page"{% endif %}>{% icon "clipboard-check" class="h-4 w-4" %} টেস্ট{% if c.tests %}<span class="count" title="{{ c.tests }}টি বাকি"><span class="sr-only">, বাকি: </span>{{ c.tests }}</span>{% endif %}</a>
+<a class="side-link {{ a_res }}" href="{% url 'portal:results' %}" {% if a_res %}aria-current="page"{% endif %}>{% icon "trophy" class="h-4 w-4" %} ফলাফল</a>
 
-<p class="side-heading">Updates</p>
-<a class="side-link {{ a_ann }}" href="{% url 'portal:announcements' %}" {% if a_ann %}aria-current="page"{% endif %}>{% icon "megaphone" class="h-4 w-4" %} Announcements{% if c.announcements %}<span class="count" title="{{ c.announcements }} unread"><span class="sr-only">, unread: </span>{{ c.announcements }}</span>{% endif %}</a>
-<a class="side-link {{ a_meet }}" href="{% url 'portal:meetings' %}" {% if a_meet %}aria-current="page"{% endif %}>{% icon "calendar-clock" class="h-4 w-4" %} Meetings</a>
-<a class="side-link {{ a_notif }}" href="{% url 'portal:notifications' %}" {% if a_notif %}aria-current="page"{% endif %}>{% icon "bell" class="h-4 w-4" %} Notifications{% if c.notifications %}<span class="count bg-white/10 text-slate-200"><span class="sr-only">, unread: </span>{{ c.notifications }}</span>{% endif %}</a>
+<p class="side-heading">আপডেট</p>
+<a class="side-link {{ a_ann }}" href="{% url 'portal:announcements' %}" {% if a_ann %}aria-current="page"{% endif %}>{% icon "megaphone" class="h-4 w-4" %} ঘোষণা{% if c.announcements %}<span class="count" title="{{ c.announcements }}টি পড়া হয়নি"><span class="sr-only">, পড়া হয়নি: </span>{{ c.announcements }}</span>{% endif %}</a>
+<a class="side-link {{ a_meet }}" href="{% url 'portal:meetings' %}" {% if a_meet %}aria-current="page"{% endif %}>{% icon "calendar-clock" class="h-4 w-4" %} মিটিং</a>
+<a class="side-link {{ a_notif }}" href="{% url 'portal:notifications' %}" {% if a_notif %}aria-current="page"{% endif %}>{% icon "bell" class="h-4 w-4" %} নোটিফিকেশন{% if c.notifications %}<span class="count bg-white/10 text-slate-200" title="{{ c.notifications }}টি পড়া হয়নি"><span class="sr-only">, পড়া হয়নি: </span>{{ c.notifications }}</span>{% endif %}</a>
 
-<p class="side-heading">Account</p>
-<a class="side-link {{ a_prof }}" href="{% url 'portal:profile' %}" {% if a_prof %}aria-current="page"{% endif %}>{% icon "user-round" class="h-4 w-4" %} Profile</a>
-<a class="side-link {{ a_hist }}" href="{% url 'portal:history' %}" {% if a_hist %}aria-current="page"{% endif %}>{% icon "history" class="h-4 w-4" %} My history</a>
+<p class="side-heading">অ্যাকাউন্ট</p>
+<a class="side-link {{ a_prof }}" href="{% url 'portal:profile' %}" {% if a_prof %}aria-current="page"{% endif %}>{% icon "user-round" class="h-4 w-4" %} প্রোফাইল</a>
+<a class="side-link {{ a_hist }}" href="{% url 'portal:history' %}" {% if a_hist %}aria-current="page"{% endif %}>{% icon "history" class="h-4 w-4" %} আমার ইতিহাস</a>
 {% if request.user.is_staff_role %}
-<a class="side-link" href="{% url 'backoffice:dashboard' %}">{% icon "settings-2" class="h-4 w-4" %} Admin panel {% icon "arrow-up-right" class="ml-auto h-3.5 w-3.5 opacity-60" %}</a>
+<a class="side-link" href="{% url 'backoffice:dashboard' %}">{% icon "settings-2" class="h-4 w-4" %} অ্যাডমিন প্যানেল {% icon "arrow-up-right" class="ml-auto h-3.5 w-3.5 opacity-60" %}</a>
 {% endif %}

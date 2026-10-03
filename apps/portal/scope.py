@@ -145,7 +145,7 @@ def portal_api(view):
     @wraps(view)
     def wrapper(request, *args, **kwargs):
         if not has_permission(request.user, "portal.access"):
-            return JsonResponse({"error": "forbidden"}, status=403)
+            return JsonResponse({"error": "এই কাজের অনুমতি আপনার নেই।"}, status=403)
         request.portal = PortalScope(request.user)
         return view(request, *args, **kwargs)
 

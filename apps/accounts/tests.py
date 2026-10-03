@@ -33,9 +33,9 @@ class AuthFlowTests(TestCase):
     def test_wrong_password_rejected_and_rate_limited(self):
         for _ in range(10):
             r = self.client.post(reverse("accounts:login"), {"identifier": "worker@example.com", "password": "nope"})
-            self.assertContains(r, "Incorrect")
+            self.assertContains(r, "পাসওয়ার্ড ভুল হয়েছে")  # employee login is in Bangla
         r = self.client.post(reverse("accounts:login"), {"identifier": "worker@example.com", "password": "S3cure-pass!"})
-        self.assertContains(r, "Too many sign-in attempts")
+        self.assertContains(r, "অনেকবার ভুল চেষ্টা হয়েছে")
 
     def test_suspended_user_cannot_login_and_is_logged_out(self):
         self.client.force_login(self.user)

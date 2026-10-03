@@ -134,7 +134,7 @@ class Command(BaseCommand):
 
         act = Project.objects.create(
             name="Egocentric Action Segmentation", slug="egocentric-action-segmentation", code="ACT-01", organization=org,
-            client_name="Northwind Robotics", status=ProjectStatus.ACTIVE, color="#6563f2",
+            client_name="Northwind Robotics", status=ProjectStatus.ACTIVE, color="#088650",
             annotation_type="Video action segmentation + action descriptions", platform="Client annotation server",
             summary="Segment first-person videos into atomic actions and write Hand + Action + Object descriptions.",
             description="Large-scale egocentric video project. Each clip is segmented at action transitions and every segment gets a structured description (e.g. *Right hand picks up a cup*).",
@@ -142,7 +142,7 @@ class Command(BaseCommand):
         )
         rtl = Project.objects.create(
             name="Retail Shelf Detection", slug="retail-shelf-detection", code="RTL-02", client_name="Confidential retail client",
-            status=ProjectStatus.ACTIVE, color="#06b6d4", annotation_type="Bounding boxes + product classification", platform="CVAT",
+            status=ProjectStatus.ACTIVE, color="#0d9488", annotation_type="Bounding boxes + product classification", platform="CVAT",
             summary="Detect and classify products on store shelf images.", start_date=(now - timedelta(days=12)).date(),
         )
         team_a = Team.objects.create(project=act, name="Team A", lead=employees[0])

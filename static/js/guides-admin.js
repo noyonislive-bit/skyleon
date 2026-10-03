@@ -60,6 +60,7 @@
   // ── Video link detection + preview ─────────────────────────────────────
   const url = $("input[name=video_url]");
   const start = $("input[name=video_start]");
+  const end = $("input[name=video_end]");
   const label = $("[data-guide-detect]");
   const preview = $("[data-guide-preview]");
   let timer = 0;
@@ -67,7 +68,7 @@
     const value = url.value.trim();
     if (!value) { label.hidden = true; preview.hidden = true; preview.innerHTML = ""; return; }
     try {
-      const qs = new URLSearchParams({ url: value, start: start ? start.value : "" });
+      const qs = new URLSearchParams({ url: value, start: start ? start.value : "", end: end ? end.value : "" });
       const res = await fetch("/admin/guides/video-info/?" + qs, { credentials: "same-origin" });
       const data = await res.json();
       label.hidden = false;
@@ -80,5 +81,6 @@
   if (url && label && preview) {
     url.addEventListener("input", () => { clearTimeout(timer); timer = setTimeout(detect, 500); });
     if (start) start.addEventListener("change", detect);
+    if (end) end.addEventListener("change", detect);
   }
 })();

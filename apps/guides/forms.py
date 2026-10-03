@@ -9,7 +9,7 @@ from apps.projects.models import Project
 
 from . import services
 from .importer import clean_actions
-from .models import Guide, GuideSection, GuideStep
+from .models import Guide, GuideSection, GuideStep, GuideTaskError
 from .video import clean_url, parse_start
 
 
@@ -79,8 +79,46 @@ class SectionForm(StyledFormMixin, forms.ModelForm):
         return data
 
 
-class StepForm(StyledFormMixin, forms.ModelForm):
-    video_start = forms.CharField(label="Start at", required=False, help_text="Seconds (90) or m:ss (1:30)")
+class SegmentMixin:
+    """video_start / video_end typed as seconds or m:ss — the part of the ORIGINAL video the text describes."""
+
+    def _seconds(self, name):
+        raw = (self.cleaned_data.get(name) or "").strip()
+        if not raw:
+            return None
+        value = parse_start(raw)
+        if value is None:
+            raise forms.ValidationError("Enter seconds (e.g. 90) or m:ss (e.g. 1:30).")
+        return value
+
+    def clean_video_start(self):
+        return self._seconds("video_start")
+
+    def clean_video_end(self):
+        return self._seconds("video_end")
+
+    def clean_video_url(self):
+        url = (self.cleaned_data.get("video_url") or "").strip()
+        if url and clean_url(url) is None:
+            raise forms.ValidationError("Use an http(s) link to the original video.")
+        return url
+
+    def check_segment(self, data):
+        start, end = data.get("video_start"), data.get("video_end")
+        if end is not None and end <= (start or 0):
+            self.add_error("video_end", "The end must be after the start.")
+
+    def init_segment(self):
+        for name in ("video_start", "video_end"):
+            value = getattr(self.instance, name, None) if self.instance.pk else None
+            if value is not None:
+                self.initial[name] = f"{value // 60}:{value % 60:02d}"
+
+
+class StepForm(SegmentMixin, StyledFormMixin, forms.ModelForm):
+    video_start = forms.CharField(label="Video part — from", required=False, help_text="Seconds (90) or m:ss (1:30)")
+    video_end = forms.CharField(label="Video part — to", required=False,
+                                help_text="Where the part this step explains ends (optional)")
     actions = forms.CharField(
         label="Which button does what", required=False, widget=forms.Textarea(attrs={"rows": 4, "spellcheck": "false"}),
         help_text='JSON list: [{"key": "N", "label_bn": "…", "description_bn": "…"}]',
@@ -88,7 +126,8 @@ class StepForm(StyledFormMixin, forms.ModelForm):
 
     class Meta:
         model = GuideStep
-        fields = ["section", "title", "anchor", "body", "body_en", "video_url", "video_caption", "video_start", "actions", "estimated_minutes"]
+        fields = ["section", "title", "anchor", "body", "body_en", "video_url", "video_caption", "video_start", "video_end",
+                  "actions", "estimated_minutes", "source_ref"]
         widgets = {
             "body": forms.Textarea(attrs={"rows": 14, "lang": "bn"}),
             "body_en": forms.Textarea(attrs={"rows": 6, "lang": "en"}),
@@ -110,24 +149,9 @@ class StepForm(StyledFormMixin, forms.ModelForm):
         self.fields["estimated_minutes"].help_text = "Optional — estimated from the text length when empty."
         if self.instance.pk:
             self.initial["actions"] = json.dumps(self.instance.actions or [], ensure_ascii=False, indent=1)
-            self.initial["video_start"] = self.instance.video_start if self.instance.video_start is not None else ""
         else:
             self.initial.setdefault("actions", "[]")
-
-    def clean_video_url(self):
-        url = (self.cleaned_data.get("video_url") or "").strip()
-        if url and clean_url(url) is None:
-            raise forms.ValidationError("Use an http(s) link to the original video.")
-        return url
-
-    def clean_video_start(self):
-        raw = (self.cleaned_data.get("video_start") or "").strip()
-        if not raw:
-            return None
-        value = parse_start(raw)
-        if value is None:
-            raise forms.ValidationError("Enter seconds (e.g. 90) or m:ss (e.g. 1:30).")
-        return value
+        self.init_segment()
 
     def clean_actions(self):
         raw = (self.cleaned_data.get("actions") or "").strip()
@@ -148,6 +172,7 @@ class StepForm(StyledFormMixin, forms.ModelForm):
 
     def clean(self):
         data = super().clean()
+        self.check_segment(data)
         section = data.get("section")
         if section is None:
             return data
@@ -160,6 +185,61 @@ class StepForm(StyledFormMixin, forms.ModelForm):
             number = section.steps.exclude(pk=self.instance.pk).count() + 1
             anchor = services.unique_anchor(
                 services.step_anchor_base(section.anchor, data.get("title") or "", number), taken, f"{section.anchor}-{number}")
+        data["anchor"] = anchor
+        return data
+
+
+class TaskErrorForm(SegmentMixin, StyledFormMixin, forms.ModelForm):
+    video_start = forms.CharField(label="Video part — from", required=False, help_text="Seconds (90) or m:ss (1:30)")
+    video_end = forms.CharField(label="Video part — to", required=False, help_text="Where the mistake ends in the video (optional)")
+
+    class Meta:
+        model = GuideTaskError
+        fields = ["step", "title", "anchor", "what_wrong", "why_wrong", "how_to_avoid", "correct_method",
+                  "video_url", "video_caption", "video_start", "video_end", "source_ref", "source_text_en"]
+        widgets = {
+            "what_wrong": forms.Textarea(attrs={"rows": 4, "lang": "bn"}),
+            "why_wrong": forms.Textarea(attrs={"rows": 4, "lang": "bn"}),
+            "how_to_avoid": forms.Textarea(attrs={"rows": 4, "lang": "bn"}),
+            "correct_method": forms.Textarea(attrs={"rows": 4, "lang": "bn"}),
+            "source_text_en": forms.Textarea(attrs={"rows": 4, "lang": "en"}),
+        }
+        labels = {
+            "title": "Mistake (short Bangla title)",
+            "what_wrong": "কী ভুল হয়েছে — What went wrong",
+            "why_wrong": "কেন ভুল — Why it is wrong",
+            "how_to_avoid": "কীভাবে এড়াবেন — How to avoid it",
+            "correct_method": "সঠিক পদ্ধতি — Correct method",
+            "video_caption": "Video caption (Bangla)",
+        }
+
+    def __init__(self, *args, guide=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.guide = guide
+        self.fields["step"].queryset = GuideStep.objects.filter(guide=guide).select_related("section").order_by(
+            "section__order", "section_id", "order", "pk")
+        self.fields["step"].empty_label = "— General example for the whole guide —"
+        self.fields["step"].label_from_instance = lambda st: f"{st.section.title} › {st.title}"
+        self.fields["anchor"].required = False
+        self.fields["anchor"].help_text = "Deep link id (#anchor). Leave empty to generate it."
+        self.fields["video_url"].widget.attrs.update({"placeholder": "https://…"})
+        for name in ("title", "video_caption"):
+            self.fields[name].widget.attrs["lang"] = "bn"
+        self.init_segment()
+
+    def clean(self):
+        data = super().clean()
+        self.check_segment(data)
+        taken = services.taken_anchors(self.guide, exclude=self.instance)
+        anchor = services.clean_anchor(data.get("anchor"))
+        if anchor:
+            if anchor in taken:
+                self.add_error("anchor", "Already used by a section, step or another example of this guide.")
+        else:
+            step = data.get("step")
+            siblings = GuideTaskError.objects.filter(guide=self.guide, step=step).exclude(pk=self.instance.pk).count()
+            anchor = services.unique_anchor(services.error_anchor_base(step.anchor if step else None, siblings + 1),
+                                            taken, f"task-error-{siblings + 1}")
         data["anchor"] = anchor
         return data
 

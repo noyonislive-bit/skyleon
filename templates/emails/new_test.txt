@@ -1,10 +1,8 @@
-{% autoescape off %}Hi {{ user.first_name }},
+{% autoescape off %}{{ user.first_name }}, আপনাকে একটা নতুন টেস্ট দেওয়া হয়েছে: {{ test.title }}
+পাস মার্ক: {{ test.passing_score }}%{% if test.attempt_limit %} · চেষ্টা: {{ test.attempt_limit }} বার{% endif %}{% if test.time_limit_min %} · সময়সীমা: {{ test.time_limit_min }} মিনিট{% endif %}
 
-You have a new assessment: {{ test.title }}
-Passing score: {{ test.passing_score }}%{% if test.attempt_limit %} · Attempts: {{ test.attempt_limit }}{% endif %}{% if test.time_limit_min %} · Time limit: {{ test.time_limit_min }} min{% endif %}
-{% if link %}
-Start the assessment: {{ link }}{% endif %}
+টেস্ট দিন: {{ link }}
 
-— The {{ brand.name }} team
+— {{ brand.name }} টিম
 {{ APP_URL }}
 {% endautoescape %}

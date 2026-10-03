@@ -6,12 +6,13 @@ from dataclasses import dataclass, field
 
 from django.db import transaction
 from django.db.models import Max, Q
+from django.utils import timezone
 from django.utils.text import slugify
 
 from apps.accounts.permissions import can_manage_content_for, has_permission, scoped_project_ids
 from apps.core.choices import ContentStatus
 
-from .models import Guide, GuideProgress, GuideSection, GuideStep
+from .models import Guide, GuideProgress, GuideSection, GuideStep, GuideTaskError
 from .video import embed_info
 
 BN_DIGITS = str.maketrans("0123456789", "০১২৩৪৫৬৭৮৯")
@@ -67,14 +68,18 @@ def clean_anchor(value) -> str:
 
 
 def taken_anchors(guide, exclude=None) -> set[str]:
-    """Section and step anchors share one namespace per guide (both are #fragments of the same page)."""
+    """Section, step and Task Error anchors share one namespace per guide (all are #fragments of the same page)."""
     sec = GuideSection.objects.filter(guide=guide)
     stp = GuideStep.objects.filter(guide=guide)
+    err = GuideTaskError.objects.filter(guide=guide)
     if isinstance(exclude, GuideSection) and exclude.pk:
         sec = sec.exclude(pk=exclude.pk)
     if isinstance(exclude, GuideStep) and exclude.pk:
         stp = stp.exclude(pk=exclude.pk)
-    return set(sec.values_list("anchor", flat=True)) | set(stp.values_list("anchor", flat=True))
+    if isinstance(exclude, GuideTaskError) and exclude.pk:
+        err = err.exclude(pk=exclude.pk)
+    return (set(sec.values_list("anchor", flat=True)) | set(stp.values_list("anchor", flat=True))
+            | set(err.values_list("anchor", flat=True)) | {TASK_ERRORS_ANCHOR})
 
 
 def unique_anchor(base: str, taken: set[str], fallback: str) -> str:
@@ -96,18 +101,77 @@ def step_anchor_base(section_anchor: str, title: str, number: int) -> str:
     return (clean_anchor(title) if title.isascii() else "") or f"{section_anchor}-{number}"
 
 
+TASK_ERRORS_ANCHOR = "task-errors"  # the "all Task Error examples" block at the end of a guide
+
+
+def error_anchor_base(step_anchor: str | None, number: int) -> str:
+    return f"{step_anchor}-error-{number}" if step_anchor else f"task-error-{number}"
+
+
+# ── Source of truth: verification against the original document + video ─────
+
+def content_changed(before: dict | None, obj) -> bool:
+    """True when any field that must match the original changed since `before` (a snapshot)."""
+    if before is None:
+        return True
+    return any(before.get(f) != getattr(obj, f) for f in obj.VERIFIED_FIELDS)
+
+
+def snapshot(obj) -> dict:
+    return {f: getattr(obj, f) for f in obj.VERIFIED_FIELDS}
+
+
+def apply_verification(obj, before: dict | None, *, ticked: bool, was_ticked: bool, user) -> bool:
+    """Verification from an edit form's checkbox. A content change always clears an existing mark
+    (the box was already ticked, so leaving it ticked is not a fresh check); ticking the box
+    afresh verifies; unticking clears. Returns True when an existing mark was dropped by an edit."""
+    changed = content_changed(before, obj)
+    if ticked and not was_ticked:
+        obj.verified_at, obj.verified_by = timezone.now(), user
+    elif not ticked or changed:
+        dropped = bool(obj.verified_at) and ticked and changed
+        obj.verified_at, obj.verified_by = None, None
+        return dropped
+    return False
+
+
+def set_verified(obj, user, verified: bool):
+    obj.verified_at = timezone.now() if verified else None
+    obj.verified_by = user if verified else None
+    type(obj).objects.filter(pk=obj.pk).update(verified_at=obj.verified_at, verified_by=obj.verified_by)
+    return obj
+
+
+def verification_stats(guide) -> dict:
+    steps = GuideStep.objects.filter(guide=guide)
+    errors = GuideTaskError.objects.filter(guide=guide)
+    total = steps.count() + errors.count()
+    verified = steps.filter(verified_at__isnull=False).count() + errors.filter(verified_at__isnull=False).count()
+    return {"total": total, "verified": verified, "pending": total - verified,
+            "percent": round(verified * 100 / total) if total else 0, "complete": total > 0 and verified == total}
+
+
 # ── Ordering helpers ────────────────────────────────────────────────────────
 
 def next_order(qs) -> int:
     return (qs.aggregate(m=Max("order"))["m"] or 0) + 1
 
 
+def error_siblings(err):
+    qs = GuideTaskError.objects.filter(guide_id=err.guide_id)
+    return qs.filter(step_id=err.step_id) if err.step_id else qs.filter(step__isnull=True)
+
+
 @transaction.atomic
 def move(obj, direction: int) -> bool:
-    """Swap a section (within its guide) or a step (within its section) with its neighbour."""
-    siblings = list(
-        obj.guide.sections.all() if isinstance(obj, GuideSection) else obj.section.steps.all()
-    )
+    """Swap a section (within its guide), a step (within its section) or a Task Error example
+    (within its step) with its neighbour."""
+    if isinstance(obj, GuideSection):
+        siblings = list(obj.guide.sections.all())
+    elif isinstance(obj, GuideTaskError):
+        siblings = list(error_siblings(obj))
+    else:
+        siblings = list(obj.section.steps.all())
     for i, s in enumerate(siblings, start=1):  # normalise orders first (ties / gaps)
         if s.order != i:
             type(s).objects.filter(pk=s.pk).update(order=i)
@@ -162,7 +226,31 @@ class StepNode:
     @property
     def video(self):
         if not hasattr(self, "_video"):
-            self._video = embed_info(self.obj.video_url, self.obj.video_start) if self.obj.video_url else None
+            self._video = embed_info(self.obj.video_url, self.obj.video_start, self.obj.video_end) if self.obj.video_url else None
+        return self._video
+
+    errors: list = field(default_factory=list)
+
+
+@dataclass(eq=False)
+class ErrorNode:
+    """A Task Error example in reading order (numbered across the whole guide: ভুল ১, ভুল ২ …)."""
+    obj: GuideTaskError
+    number: int
+    step: "StepNode | None" = None
+
+    @property
+    def label(self):
+        return bn(self.number)
+
+    @property
+    def anchor(self):
+        return self.obj.anchor
+
+    @property
+    def video(self):
+        if not hasattr(self, "_video"):
+            self._video = embed_info(self.obj.video_url, self.obj.video_start, self.obj.video_end) if self.obj.video_url else None
         return self._video
 
 
@@ -195,6 +283,20 @@ class Outline:
     sections: list
     steps: list
     done_ids: set
+    errors: list = field(default_factory=list)  # every Task Error example, in reading order
+
+    @property
+    def guide_errors(self):
+        """General Task Error examples (not tied to one step)."""
+        return [e for e in self.errors if e.step is None]
+
+    @property
+    def error_count(self):
+        return len(self.errors)
+
+    @property
+    def errors_anchor(self):
+        return TASK_ERRORS_ANCHOR
 
     @property
     def total(self):
@@ -262,17 +364,32 @@ def build_outline(guide, user=None) -> Outline:
         sec_nodes.append(node)
     for a, b in zip(step_nodes, step_nodes[1:]):
         a.next, b.prev = b, a
-    return Outline(guide=guide, sections=sec_nodes, steps=step_nodes, done_ids=done_ids)
+    by_step = {sn.obj.pk: sn for sn in step_nodes}
+    raw_errors = list(GuideTaskError.objects.filter(guide=guide).order_by("order", "pk"))
+    errs_by_step = {}
+    for e in raw_errors:
+        errs_by_step.setdefault(e.step_id, []).append(e)
+    error_nodes = []
+    for sn in step_nodes:  # step examples in reading order, then the general ones
+        for e in errs_by_step.get(sn.obj.pk, []):
+            en = ErrorNode(obj=e, number=len(error_nodes) + 1, step=sn)
+            sn.errors.append(en)
+            error_nodes.append(en)
+    for e in errs_by_step.get(None, []):
+        error_nodes.append(ErrorNode(obj=e, number=len(error_nodes) + 1))
+    return Outline(guide=guide, sections=sec_nodes, steps=step_nodes, done_ids=done_ids, errors=error_nodes)
 
 
 def guide_stats(guides, user) -> dict:
-    """{guide_id: {"total", "done", "percent", "minutes", "sections", "first_unread": anchor|None}} in 3 queries."""
+    """{guide_id: {"total", "done", "percent", "minutes", "sections", "errors", "first_unread": anchor|None}} in 4 queries."""
     guides = list(guides)
     ids = [g.pk for g in guides]
-    out = {g.pk: {"total": 0, "done": 0, "percent": 0, "minutes": 0, "sections": 0, "first_unread": None, "first": None}
+    out = {g.pk: {"total": 0, "done": 0, "percent": 0, "minutes": 0, "sections": 0, "errors": 0, "first_unread": None, "first": None}
            for g in guides}
     for sec in GuideSection.objects.filter(guide_id__in=ids).values("guide_id"):
         out[sec["guide_id"]]["sections"] += 1
+    for err in GuideTaskError.objects.filter(guide_id__in=ids).values("guide_id"):
+        out[err["guide_id"]]["errors"] += 1
     done = set(GuideProgress.objects.filter(user=user, step__guide_id__in=ids).values_list("step_id", flat=True))
     steps = GuideStep.objects.filter(guide_id__in=ids).only(
         "id", "guide_id", "anchor", "body", "video_url", "estimated_minutes", "order", "section_id"

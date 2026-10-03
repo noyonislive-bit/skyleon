@@ -1,10 +1,8 @@
-{% autoescape off %}Hi {{ user.first_name }},
+{% autoescape off %}{{ user.first_name }}, আপনাকে {{ project.name }} ({{ project.code }}) প্রজেক্টে যুক্ত করা হয়েছে।
+প্রজেক্টের অনবোর্ডিং, গাইডলাইন আর ট্রেনিং ভিডিওগুলো এখন পোর্টালে পাবেন — আসল কাজ শুরুর আগে শেষ করে নিন।
 
-You have been added to the project {{ project.name }} ({{ project.code }}).
-Your onboarding, guidelines and training videos are now available in the portal.
-{% if link %}
-Open the project: {{ link }}{% endif %}
+দেখুন: {{ link }}
 
-— The {{ brand.name }} team
+— {{ brand.name }} টিম
 {{ APP_URL }}
 {% endautoescape %}

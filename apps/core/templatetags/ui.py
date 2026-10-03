@@ -14,12 +14,20 @@ Template helpers available in every template (registered as a builtin):
 
 from django import template
 from django.utils.html import format_html
+from django.utils import translation
 from django.utils.safestring import mark_safe
 
 from apps.core.icons import BRAND_ICONS, ICONS
 from apps.core.markdown import render_markdown
 
 register = template.Library()
+
+
+@register.simple_tag
+def bn(bangla, english=""):
+    """Pick the Bangla or the English text for the active area language:
+    {% bn "স্কোর" "Score" %} — used by templates shared between the (Bangla) portal and the (English) admin panel."""
+    return bangla if translation.get_language() == "bn" else english
 
 
 @register.simple_tag
@@ -133,3 +141,59 @@ def initials(name):
 @register.filter
 def split(value, sep=","):
     return [v.strip() for v in str(value or "").split(sep) if v.strip()]
+
+
+# ── Account menu (top-right avatar dropdown in the app shell) ───────────────
+
+ROLE_LABELS_BN = {
+    "super_admin": "সুপার অ্যাডমিন",
+    "project_manager": "প্রজেক্ট ম্যানেজার",
+    "trainer": "ট্রেইনার / QA",
+    "employee": "এমপ্লয়ি",
+    "client": "ক্লায়েন্ট",
+}
+
+
+@register.simple_tag(takes_context=True)
+def account_menu(context):
+    """Links for the "My account" dropdown, in Bangla on employee pages and English elsewhere."""
+    from django.urls import reverse
+    from django.utils import translation
+
+    from apps.accounts.permissions import has_permission
+
+    request = context.get("request")
+    user = getattr(request, "user", None)
+    if user is None or not user.is_authenticated:
+        return {}
+    bn = (translation.get_language() or "").startswith("bn")
+    path = request.path
+
+    def item(en, bangla, url_name, icon_name, anchor=""):
+        return {"label": bangla if bn else en, "url": reverse(url_name) + anchor, "icon": icon_name}
+
+    groups = []
+    if has_permission(user, "portal.access"):
+        groups.append([
+            item("My profile", "আমার প্রোফাইল", "portal:profile", "user-round"),
+            item("My training history", "আমার ইতিহাস", "portal:history", "history"),
+            item("Notifications", "নোটিফিকেশন", "portal:notifications", "bell"),
+            item("Change password", "পাসওয়ার্ড বদলান", "portal:profile", "key-round", "#security"),
+        ])
+    switch = []
+    if has_permission(user, "backoffice.access") and not path.startswith("/admin/"):
+        switch.append(item("Admin panel", "অ্যাডমিন প্যানেল", "backoffice:dashboard", "layout-dashboard"))
+    if has_permission(user, "portal.access") and not path.startswith("/portal/") and user.is_staff_role:
+        switch.append(item("Employee portal", "এমপ্লয়ি পোর্টাল", "portal:dashboard", "graduation-cap"))
+    if has_permission(user, "client_portal.access"):
+        switch.append(item("Client dashboard", "ক্লায়েন্ট ড্যাশবোর্ড", "clients:dashboard", "layout-dashboard"))
+    if switch:
+        groups.append(switch)
+    return {
+        "bn": bn,
+        "groups": groups,
+        "role": ROLE_LABELS_BN.get(user.role, user.get_role_display()) if bn else user.get_role_display(),
+        "title": "আমার অ্যাকাউন্ট" if bn else "My account",
+        "logout": "লগআউট" if bn else "Sign out",
+        "id_label": "এমপ্লয়ি আইডি" if bn else "Employee ID",
+    }

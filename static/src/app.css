@@ -15,6 +15,53 @@
   font-style: normal;
   font-display: swap;
 }
+/* Bangla (self-hosted, OFL): Hind Siliguri for text, Anek Bangla for headings.
+   unicode-range → only downloaded on pages that contain Bangla; size-adjust lines the Bangla up with Geist. */
+@font-face {
+  font-family: "Hind Siliguri";
+  src: url("../fonts/HindSiliguri-400.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  size-adjust: 108%;
+  unicode-range: U+0951-0952, U+0964-0965, U+0980-09FE, U+1CD0, U+1CD2, U+1CD5-1CD6, U+1CD8, U+1CE1, U+1CEA, U+1CED, U+1CF2, U+1CF5-1CF7, U+200C-200D, U+20B9, U+25CC, U+A8F1;
+}
+@font-face {
+  font-family: "Hind Siliguri";
+  src: url("../fonts/HindSiliguri-500.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+  size-adjust: 108%;
+  unicode-range: U+0951-0952, U+0964-0965, U+0980-09FE, U+1CD0, U+1CD2, U+1CD5-1CD6, U+1CD8, U+1CE1, U+1CEA, U+1CED, U+1CF2, U+1CF5-1CF7, U+200C-200D, U+20B9, U+25CC, U+A8F1;
+}
+@font-face {
+  font-family: "Hind Siliguri";
+  src: url("../fonts/HindSiliguri-600.woff2") format("woff2");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+  size-adjust: 108%;
+  unicode-range: U+0951-0952, U+0964-0965, U+0980-09FE, U+1CD0, U+1CD2, U+1CD5-1CD6, U+1CD8, U+1CE1, U+1CEA, U+1CED, U+1CF2, U+1CF5-1CF7, U+200C-200D, U+20B9, U+25CC, U+A8F1;
+}
+@font-face {
+  font-family: "Hind Siliguri";
+  src: url("../fonts/HindSiliguri-700.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+  size-adjust: 108%;
+  unicode-range: U+0951-0952, U+0964-0965, U+0980-09FE, U+1CD0, U+1CD2, U+1CD5-1CD6, U+1CD8, U+1CE1, U+1CEA, U+1CED, U+1CF2, U+1CF5-1CF7, U+200C-200D, U+20B9, U+25CC, U+A8F1;
+}
+@font-face {
+  font-family: "Anek Bangla";
+  src: url("../fonts/AnekBangla-Variable.woff2") format("woff2");
+  font-weight: 100 800;
+  font-style: normal;
+  font-display: swap;
+  size-adjust: 104%;
+  unicode-range: U+0951-0952, U+0964-0965, U+0980-09FE, U+1CD0, U+1CD2, U+1CD5-1CD6, U+1CD8, U+1CE1, U+1CEA, U+1CED, U+1CF2, U+1CF5-1CF7, U+200C-200D, U+20B9, U+25CC, U+A8F1;
+}
 @font-face {
   font-family: "Geist Mono";
   src: url("../fonts/GeistMono-Variable.woff2") format("woff2");
@@ -24,42 +71,56 @@
 }
 
 @theme {
-  --font-sans: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --font-mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-sans: "Geist", "Hind Siliguri", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Nirmala UI", "Vrinda", sans-serif;
+  --font-display: "Geist", "Anek Bangla", "Hind Siliguri", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Nirmala UI", sans-serif;
+  --font-mono: "Geist Mono", "Hind Siliguri", ui-monospace, SFMono-Regular, Menlo, monospace;
 
-  /* Deep navy surfaces for hero / dark sections */
-  --color-ink-950: #05080f;
-  --color-ink-900: #0a0f1c;
-  --color-ink-800: #101828;
-  --color-ink-700: #1a2438;
-  --color-ink-600: #273350;
+  /* Deep forest surfaces for hero / dark sections */
+  --color-ink-950: #02130c;
+  --color-ink-900: #051c12;
+  --color-ink-800: #0a291b;
+  --color-ink-700: #113825;
+  --color-ink-600: #1a4a33;
 
-  /* Brand — electric indigo */
-  --color-brand-50: #eef0ff;
-  --color-brand-100: #e0e3ff;
-  --color-brand-200: #c7cbff;
-  --color-brand-300: #a4a8fe;
-  --color-brand-400: #8183fa;
-  --color-brand-500: #6563f2;
-  --color-brand-600: #5146e5;
-  --color-brand-700: #4338ca;
-  --color-brand-800: #3730a3;
-  --color-brand-900: #2e2a7a;
-  --color-brand-950: #1c1a4d;
+  /* Brand — fresh green (600 keeps ≥4.5:1 contrast with white text on buttons) */
+  --color-brand-50: #edfcf3;
+  --color-brand-100: #d3f8e2;
+  --color-brand-200: #a9f0c8;
+  --color-brand-300: #70e1a8;
+  --color-brand-400: #36c884;
+  --color-brand-500: #13ad69;
+  --color-brand-600: #088650;
+  --color-brand-700: #076b42;
+  --color-brand-800: #095538;
+  --color-brand-900: #0a4630;
+  --color-brand-950: #03281a;
 
-  /* Accent — annotation cyan */
-  --color-accent-300: #67e8f9;
-  --color-accent-400: #22d3ee;
-  --color-accent-500: #06b6d4;
+  /* Accent — lime highlight on dark green */
+  --color-accent-300: #c5f27a;
+  --color-accent-400: #a8e04a;
+  --color-accent-500: #84c225;
+
+  /* Neutrals with a soft green tint (replaces Tailwind's blue-grey slate) */
+  --color-slate-50: #f5f8f6;
+  --color-slate-100: #ecf1ee;
+  --color-slate-200: #dce4df;
+  --color-slate-300: #c3cec8;
+  --color-slate-400: #91a199;
+  --color-slate-500: #63746b;
+  --color-slate-600: #48574f;
+  --color-slate-700: #34423b;
+  --color-slate-800: #212d27;
+  --color-slate-900: #121c17;
+  --color-slate-950: #08100c;
 
   /* Annotation label palette (used in visuals) */
   --color-label-lime: #a3e635;
   --color-label-amber: #fbbf24;
   --color-label-pink: #f472b6;
   --color-label-violet: #a78bfa;
-  --color-label-cyan: #22d3ee;
+  --color-label-cyan: #34d399; /* "cyan" tone is mint green in the green theme */
 
-  --shadow-glow: 0 0 0 1px rgb(101 99 242 / 0.25), 0 20px 60px -15px rgb(81 70 229 / 0.45);
+  --shadow-glow: 0 0 0 1px rgb(19 173 105 / 0.25), 0 20px 60px -15px rgb(8 134 80 / 0.45);
   --shadow-card: 0 1px 2px rgb(16 24 40 / 0.04), 0 1px 3px rgb(16 24 40 / 0.06);
 
   --animate-fade-up: fade-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
@@ -98,10 +159,15 @@
   }
   body {
     @apply bg-white font-sans text-slate-700 antialiased;
+  }
+  /* Bangla script needs a little more line height to stay readable */
+  html[lang="bn"] body { line-height: 1.65; }
+  html[lang="bn"] .lead, html[lang="bn"] .prose-content { line-height: 1.8; }
+  body {
     font-feature-settings: "ss01", "cv11";
   }
   h1, h2, h3, h4 {
-    @apply text-slate-900;
+    @apply font-display text-slate-900;
     text-wrap: balance;
   }
   p { text-wrap: pretty; }
@@ -129,14 +195,14 @@
   .text-gradient { @apply bg-gradient-to-r from-brand-300 via-accent-300 to-brand-200 bg-clip-text text-transparent; }
   .grid-bg {
     background-image:
-      linear-gradient(to right, rgb(148 163 184 / 0.08) 1px, transparent 1px),
-      linear-gradient(to bottom, rgb(148 163 184 / 0.08) 1px, transparent 1px);
+      linear-gradient(to right, rgb(145 161 153 / 0.08) 1px, transparent 1px),
+      linear-gradient(to bottom, rgb(145 161 153 / 0.08) 1px, transparent 1px);
     background-size: 44px 44px;
   }
   .grid-bg-light {
     background-image:
-      linear-gradient(to right, rgb(15 23 42 / 0.045) 1px, transparent 1px),
-      linear-gradient(to bottom, rgb(15 23 42 / 0.045) 1px, transparent 1px);
+      linear-gradient(to right, rgb(18 28 23 / 0.045) 1px, transparent 1px),
+      linear-gradient(to bottom, rgb(18 28 23 / 0.045) 1px, transparent 1px);
     background-size: 44px 44px;
   }
   .reveal { opacity: 0; transform: translateY(16px); transition: opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1), transform 0.7s cubic-bezier(0.22, 1, 0.36, 1); }
@@ -189,7 +255,7 @@
   .badge-success { @apply bg-emerald-50 text-emerald-700 ring-emerald-600/20; }
   .badge-warning { @apply bg-amber-50 text-amber-800 ring-amber-600/25; }
   .badge-danger { @apply bg-red-50 text-red-700 ring-red-600/20; }
-  .badge-info { @apply bg-sky-50 text-sky-700 ring-sky-600/20; }
+  .badge-info { @apply bg-teal-50 text-teal-700 ring-teal-600/20; }
   .badge-brand { @apply bg-brand-50 text-brand-700 ring-brand-600/20; }
   .badge-neutral { @apply bg-slate-100 text-slate-600 ring-slate-500/15; }
   .dot { @apply inline-block h-2 w-2 shrink-0 rounded-full; }
@@ -228,7 +294,7 @@
   .alert-success { @apply bg-emerald-50 text-emerald-800 ring-emerald-200; }
   .alert-error { @apply bg-red-50 text-red-800 ring-red-200; }
   .alert-warning { @apply bg-amber-50 text-amber-900 ring-amber-200; }
-  .alert-info { @apply bg-sky-50 text-sky-800 ring-sky-200; }
+  .alert-info { @apply bg-teal-50 text-teal-800 ring-teal-200; }
 
   /* Stat tiles ------------------------------------------------------------ */
   .stat { @apply rounded-xl bg-white p-5 shadow-card ring-1 ring-slate-200/80; }
@@ -262,7 +328,7 @@
   /* Header ---------------------------------------------------------------- */
   .site-header {
     @apply fixed inset-x-0 top-0 z-50 transition-[background-color,box-shadow] duration-300;
-    background-color: rgb(5 8 15 / 0.86);
+    background-color: rgb(2 19 12 / 0.86);
     -webkit-backdrop-filter: blur(14px) saturate(140%);
     backdrop-filter: blur(14px) saturate(140%);
     box-shadow: 0 1px 0 rgb(255 255 255 / 0.07);
@@ -280,7 +346,7 @@
   .nav-item:hover > .nav-panel, .nav-item.is-open > .nav-panel { @apply visible opacity-100; transform: none; }
   html:not(.js) .nav-item:focus-within > .nav-panel { @apply visible opacity-100; transform: none; }
   .nav-item:hover .nav-chevron, .nav-item.is-open .nav-chevron { transform: rotate(180deg); }
-  .menu-card { @apply rounded-2xl bg-white p-2 text-slate-700 shadow-[0_30px_80px_-20px_rgb(5_8_15/0.55)] ring-1 ring-slate-900/10; }
+  .menu-card { @apply rounded-2xl bg-white p-2 text-slate-700 shadow-[0_30px_80px_-20px_rgb(2_19_12/0.55)] ring-1 ring-slate-900/10; }
   .menu-link { @apply flex items-start gap-3 rounded-xl p-3 text-sm transition-colors hover:bg-slate-50 focus-visible:bg-slate-50; }
   .menu-link-title { @apply font-semibold text-slate-900; }
   .menu-link-text { @apply mt-0.5 text-[13px] leading-5 text-slate-500; }
@@ -309,7 +375,7 @@
   .glow-brand { @apply pointer-events-none absolute -z-10 rounded-full bg-brand-600/25 blur-[120px]; }
   .glow-accent { @apply pointer-events-none absolute -z-10 rounded-full bg-accent-500/15 blur-[120px]; }
   .fade-grid { -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 30%, #000 40%, transparent 100%); mask-image: radial-gradient(ellipse 70% 60% at 50% 30%, #000 40%, transparent 100%); }
-  .hairline-top { background-image: linear-gradient(90deg, transparent, rgb(129 131 250 / 0.5), rgb(34 211 238 / 0.45), transparent); }
+  .hairline-top { background-image: linear-gradient(90deg, transparent, rgb(54 200 132 / 0.55), rgb(197 242 122 / 0.45), transparent); }
 
   /* Chips & pills ---------------------------------------------------------- */
   .chip { @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium whitespace-nowrap ring-1 ring-inset; }
@@ -343,10 +409,10 @@
   .faq-item > div { @apply -mt-1 pr-12 pb-5 text-[15px] leading-7 text-slate-600; }
 
   /* Annotation workspace visuals ------------------------------------------- */
-  .ws-window { @apply relative overflow-hidden rounded-2xl bg-ink-900/90 ring-1 ring-white/10; box-shadow: 0 0 0 1px rgb(101 99 242 / 0.12), 0 40px 120px -30px rgb(81 70 229 / 0.55), 0 30px 60px -30px rgb(0 0 0 / 0.8); }
+  .ws-window { @apply relative overflow-hidden rounded-2xl bg-ink-900/90 ring-1 ring-white/10; box-shadow: 0 0 0 1px rgb(54 200 132 / 0.14), 0 40px 120px -30px rgb(8 134 80 / 0.55), 0 30px 60px -30px rgb(0 0 0 / 0.8); }
   .ws-label { font-family: var(--font-mono); font-size: 10.5px; font-weight: 600; }
   .ws-label-sm { font-size: 9px; }
-  .ws-scanline { @apply pointer-events-none absolute inset-x-0 h-16; top: 0; background: linear-gradient(to bottom, transparent, rgb(34 211 238 / 0.12) 70%, rgb(34 211 238 / 0.55) 98%, transparent); animation: wv-scan 5.5s ease-in-out infinite; }
+  .ws-scanline { @apply pointer-events-none absolute inset-x-0 h-16; top: 0; background: linear-gradient(to bottom, transparent, rgb(112 225 168 / 0.12) 70%, rgb(112 225 168 / 0.55) 98%, transparent); animation: wv-scan 5.5s ease-in-out infinite; }
   .ws-playhead { @apply pointer-events-none absolute top-0 bottom-0 w-px bg-white/90; left: 0; box-shadow: 0 0 10px rgb(255 255 255 / 0.6); animation: wv-play 9s linear infinite; }
   .ws-playhead::before { content: ""; @apply absolute -top-1 -left-[4px] h-2.5 w-[9px] rounded-sm bg-white; }
   .ws-trail { stroke-dasharray: 4 6; animation: dash 1.6s linear infinite; }
@@ -365,7 +431,7 @@
 
   /* QA flow ---------------------------------------------------------------- */
   .flow-connector { @apply relative h-px flex-1 bg-gradient-to-r from-white/10 via-white/25 to-white/10; }
-  .flow-connector::after { content: ""; @apply absolute -top-[2.5px] h-1.5 w-1.5 rounded-full bg-accent-300; box-shadow: 0 0 10px rgb(34 211 238 / 0.9); animation: wv-travel 2.8s ease-in-out infinite; }
+  .flow-connector::after { content: ""; @apply absolute -top-[2.5px] h-1.5 w-1.5 rounded-full bg-accent-300; box-shadow: 0 0 10px rgb(197 242 122 / 0.9); animation: wv-travel 2.8s ease-in-out infinite; }
   .flow-connector-v { @apply relative w-px flex-1 bg-gradient-to-b from-white/10 via-white/25 to-white/10; }
 
   /* Forms ------------------------------------------------------------------ */
@@ -412,8 +478,8 @@
   .thumb { @apply relative aspect-video overflow-hidden bg-ink-800; }
   .thumb-placeholder {
     background-image:
-      radial-gradient(110% 120% at 0% 0%, rgb(129 131 250 / 0.6), transparent 55%),
-      radial-gradient(110% 120% at 100% 100%, rgb(34 211 238 / 0.45), transparent 55%),
+      radial-gradient(110% 120% at 0% 0%, rgb(54 200 132 / 0.55), transparent 55%),
+      radial-gradient(110% 120% at 100% 100%, rgb(197 242 122 / 0.35), transparent 55%),
       linear-gradient(135deg, var(--color-ink-800), var(--color-ink-700));
   }
   .thumb-grid {
@@ -542,7 +608,7 @@
   .bo-matrix th.bo-col { @apply max-w-[8.5rem] min-w-[7rem] align-bottom text-[11px] leading-4 font-semibold tracking-normal whitespace-normal normal-case; }
   .bo-cell { @apply inline-flex min-w-[4.75rem] items-center justify-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium whitespace-nowrap; }
   .bo-cell.is-done { @apply bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/15; }
-  .bo-cell.is-progress { @apply bg-sky-50 text-sky-700 ring-1 ring-sky-600/15; }
+  .bo-cell.is-progress { @apply bg-teal-50 text-teal-700 ring-1 ring-teal-600/15; }
   .bo-cell.is-todo { @apply bg-slate-50 text-slate-500 ring-1 ring-slate-500/10; }
   .bo-cell.is-none { @apply text-slate-300; }
 
@@ -571,8 +637,8 @@
   .callout { @apply my-4 rounded-xl border-l-4 px-4 py-3 text-[15px] leading-7; }
   .callout > * + * { @apply mt-2; }
   .callout .callout-title { @apply flex items-center gap-2 text-xs font-semibold tracking-wide uppercase; }
-  .callout-note { @apply border-sky-400 bg-sky-50 text-sky-950; }
-  .callout-note .callout-title { @apply text-sky-700; }
+  .callout-note { @apply border-teal-400 bg-teal-50 text-teal-950; }
+  .callout-note .callout-title { @apply text-teal-700; }
   .callout-tip { @apply border-emerald-400 bg-emerald-50 text-emerald-950; }
   .callout-tip .callout-title { @apply text-emerald-700; }
   .callout-rule { @apply border-brand-500 bg-brand-50 text-brand-950; }
@@ -589,8 +655,8 @@
 
 /* ── Guides ── (work guides: reader /portal/guides/, editor /admin/guides/) */
 @layer components {
-  /* Bangla-friendly type — system Bengali fonts only (no font CDN) ---------- */
-  .guide-bn { font-family: "Geist", "Noto Sans Bengali", "Hind Siliguri", "SolaimanLipi", "Nirmala UI", "Vrinda", ui-sans-serif, system-ui, sans-serif; }
+  /* Bangla-friendly type (self-hosted Hind Siliguri / Anek Bangla, see top of file) */
+  .guide-bn { font-family: var(--font-sans); }
 
   /* Accent palettes (Guide.accent) ----------------------------------------- */
   .g-accent-brand { --g-a: var(--color-brand-600); --g-a-strong: var(--color-brand-700); --g-a-soft: var(--color-brand-50); --g-a-ring: var(--color-brand-200); }
@@ -641,7 +707,7 @@
   .g-drawer {
     @apply fixed inset-y-0 left-0 z-50 flex flex-col bg-white;
     width: min(22.5rem, 88vw);
-    box-shadow: 0 30px 80px -20px rgb(5 8 15 / 0.45);
+    box-shadow: 0 30px 80px -20px rgb(2 19 12 / 0.45);
     transform: translateX(-104%); visibility: hidden;
     transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), visibility 0s linear 0.28s;
   }
@@ -703,7 +769,7 @@
   /* Video player (original link) -------------------------------------------- */
   .g-player { @apply relative aspect-video w-full overflow-hidden rounded-lg bg-black ring-1 ring-white/10; }
   .g-player iframe, .g-player video { @apply absolute inset-0 h-full w-full border-0 bg-black; }
-  .g-player-link { @apply flex items-center justify-center; background: radial-gradient(110% 120% at 0% 0%, rgb(129 131 250 / 0.35), transparent 55%), linear-gradient(135deg, var(--color-ink-800), var(--color-ink-700)); }
+  .g-player-link { @apply flex items-center justify-center; background: radial-gradient(110% 120% at 0% 0%, rgb(54 200 132 / 0.35), transparent 55%), linear-gradient(135deg, var(--color-ink-800), var(--color-ink-700)); }
   .g-player-meta { @apply mt-3 space-y-2; }
   .g-player-caption { @apply text-sm text-slate-300; line-height: 1.75; }
   .g-player-links { @apply flex flex-wrap items-center justify-between gap-2 text-xs; }
@@ -804,3 +870,72 @@
     100% { box-shadow: 0 0 0 0 transparent, var(--shadow-card); }
   }
 }
+
+/* ── Guides: Task Error examples (from the original document / video) ── */
+@layer components {
+  .g-player-segment { @apply inline-flex items-center gap-1.5 rounded-md bg-white/8 px-2 py-1 text-xs text-slate-200 ring-1 ring-white/10; }
+  .g-player-segment strong { @apply font-mono font-semibold text-white; }
+  .g-step-errors { @apply space-y-4 border-t border-red-100 bg-red-50/40 p-4 sm:p-6; }
+  .g-step-errors-title { @apply flex items-start gap-2 text-sm font-semibold text-red-800; line-height: 1.6; }
+  .g-step-errors-title svg { @apply mt-0.5 shrink-0; }
+
+  .g-err { @apply overflow-hidden rounded-2xl bg-white shadow-card ring-1 ring-red-200; scroll-margin-top: 6rem; }
+  .g-err:target, .g-err.is-flash { @apply ring-2 ring-red-400; }
+  .g-err-head { @apply flex items-start gap-3 border-b border-red-100 bg-gradient-to-r from-red-50 via-red-50/60 to-white px-4 py-3.5 sm:px-5; }
+  .g-err-icon { @apply flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-600 text-white shadow-sm; }
+  .g-err-badge { @apply text-xs font-semibold text-red-700; }
+  .g-err-badge-step { @apply font-medium text-red-500; }
+  .g-err-title { @apply mt-0.5 text-[1.0625rem] font-semibold text-slate-900; line-height: 1.5; }
+  .g-err-lead { @apply mt-1 text-[13.5px] text-red-800/90; line-height: 1.6; }
+  .g-err-link { @apply shrink-0; }
+  .g-err-body { display: grid; container-type: inline-size; }
+  .g-err-video { @apply bg-ink-900 p-4; }
+  @container (min-width: 44rem) {
+    .g-err-body.has-video { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  }
+  .g-err-points { @apply m-0 grid gap-3 p-4 sm:p-5; }
+  .g-err-pt { @apply rounded-xl p-3.5 ring-1 ring-inset; }
+  .g-err-pt dt { @apply mb-1.5 flex items-center gap-1.5 text-[13px] font-semibold; }
+  .g-err-pt dd { @apply m-0 text-[15px]; line-height: 1.75; }
+  .g-err-pt.is-what { @apply bg-red-50/70 ring-red-200/80; }
+  .g-err-pt.is-what dt { @apply text-red-700; }
+  .g-err-pt.is-why { @apply bg-amber-50/70 ring-amber-200/80; }
+  .g-err-pt.is-why dt { @apply text-amber-800; }
+  .g-err-pt.is-avoid { @apply bg-slate-50 ring-slate-200; }
+  .g-err-pt.is-avoid dt { @apply text-slate-700; }
+  .g-err-pt.is-correct { @apply bg-emerald-50/80 ring-emerald-200; }
+  .g-err-pt.is-correct dt { @apply text-emerald-700; }
+  .g-err-en { @apply mx-4 mb-4 sm:mx-5; }
+
+  .g-meta-err { @apply inline-flex items-center gap-1.5 font-medium text-red-700 hover:underline; }
+  .g-meta .g-meta-err svg { @apply text-red-500; }
+  .g-toc-errors { @apply mx-1 mt-3 flex items-center gap-2 rounded-lg bg-red-50 px-2.5 py-2 text-[13.5px] font-semibold text-red-800 ring-1 ring-red-200 hover:bg-red-100; }
+  .g-toc-errors .g-toc-count { @apply bg-red-600 text-white; }
+
+  .g-errsum { @apply mt-8 overflow-hidden rounded-2xl bg-white shadow-card ring-1 ring-red-200; scroll-margin-top: 6rem; }
+  .g-errsum-head { @apply flex items-start gap-3 bg-gradient-to-r from-red-50 to-white px-5 py-5 sm:px-6; }
+  .g-errsum-title { @apply text-lg font-semibold text-slate-900; }
+  .g-errsum-sub { @apply mt-1 text-sm text-slate-600; line-height: 1.7; }
+  .g-errsum-list { @apply divide-y divide-slate-100 border-t border-red-100; }
+  .g-errsum-link { @apply flex items-center gap-3 px-5 py-3 transition-colors hover:bg-red-50/50 sm:px-6; }
+  .g-errsum-num { @apply flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-red-100 text-xs font-semibold text-red-700; }
+  .g-errsum-name { @apply block text-[15px] font-medium text-slate-900; line-height: 1.55; }
+  .g-errsum-where { @apply block text-xs text-slate-500; line-height: 1.6; }
+  .g-errsum-general { @apply space-y-4 border-t border-red-100 bg-red-50/30 p-4 sm:p-6; }
+
+  /* Admin editor: verification against the original */
+  .g-ver { @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset; }
+  .g-ver.is-ok { @apply bg-emerald-50 text-emerald-700 ring-emerald-600/20; }
+  .g-ver.is-pending { @apply bg-amber-50 text-amber-800 ring-amber-600/25; }
+  .g-ed-err { @apply flex items-start gap-3 border-t border-dashed border-red-100 bg-red-50/30 py-2.5 pr-5 pl-14; }
+}
+
+/* ── Bangla typography overrides ──
+   Unlayered on purpose: they must win over Tailwind utilities (tracking-*, text-[10px], font-mono) on Bangla pages. */
+/* Letter-spacing pulls Bangla conjuncts apart and tight tracking makes matras collide:
+   on Bangla pages small "eyebrow" labels and headings use normal spacing and no uppercase tricks. */
+html[lang="bn"] [class*="tracking-"], html[lang="bn"] :is(.eyebrow, .eyebrow-dark, .heading-xl, .heading-lg, .heading-md, h1, h2, h3, h4) { letter-spacing: normal; }
+html[lang="bn"] h1, html[lang="bn"] h2, html[lang="bn"] h3 { line-height: 1.35; }
+/* Tiny uppercase mono labels are a Latin idiom; in Bangla they become unreadable, so use the text font at 12px. */
+html[lang="bn"] :is(.font-mono.uppercase, .eyebrow, .eyebrow-dark, .side-heading) { font-family: var(--font-sans); font-weight: 500; }
+html[lang="bn"] .uppercase:is([class*="text-[9"], [class*="text-[10"], [class*="text-[11"]), html[lang="bn"] :is(.eyebrow, .eyebrow-dark, .side-heading) { font-size: 0.75rem; letter-spacing: normal; }

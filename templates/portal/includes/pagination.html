@@ -1,0 +1,10 @@
+{% comment %} Bangla pagination for the employee portal. Usage: {% include "portal/includes/pagination.html" with page=page %} — keeps current filters via {% querystring %}. {% endcomment %}
+{% if page.has_other_pages %}
+  <nav class="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 px-4 py-3 text-sm" aria-label="পেজ বদলান">
+    <p class="text-slate-500">মোট <span class="font-medium text-slate-700">{{ page.paginator.count }}</span>টির মধ্যে <span class="font-medium text-slate-700">{{ page.start_index }}–{{ page.end_index }}</span></p>
+    <div class="flex gap-2">
+      {% if page.has_previous %}<a class="btn btn-secondary btn-sm" href="{% querystring page=page.previous_page_number %}">{% icon "chevron-left" class="h-4 w-4" %} আগের</a>{% endif %}
+      {% if page.has_next %}<a class="btn btn-secondary btn-sm" href="{% querystring page=page.next_page_number %}">পরের {% icon "chevron-right" class="h-4 w-4" %}</a>{% endif %}
+    </div>
+  </nav>
+{% endif %}

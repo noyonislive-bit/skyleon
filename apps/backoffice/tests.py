@@ -551,7 +551,7 @@ class CommsAndSettingsTests(AdminTestCase):
         self.assertEqual(list(m.invites.values_list("user_id", flat=True)), [self.emp1.pk])
         self.post(self.pm, "meeting_cancel", m.pk)
         self.assertFalse(Meeting.objects.filter(pk=m.pk).exists())
-        self.assertTrue(Notification.objects.filter(user=self.emp1, title="Cancelled: Calibration").exists())
+        self.assertTrue(Notification.objects.filter(user=self.emp1, title="মিটিং বাতিল: Calibration").exists())
 
     def test_settings_save(self):
         data = {"form": "company", "company-email": "info@skyleon.example", "company-careers_email": "", "company-phone": "+1 555",

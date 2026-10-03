@@ -32,6 +32,14 @@ Built with **Python (Django 5.2 LTS) + MySQL/MariaDB** and designed to run on **
 - Daily/weekly QA feedback (`#001 · Hand visibility`) with video, explanation, acknowledgement and a follow-up test.
 - Tests with multiple-choice, multi-select, true/false, image/video questions and image options ("select the correct segmentation"). Scoring is automatic, with passing score, attempt limits, time limits and result history.
 - 8-step onboarding per project, with steps that complete themselves (tutorial watched, test passed, manager qualification).
+- **Everything employees see is in Bangla** (portal, login/signup/password pages, Practice Lab messages, work guides,
+  emails and notifications) — the admin panel and the public website stay in English. Style guide: [`docs/BANGLA_STYLE.md`](docs/BANGLA_STYLE.md).
+- **Practice Lab**: an exact replica of the production clipping tool (Space = play, N = cut, …) where employees practise
+  on real videos and are scored against the trainer's reference segmentation.
+- **Work guides**: the project's work documents rebuilt as Bangla step-by-step guides (document → section → step → video →
+  description), with the original videos embedded at the exact segment each step describes, and every **Task Error example**
+  from the original shown as its own card (what went wrong · why · how to avoid it · correct method). The original document
+  and video are the source of truth; trainers verify each item against them — see [`docs/GUIDES.md`](docs/GUIDES.md).
 
 **Admin panel**
 - Analytics dashboard: employees, approvals, applicants, training completion, unseen feedback, pending tests, average score, team size per project.

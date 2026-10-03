@@ -41,8 +41,8 @@ TONES = {
     },
     "cyan": {
         "text": "text-label-cyan", "bg": "bg-label-cyan", "soft": "bg-label-cyan/10",
-        "ring": "ring-label-cyan/30", "chip": "bg-cyan-50 text-cyan-700 ring-cyan-500/30",
-        "dark_chip": "bg-label-cyan/10 text-label-cyan ring-label-cyan/25", "hex": "#22d3ee",
+        "ring": "ring-label-cyan/30", "chip": "bg-emerald-50 text-emerald-700 ring-emerald-500/30",
+        "dark_chip": "bg-label-cyan/10 text-label-cyan ring-label-cyan/25", "hex": "#34d399",
     },
     "amber": {
         "text": "text-label-amber", "bg": "bg-label-amber", "soft": "bg-label-amber/10",
@@ -56,7 +56,7 @@ TONES = {
     },
     "violet": {
         "text": "text-label-violet", "bg": "bg-label-violet", "soft": "bg-label-violet/10",
-        "ring": "ring-label-violet/30", "chip": "bg-violet-50 text-violet-700 ring-violet-500/30",
+        "ring": "ring-label-violet/30", "chip": "bg-emerald-50 text-emerald-700 ring-emerald-500/30",
         "dark_chip": "bg-label-violet/10 text-label-violet ring-label-violet/25", "hex": "#a78bfa",
     },
     "brand": {

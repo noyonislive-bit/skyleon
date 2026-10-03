@@ -32,7 +32,8 @@ def login_view(request, portal="employee"):
     if request.method == "POST":
         key = f"login:{ip}"
         if ratelimit.is_limited(key, LOGIN_LIMIT):
-            form.add_error(None, "Too many sign-in attempts. Please wait 15 minutes and try again.")
+            form.add_error(None, "Too many sign-in attempts. Please wait 15 minutes and try again." if portal == "client"
+                           else "অনেকবার ভুল চেষ্টা হয়েছে। ১৫ মিনিট পর আবার চেষ্টা করুন।")
         elif form.is_valid():
             user = form.user
             login(request, user)
@@ -57,7 +58,7 @@ def after_login(request):
 @require_POST
 def logout_view(request):
     logout(request)
-    messages.success(request, "You have been signed out.")
+    messages.success(request, "আপনি লগআউট করেছেন।")
     return redirect("accounts:login")
 
 
@@ -67,7 +68,7 @@ def signup_view(request):
     form = SignupForm(request.POST or None)
     if request.method == "POST":
         if ratelimit.hit(f"signup:{ratelimit.client_ip(request)}", 5, 60 * 60):
-            form.add_error(None, "Too many sign-up attempts from your network. Please try again later.")
+            form.add_error(None, "আপনার নেটওয়ার্ক থেকে অনেকবার অ্যাকাউন্ট খোলার চেষ্টা হয়েছে। কিছুক্ষণ পর আবার চেষ্টা করুন।")
         elif form.is_valid():
             d = form.cleaned_data
             user = User.objects.create_user(
@@ -97,7 +98,7 @@ class PasswordResetView(auth_views.PasswordResetView):
 
     def form_valid(self, form):
         if ratelimit.hit(f"pwreset:{ratelimit.client_ip(self.request)}", 5, 60 * 60):
-            form.add_error(None, "Too many reset requests. Please try again later.")
+            form.add_error(None, "অনেকবার রিসেটের অনুরোধ এসেছে। কিছুক্ষণ পর আবার চেষ্টা করুন।")
             return self.form_invalid(form)
         self.extra_email_context = {"APP_URL": settings.APP_URL}
         return super().form_valid(form)

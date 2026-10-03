@@ -22,10 +22,10 @@ def add_member(project, user, *, role=MemberRole.ANNOTATOR, team=None, notify_us
         sync_member_content(member)
         if created and notify_user:
             notify(
-                user, NotificationType.PROJECT, f"You've been added to {project.name}",
-                "Your project training, guidelines and onboarding are now available.",
+                user, NotificationType.PROJECT, f"আপনাকে {project.name} প্রজেক্টে যোগ করা হয়েছে",
+                "প্রজেক্টের ট্রেনিং, গাইডলাইন আর অনবোর্ডিং এখন আপনার পোর্টালে দেখা যাচ্ছে।",
                 reverse("portal:project_detail", args=[project.slug]),
-                email_template="project_assigned", email_subject=f"You have been assigned to {project.name}",
+                email_template="project_assigned", email_subject=f"আপনাকে {project.name} প্রজেক্টে যোগ করা হয়েছে",
                 context={"project": project},
             )
     return member
@@ -52,8 +52,8 @@ def qualify_member(member: ProjectMember, by_user) -> ProjectMember:
     member.qualified_by = by_user
     member.save(update_fields=["qualified_at", "qualified_by"])
     notify(
-        member.user, NotificationType.PROJECT, f"You are qualified for {member.project.name}",
-        "Congratulations — you have completed onboarding and are qualified for production work.",
+        member.user, NotificationType.PROJECT, f"আপনি {member.project.name} প্রজেক্টের জন্য কোয়ালিফাইড",
+        "অভিনন্দন! আপনার অনবোর্ডিং শেষ হয়েছে, এখন থেকে আপনি প্রোডাকশনের কাজ করতে পারবেন।",
         reverse("portal:project_detail", args=[member.project.slug]),
     )
     return member

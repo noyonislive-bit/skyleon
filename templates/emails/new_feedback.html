@@ -1,7 +1,8 @@
 {% extends "emails/base.html" %}
+{% block lang %}bn{% endblock %}
 {% block content %}
-<h1 style="margin:0 0 12px;font-size:20px;line-height:28px;color:#0f172a">New project feedback {{ feedback.display_number }}</h1>
-<p style="margin:0 0 12px;font-size:15px;line-height:24px">Hi {{ user.first_name }}, new QA feedback has been published for <strong>{{ feedback.project.name }}</strong>:</p><p style="margin:0 0 12px;font-size:15px;line-height:24px"><strong>{{ feedback.display_number }} · {{ feedback.topic }}</strong>{% if feedback.summary %}<br>{{ feedback.summary }}{% endif %}</p><p style="margin:0 0 12px;font-size:15px;line-height:24px">{% if feedback.video_id %}Please watch the feedback video{% else %}Please read the feedback{% endif %}{% if feedback.test_id %} and complete the short test{% endif %}.</p>
-{% if link %}{% include "emails/_button.html" with url=link label="Open feedback" %}{% endif %}
-<p style="margin:16px 0 0;font-size:13px;color:#94a3b8">— The {{ brand.name }} team</p>
+<h1 style="margin:0 0 12px;font-size:20px;line-height:30px;color:#121c17">নতুন প্রজেক্ট ফিডব্যাক {{ feedback.display_number }}</h1>
+<p style="margin:0 0 12px;font-size:15px;line-height:26px">{{ user.first_name }}, <strong>{{ feedback.project.name }}</strong> প্রজেক্টের জন্য নতুন QA ফিডব্যাক এসেছে:</p><p style="margin:0 0 12px;font-size:15px;line-height:26px"><strong>{{ feedback.display_number }} · {{ feedback.topic }}</strong>{% if feedback.summary %}<br>{{ feedback.summary }}{% endif %}</p><p style="margin:0 0 12px;font-size:15px;line-height:26px">{% if feedback.video_id %}ফিডব্যাক ভিডিওটা পুরো দেখুন{% else %}ফিডব্যাকটা মন দিয়ে পড়ুন{% endif %}{% if feedback.test_id %}, তারপর ছোট টেস্টটা দিন{% endif %}।</p>
+{% if link %}{% include "emails/_button.html" with url=link label="ফিডব্যাক দেখুন" %}{% endif %}
+<p style="margin:16px 0 0;font-size:13px;color:#91a199">— {{ brand.name }} টিম</p>
 {% endblock %}

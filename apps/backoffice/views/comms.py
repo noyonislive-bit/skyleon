@@ -5,7 +5,7 @@ from django.core.exceptions import PermissionDenied
 from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
-from django.utils import timezone
+from django.utils import formats, timezone, translation
 from django.views.decorators.http import require_POST
 
 from apps.accounts.decorators import permission_required_code
@@ -147,8 +147,10 @@ def _meeting_people(form):
 
 
 def _when(m):
-    local = timezone.localtime(m.starts_at)
-    return f"{local:%a %d %b %Y, %H:%M} · {m.duration_min} min"
+    """Meeting time for employee notifications (the portal is in Bangla)."""
+    with translation.override("bn"):
+        when = formats.date_format(timezone.localtime(m.starts_at), "l, j F Y, H:i")
+    return f"{when} · {m.duration_min} মিনিট"
 
 
 def _meeting_form(request, meeting=None):
@@ -168,13 +170,13 @@ def _meeting_form(request, meeting=None):
         if removed:
             MeetingInvite.objects.filter(meeting=obj, user_id__in=removed).delete()
         link = portal_link("meetings")
-        notify(new_people, NotificationType.MEETING, f"Meeting: {obj.title}", _when(obj), link,
-               email_template="meeting_invite", email_subject=f"Meeting invitation: {obj.title}", context={"meeting": obj})
+        notify(new_people, NotificationType.MEETING, f"মিটিং: {obj.title}", _when(obj), link,
+               email_template="meeting_invite", email_subject=f"মিটিংয়ের আমন্ত্রণ: {obj.title}", context={"meeting": obj})
         changed = before is not None and before != (obj.starts_at, obj.meeting_url, obj.duration_min)
         if changed:
             kept = [u for u in people if u.pk in existing]
-            notify(kept, NotificationType.MEETING, f"Updated: {obj.title}", _when(obj), link,
-                   email_template="meeting_invite", email_subject=f"Meeting updated: {obj.title}", context={"meeting": obj})
+            notify(kept, NotificationType.MEETING, f"মিটিং পরিবর্তন: {obj.title}", _when(obj), link,
+                   email_template="meeting_invite", email_subject=f"মিটিংয়ের সময়/লিংক বদলেছে: {obj.title}", context={"meeting": obj})
         audit.log(request, "meeting.edit" if meeting else "meeting.create", obj, invited=len(new_people), removed=len(removed))
         msg = f"Meeting saved — {len(new_people)} new invitation(s) sent"
         if changed:
@@ -221,8 +223,8 @@ def meeting_cancel(request, pk):
     meeting = _get_meeting(request, pk, manage=True)
     people = [i.user for i in meeting.invites.select_related("user")]
     if meeting.starts_at > timezone.now():
-        notify(people, NotificationType.MEETING, f"Cancelled: {meeting.title}",
-               f"The meeting on {_when(meeting)} has been cancelled.", portal_link("dashboard"))
+        notify(people, NotificationType.MEETING, f"মিটিং বাতিল: {meeting.title}",
+               f"{_when(meeting)} সময়ের মিটিংটি বাতিল করা হয়েছে।", portal_link("dashboard"))
     audit.log(request, "meeting.cancel", meeting, title=meeting.title, invitees=len(people))
     meeting.delete()
     messages.success(request, f"Meeting cancelled — {len(people)} invitee(s) were notified.")

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
-{% block title %}{{ task.title }} · {% if mode == "reference" %}Reference segmentation{% else %}Practice Lab{% endif %} · {{ brand.name }}{% endblock %}
+{% block title %}{{ task.title }} · {% if mode == "reference" %}Reference segmentation{% else %}প্র্যাকটিস ল্যাব{% endif %} · {{ brand.name }}{% endblock %}
 {% block meta_robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
 {% block head %}<link rel="stylesheet" href="{% static 'css/practice-tool.css' %}">{% endblock %}
 {% block body_class %}{% endblock %}
@@ -8,18 +8,18 @@
 <div class="pt-root" data-mode="{{ mode }}">
   <!-- Training bar: not part of the production tool -->
   <div class="pt-trainbar">
-    <a href="{{ back_url }}">← {% if mode == "reference" %}Back to task{% else %}Practice Lab{% endif %}</a>
-    <span class="pt-badge{% if mode == 'reference' %} is-ref{% endif %}">{% if mode == "reference" %}Reference segmentation{% else %}Practice mode{% endif %}</span>
+    <a href="{{ back_url }}">← {% if mode == "reference" %}Back to task{% else %}প্র্যাকটিস ল্যাব{% endif %}</a>
+    <span class="pt-badge{% if mode == 'reference' %} is-ref{% endif %}">{% if mode == "reference" %}Reference segmentation{% else %}প্র্যাকটিস মোড{% endif %}</span>
     <span class="pt-task-title">{{ task.title }}</span>
     <span class="pt-spacer"></span>
-    {% if mode == "practice" %}<span class="pt-meta">Attempts: {{ attempt_count }}</span>{% endif %}
+    {% if mode == "practice" %}<span class="pt-meta">চেষ্টা: {{ attempt_count }}</span>{% endif %}
     <span class="pt-meta" data-save-status></span>
     <span class="pt-meta" data-timer>00:00</span>
-    {% if task.instructions or mode == "practice" %}<button type="button" class="pt-help" data-open="#pt-intro">Instructions</button>{% endif %}
+    {% if task.instructions or mode == "practice" %}<button type="button" class="pt-help" data-open="#pt-intro">{% bn "নির্দেশনা" "Instructions" %}</button>{% endif %}
   </div>
 
   <div class="pt-page">
-    <p class="pt-mobile-note">The clipping tool is designed for a desktop or laptop with a keyboard. Please switch to a computer for practice.</p>
+    <p class="pt-mobile-note">{% bn "ক্লিপিং টুলটা কিবোর্ডসহ ডেস্কটপ বা ল্যাপটপে ব্যবহারের জন্য বানানো। প্র্যাকটিস করতে কম্পিউটার ব্যবহার করুন।" "The clipping tool is designed for a desktop or laptop with a keyboard. Please switch to a computer for practice." %}</p>
 
     <!-- ═══ Replica of the production tool ═══ -->
     <section class="vp-card" aria-label="Video Preview">
@@ -39,7 +39,7 @@
           <button type="button" class="vp-play" data-action="play_pause" aria-label="Play">
             <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.14v13.72a1 1 0 0 0 1.52.85l10.6-6.86a1 1 0 0 0 0-1.7L9.52 4.29A1 1 0 0 0 8 5.14Z"/></svg>
           </button>
-          <div class="vp-stage-msg" data-stage-msg>The video could not be loaded.</div>
+          <div class="vp-stage-msg" data-stage-msg>{% bn "ভিডিওটা লোড করা যায়নি।" "The video could not be loaded." %}</div>
         </div>
 
         <div class="vp-controls">
@@ -84,7 +84,7 @@
   <!-- Shortcuts -->
   <div class="pt-modal" id="pt-shortcuts" hidden role="dialog" aria-modal="true" aria-labelledby="pt-shortcuts-title">
     <div class="pt-dialog">
-      <div class="pt-dialog-head"><h2 id="pt-shortcuts-title">Keyboard shortcuts</h2><button type="button" class="pt-x" data-close aria-label="Close">×</button></div>
+      <div class="pt-dialog-head"><h2 id="pt-shortcuts-title">{% bn "কিবোর্ড শর্টকাট" "Keyboard shortcuts" %}</h2><button type="button" class="pt-x" data-close aria-label="{% bn "বন্ধ করুন" "Close" %}">×</button></div>
       <div class="pt-dialog-body">
         <table class="pt-keys" data-shortcut-table></table>
         <p style="margin:14px 0 0;color:#6b7280;font-size:12.5px" data-cut-mode-note></p>
@@ -95,25 +95,25 @@
   <!-- Task error -->
   <div class="pt-modal" id="pt-task-error" hidden role="dialog" aria-modal="true" aria-labelledby="pt-err-title">
     <div class="pt-dialog">
-      <div class="pt-dialog-head"><h2 id="pt-err-title">Report a task error</h2><button type="button" class="pt-x" data-close aria-label="Close">×</button></div>
+      <div class="pt-dialog-head"><h2 id="pt-err-title">{% bn "টাস্ক এরর রিপোর্ট করুন" "Report a task error" %}</h2><button type="button" class="pt-x" data-close aria-label="{% bn "বন্ধ করুন" "Close" %}">×</button></div>
       <div class="pt-dialog-body">
-        <p style="margin:0 0 12px">Use <strong>Task Error</strong> only when the task itself cannot be done — exactly as in the production tool.</p>
+        <p style="margin:0 0 12px">{% if mode == "reference" %}Use <strong>Task Error</strong> only when the task itself cannot be done — exactly as in the production tool.{% else %}টাস্কটা কোনোভাবেই করা সম্ভব না হলে তবেই <strong>Task Error</strong> দিন — আসল কাজের টুলেও ঠিক এভাবেই করতে হয়।{% endif %}</p>
         <div class="pt-reasons">
-          <label><input type="radio" name="pt-reason" value="video_not_loading" checked> Video does not load or plays incorrectly</label>
-          <label><input type="radio" name="pt-reason" value="no_hands"> No hands visible in the video</label>
-          <label><input type="radio" name="pt-reason" value="corrupted"> Video is corrupted or the wrong video</label>
-          <label><input type="radio" name="pt-reason" value="other"> Other</label>
+          <label><input type="radio" name="pt-reason" value="video_not_loading" checked> {% bn "ভিডিও লোড হচ্ছে না বা ঠিকমতো চলছে না" "Video does not load or plays incorrectly" %}</label>
+          <label><input type="radio" name="pt-reason" value="no_hands"> {% bn "ভিডিওতে কোনো হাত দেখা যাচ্ছে না" "No hands visible in the video" %}</label>
+          <label><input type="radio" name="pt-reason" value="corrupted"> {% bn "ভিডিও নষ্ট, অথবা ভুল ভিডিও এসেছে" "Video is corrupted or the wrong video" %}</label>
+          <label><input type="radio" name="pt-reason" value="other"> {% bn "অন্য কোনো সমস্যা" "Other" %}</label>
         </div>
-        <textarea class="pt-textarea" data-error-comment placeholder="Describe the problem (optional)"></textarea>
+        <textarea class="pt-textarea" data-error-comment placeholder="{% bn "সমস্যাটা লিখুন (ঐচ্ছিক)" "Describe the problem (optional)" %}"></textarea>
       </div>
-      <div class="pt-dialog-foot"><button type="button" class="vp-fbtn vp-fbtn-mint" data-close>Cancel</button><button type="button" class="vp-fbtn vp-fbtn-green" data-action="send_task_error">Report error</button></div>
+      <div class="pt-dialog-foot"><button type="button" class="vp-fbtn vp-fbtn-mint" data-close>{% bn "বাতিল" "Cancel" %}</button><button type="button" class="vp-fbtn vp-fbtn-green" data-action="send_task_error">{% bn "রিপোর্ট পাঠান" "Report error" %}</button></div>
     </div>
   </div>
 
   <!-- Result -->
   <div class="pt-modal" id="pt-result" hidden role="dialog" aria-modal="true" aria-labelledby="pt-result-title">
     <div class="pt-dialog">
-      <div class="pt-dialog-head"><h2 id="pt-result-title">Practice result</h2><button type="button" class="pt-x" data-close aria-label="Close">×</button></div>
+      <div class="pt-dialog-head"><h2 id="pt-result-title">{% bn "প্র্যাকটিসের ফলাফল" "Practice result" %}</h2><button type="button" class="pt-x" data-close aria-label="{% bn "বন্ধ করুন" "Close" %}">×</button></div>
       <div class="pt-dialog-body" data-result-body></div>
       <div class="pt-dialog-foot" data-result-foot></div>
     </div>
@@ -122,9 +122,10 @@
   <!-- Intro / instructions -->
   <div class="pt-modal" id="pt-intro" {% if not show_intro %}hidden{% endif %} role="dialog" aria-modal="true" aria-labelledby="pt-intro-title">
     <div class="pt-dialog">
-      <div class="pt-dialog-head"><h2 id="pt-intro-title">{{ task.title }}</h2><button type="button" class="pt-x" data-close aria-label="Close">×</button></div>
+      <div class="pt-dialog-head"><h2 id="pt-intro-title">{{ task.title }}</h2><button type="button" class="pt-x" data-close aria-label="{% bn "বন্ধ করুন" "Close" %}">×</button></div>
       <div class="pt-dialog-body pt-instructions">
         {% if task.instructions %}<div>{{ task.instructions|markdown }}</div>{% endif %}
+        {% if mode == "reference" %}
         <p><strong>This is an exact copy of the production clipping tool.</strong> Everything you practise here works the same way at work.</p>
         <ul>
           <li><span class="pt-kbd">Space</span> plays / pauses the video (or click the play button).</li>
@@ -133,8 +134,18 @@
           <li><span class="pt-kbd">L</span> loops the current segment. Open <strong>Shortcuts</strong> for the full list.</li>
           <li>Cover the whole “Hands present” range, then press <strong>submit task</strong> — you'll get a score compared to the trainer's reference.</li>
         </ul>
+        {% else %}
+        <p><strong>এটা আসল কাজের ক্লিপিং টুলের হুবহু কপি।</strong> এখানে যা প্র্যাকটিস করবেন, কাজের সময়ও ঠিক একইভাবে করতে হবে।</p>
+        <ul>
+          <li><span class="pt-kbd">Space</span> চাপলে ভিডিও চলবে / থামবে (প্লে বাটনে ক্লিক করলেও হবে)।</li>
+          <li><span class="pt-kbd">N</span> দিয়ে কাট করুন: অ্যাকশন যেখানে শুরু, সেখানে একবার N, আর যেখানে শেষ, সেখানে আবার N চাপুন — একটা ক্লিপ তৈরি হবে।</li>
+          <li>কোনো ক্লিপ ঠিক করতে সেটাতে ক্লিক করুন — কিনারা টেনে সরান, অথবা <span class="pt-kbd">[</span> / <span class="pt-kbd">]</span> চেপে শুরু / শেষ প্লেহেডের জায়গায় আনুন। <strong>Delete Clip</strong> চাপলে ক্লিপটা মুছে যাবে।</li>
+          <li><span class="pt-kbd">L</span> চাপলে বর্তমান অংশটা বারবার (লুপে) চলবে। সব শর্টকাট দেখতে <strong>Shortcuts</strong> খুলুন।</li>
+          <li>যেখানে যেখানে হাত দেখা যাচ্ছে (“Hands present”), পুরো অংশটা ক্লিপ করে তারপর <strong>submit task</strong> চাপুন — ট্রেইনারের রেফারেন্সের সাথে মিলিয়ে আপনার স্কোর দেখানো হবে।</li>
+        </ul>
+        {% endif %}
       </div>
-      <div class="pt-dialog-foot"><button type="button" class="vp-fbtn vp-fbtn-green" data-close>Start {% if mode == "reference" %}editing{% else %}practice{% endif %}</button></div>
+      <div class="pt-dialog-foot"><button type="button" class="vp-fbtn vp-fbtn-green" data-close>{% if mode == "reference" %}Start editing{% else %}প্র্যাকটিস শুরু করুন{% endif %}</button></div>
     </div>
   </div>
 

@@ -1,5 +1,5 @@
-{% load static %}<!doctype html>
-<html lang="en" class="{% block html_class %}{% endblock %}">
+{% load static i18n %}{% get_current_language as LANGUAGE_CODE %}<!doctype html>
+<html lang="{{ LANGUAGE_CODE|default:'en' }}" class="{% block html_class %}{% endblock %}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -14,7 +14,7 @@
   <meta property="og:url" content="{{ APP_URL }}{{ request.path }}">
   <meta property="og:image" content="{% block og_image %}{{ APP_URL }}{% static 'img/og-image.png' %}{% endblock %}">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="theme-color" content="#0a0f1c">
+  <meta name="theme-color" content="#051c12">
   <link rel="icon" href="{% static 'img/favicon.svg' %}" type="image/svg+xml">
   <link rel="preload" href="{% static 'fonts/Geist-Variable.woff2' %}" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="{% static 'css/app.css' %}">

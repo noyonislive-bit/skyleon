@@ -14,11 +14,11 @@ from .dashboard import upcoming_meetings
 NOTIFICATION_ICONS = {
     NotificationType.TRAINING: ("graduation-cap", "bg-brand-50 text-brand-600 ring-brand-100"),
     NotificationType.FEEDBACK: ("message-square-warning", "bg-amber-50 text-amber-600 ring-amber-100"),
-    NotificationType.TEST: ("clipboard-check", "bg-violet-50 text-violet-600 ring-violet-100"),
-    NotificationType.ANNOUNCEMENT: ("megaphone", "bg-sky-50 text-sky-600 ring-sky-100"),
-    NotificationType.MEETING: ("calendar-clock", "bg-cyan-50 text-cyan-600 ring-cyan-100"),
+    NotificationType.TEST: ("clipboard-check", "bg-emerald-50 text-emerald-600 ring-emerald-100"),
+    NotificationType.ANNOUNCEMENT: ("megaphone", "bg-teal-50 text-teal-600 ring-teal-100"),
+    NotificationType.MEETING: ("calendar-clock", "bg-teal-50 text-teal-600 ring-teal-100"),
     NotificationType.ACCOUNT: ("user-check", "bg-emerald-50 text-emerald-600 ring-emerald-100"),
-    NotificationType.PROJECT: ("briefcase", "bg-indigo-50 text-indigo-600 ring-indigo-100"),
+    NotificationType.PROJECT: ("briefcase", "bg-brand-50 text-brand-600 ring-brand-100"),
     NotificationType.SYSTEM: ("info", "bg-slate-100 text-slate-600 ring-slate-200"),
 }
 
@@ -46,9 +46,9 @@ def announcements(request):
     return render(request, "portal/announcements.html", {
         "page": page,
         "show": show,
-        "page_title": "Announcements",
-        "page_subtitle": "Company-wide news and updates from your project teams.",
-        "crumbs": crumbs(("Announcements", None)),
+        "page_title": "ঘোষণা",
+        "page_subtitle": "কোম্পানির খবর আর আপনার প্রজেক্ট টিমের আপডেট।",
+        "crumbs": crumbs(("ঘোষণা", None)),
     })
 
 
@@ -63,7 +63,7 @@ def announcement_detail(request, pk):
     return render(request, "portal/announcement_detail.html", {
         "announcement": announcement,
         "others": others,
-        "crumbs": crumbs(("Announcements", reverse("portal:announcements")), (announcement.title, None)),
+        "crumbs": crumbs(("ঘোষণা", reverse("portal:announcements")), (announcement.title, None)),
     })
 
 
@@ -72,7 +72,7 @@ def announcement_read(request, pk):
     scope = request.portal
     announcement = scope.announcements().filter(pk=pk).first()
     if announcement is None:
-        return JsonResponse({"error": "not found"}, status=404)
+        return JsonResponse({"error": "ঘোষণাটি পাওয়া যায়নি।"}, status=404)
     _mark_announcement_read(announcement, request.user)
     unread = scope.announcements().exclude(scope.announcement_read()).count()
     return JsonResponse({"ok": True, "unread": unread})
@@ -87,7 +87,7 @@ def announcements_read_all(request):
         [AnnouncementRead(announcement_id=pk, user=request.user) for pk in unread], ignore_conflicts=True
     )
     if unread:
-        messages.success(request, f"Marked {len(unread)} announcement{'s' if len(unread) != 1 else ''} as read.")
+        messages.success(request, f"{len(unread)}টি ঘোষণা পড়া হয়েছে বলে চিহ্নিত করা হলো।")
     return redirect("portal:announcements")
 
 
@@ -111,9 +111,9 @@ def meetings(request):
         "upcoming": upcoming,
         "page": page,
         "now": now,
-        "page_title": "Meetings",
-        "page_subtitle": "Calibration calls, trainings and team meetings you're invited to.",
-        "crumbs": crumbs(("Meetings", None)),
+        "page_title": "মিটিং",
+        "page_subtitle": "যেসব ক্যালিব্রেশন কল, ট্রেনিং আর টিম মিটিংয়ে আপনাকে ডাকা হয়েছে।",
+        "crumbs": crumbs(("মিটিং", None)),
     })
 
 
@@ -130,9 +130,9 @@ def notifications(request):
     return render(request, "portal/notifications.html", {
         "page": page,
         "show": show,
-        "page_title": "Notifications",
-        "page_subtitle": "Everything that needs your attention, newest first.",
-        "crumbs": crumbs(("Notifications", None)),
+        "page_title": "নোটিফিকেশন",
+        "page_subtitle": "যা যা আপনার দেখা দরকার — নতুনগুলো সবার আগে।",
+        "crumbs": crumbs(("নোটিফিকেশন", None)),
     })
 
 
@@ -158,6 +158,6 @@ def notification_open(request, pk):
 def notifications_read_all(request):
     count = Notification.objects.filter(user=request.user, read_at__isnull=True).update(read_at=timezone.now())
     if count:
-        messages.success(request, f"Marked {count} notification{'s' if count != 1 else ''} as read.")
+        messages.success(request, f"{count}টি নোটিফিকেশন পড়া হয়েছে বলে চিহ্নিত করা হলো।")
     nxt = safe_internal_path(request.POST.get("next", ""), request)
     return redirect(nxt or "portal:notifications")

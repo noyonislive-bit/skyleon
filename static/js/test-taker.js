@@ -5,6 +5,7 @@
  *  - confirmation dialog when submitting with unanswered questions
  *  - answers kept as a local draft (per attempt) so a reload doesn't lose them
  * The page never receives the correct answers — grading happens on the server.
+ * Texts are Bangla (employee portal — see docs/BANGLA_STYLE.md).
  */
 (function () {
   "use strict";
@@ -56,13 +57,13 @@
         nav.classList.toggle("ring-brand-600", done);
         nav.classList.toggle("bg-slate-100", !done);
         nav.classList.toggle("text-slate-500", !done);
-        nav.setAttribute("aria-label", "Question " + nav.textContent.trim() + (done ? " (answered)" : " (not answered)"));
+        nav.setAttribute("aria-label", "প্রশ্ন " + nav.textContent.trim() + (done ? " (উত্তর দেওয়া হয়েছে)" : " (উত্তর দেওয়া হয়নি)"));
       }
     });
     if (counter) counter.textContent = String(answered);
     if (hint) {
       const left = questions.length - answered;
-      hint.textContent = left ? left + " question" + (left === 1 ? " is" : "s are") + " still unanswered." : "All questions answered.";
+      hint.textContent = left ? "এখনো " + left + "টি প্রশ্নের উত্তর দেওয়া হয়নি।" : "সব প্রশ্নের উত্তর দেওয়া হয়েছে।";
     }
   };
   form.addEventListener("change", (e) => {
@@ -80,7 +81,7 @@
     clearDraft();
     form.querySelectorAll("[data-submit]").forEach((b) => {
       b.disabled = true;
-      b.textContent = "Submitting…";
+      b.textContent = "জমা হচ্ছে…";
     });
     form.submit(); // native submit — skips the submit handler below
   };
@@ -90,14 +91,14 @@
     if (submitting) return;
     const missing = unanswered();
     if (!missing.length || !dialog || typeof dialog.showModal !== "function") {
-      if (missing.length && !window.confirm("You have " + missing.length + " unanswered question(s). Submit anyway?")) return;
+      if (missing.length && !window.confirm(missing.length + "টি প্রশ্নের উত্তর দেওয়া হয়নি। তবুও জমা দেবেন?")) return;
       reallySubmit(false);
       return;
     }
     const n = missing.length;
-    dialog.querySelector("[data-unanswered-count]").textContent = n + " question" + (n === 1 ? "" : "s");
+    dialog.querySelector("[data-unanswered-count]").textContent = n + "টি প্রশ্নের";
     dialog.querySelector("[data-unanswered-list]").textContent =
-      "Question" + (n === 1 ? " " : "s ") + missing.map((fs) => questions.indexOf(fs) + 1).join(", ");
+      "প্রশ্ন নম্বর: " + missing.map((fs) => questions.indexOf(fs) + 1).join(", ");
     dialog.showModal();
   });
 

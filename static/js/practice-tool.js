@@ -22,6 +22,10 @@
   const MIN_CLIP = 0.1;
   const FPS = cfg.frame_rate || 30;
   const SPEEDS = (cfg.speeds && cfg.speeds.length ? cfg.speeds : [1, 1.5, 2, 0.5]).map(Number);
+  // Messages are in Bangla in the employee portal and English in the admin reference editor.
+  // The production tool's own labels (buttons, "Clip 1", the hint line) stay in English everywhere.
+  const BN = data.lang === "bn";
+  const T = (bn, en) => (BN ? bn : en);
 
   const $ = (sel) => root.querySelector(sel);
   const $$ = (sel) => Array.from(root.querySelectorAll(sel));
@@ -98,7 +102,7 @@
     const url = data.video.url;
     if (!url) {
       stage.classList.add("has-error");
-      $("[data-stage-msg]").textContent = "This practice task has no video yet.";
+      $("[data-stage-msg]").textContent = T("এই প্র্যাকটিস টাস্কে এখনো কোনো ভিডিও যোগ করা হয়নি।", "This practice task has no video yet.");
       return;
     }
     const isHls = data.video.hls || /\.m3u8(\?|$)/.test(url);
@@ -259,7 +263,7 @@
   function updateHint() {
     const c = selectedClip();
     if (state.open !== null) {
-      hint.innerHTML = "<strong>Recording clip…</strong> press N again at the end of the action";
+      hint.innerHTML = T("<strong>ক্লিপ রেকর্ড হচ্ছে…</strong> অ্যাকশন যেখানে শেষ, সেখানে আবার N চাপুন", "<strong>Recording clip…</strong> press N again at the end of the action");
     } else if (c) {
       const n = state.clips.indexOf(c) + 1;
       hint.innerHTML = "<strong>Editing Clip " + n + "</strong> · " + mmssExact(c.start) + " – " + mmssExact(c.end);
@@ -306,7 +310,7 @@
       if (c.start <= s && c.end > s) s = c.end;
       if (c.start < e && c.start >= s) e = Math.min(e, c.start);
     });
-    if (e - s < MIN_CLIP) { toast("Clip is too short or overlaps another clip."); return null; }
+    if (e - s < MIN_CLIP) { toast(T("ক্লিপটা খুব ছোট, অথবা অন্য ক্লিপের সাথে মিলে যাচ্ছে।", "Clip is too short or overlaps another clip.")); return null; }
     snapshot();
     const clip = { id: ++uid, start: +s.toFixed(3), end: +e.toFixed(3) };
     state.clips.push(clip);
@@ -331,7 +335,7 @@
     // toggle mode
     if (state.open === null) {
       const inside = clipAt(t);
-      if (inside) { toast("The playhead is inside Clip " + (state.clips.indexOf(inside) + 1) + "."); return; }
+      if (inside) { toast(T("প্লেহেড এখন Clip " + (state.clips.indexOf(inside) + 1) + "-এর ভেতরে আছে।", "The playhead is inside Clip " + (state.clips.indexOf(inside) + 1) + ".")); return; }
       state.open = t;
       state.selected = null;
       renderClips();
@@ -401,9 +405,9 @@
   handle.addEventListener("pointerdown", startScrub);
 
   function deleteSelected() {
-    if (state.open !== null) { state.open = null; renderClips(); toast("Clip recording cancelled."); return; }
+    if (state.open !== null) { state.open = null; renderClips(); toast(T("ক্লিপ রেকর্ড বাতিল করা হয়েছে।", "Clip recording cancelled.")); return; }
     const c = selectedClip();
-    if (!c) { toast("Click a clip first, then Delete Clip."); return; }
+    if (!c) { toast(T("আগে একটা ক্লিপে ক্লিক করুন, তারপর Delete Clip চাপুন।", "Click a clip first, then Delete Clip.")); return; }
     snapshot();
     state.clips = state.clips.filter((x) => x !== c);
     state.selected = null;
@@ -411,11 +415,11 @@
   }
   function setEdge(edge) {
     const c = selectedClip();
-    if (!c) { toast("Select a clip first."); return; }
+    if (!c) { toast(T("আগে একটা ক্লিপ সিলেক্ট করুন।", "Select a clip first.")); return; }
     const t = now(), idx = state.clips.indexOf(c);
     const minT = edge === "start" ? (idx > 0 ? state.clips[idx - 1].end : lo) : c.start + MIN_CLIP;
     const maxT = edge === "start" ? c.end - MIN_CLIP : (idx < state.clips.length - 1 ? state.clips[idx + 1].start : hi);
-    if (t < minT - 1e-6 || t > maxT + 1e-6) { toast("That would overlap another clip."); return; }
+    if (t < minT - 1e-6 || t > maxT + 1e-6) { toast(T("এটা করলে অন্য ক্লিপের সাথে মিলে যাবে।", "That would overlap another clip.")); return; }
     snapshot();
     c[edge] = +t.toFixed(3);
     changed();
@@ -431,7 +435,7 @@
   }
   function undo() {
     const prev = state.history.pop();
-    if (!prev) { toast("Nothing to undo."); return; }
+    if (!prev) { toast(T("Undo করার মতো কিছু নেই।", "Nothing to undo.")); return; }
     state.clips = JSON.parse(prev);
     state.selected = null;
     changed();
@@ -455,7 +459,7 @@
     video.currentTime = t;
     renderAll();
     keepVisible(true);
-    toast("Video realigned with the timeline.");
+    toast(T("ভিডিও আবার টাইমলাইনের সাথে মিলিয়ে নেওয়া হয়েছে।", "Video realigned with the timeline."));
   }
 
   // ── Persistence ────────────────────────────────────────────────────────
@@ -480,8 +484,8 @@
   }
   let saveTimer = 0;
   function scheduleSave() {
-    if (!data.urls.save) { saveStatus.textContent = state.dirty ? "Unsaved changes" : ""; return; }
-    saveStatus.textContent = "Saving…";
+    if (!data.urls.save) { saveStatus.textContent = state.dirty ? T("সেভ হয়নি এমন পরিবর্তন আছে", "Unsaved changes") : ""; return; }
+    saveStatus.textContent = T("সেভ হচ্ছে…", "Saving…");
     clearTimeout(saveTimer);
     saveTimer = setTimeout(saveNow, 1200);
   }
@@ -489,8 +493,8 @@
     if (!data.urls.save || !state.dirty) return Promise.resolve();
     clearTimeout(saveTimer);
     return post(data.urls.save, { clips: clipsPayload(), timeSpent: Math.floor(activeMs / 1000) }, keepalive)
-      .then(() => { state.dirty = false; saveStatus.textContent = "All changes saved"; })
-      .catch(() => { saveStatus.textContent = "Not saved — check your connection"; });
+      .then(() => { state.dirty = false; saveStatus.textContent = T("সব সেভ হয়েছে", "All changes saved"); })
+      .catch(() => { saveStatus.textContent = T("সেভ হয়নি — ইন্টারনেট কানেকশন দেখুন", "Not saved — check your connection"); });
   }
   window.addEventListener("pagehide", () => saveNow(true));
   window.addEventListener("beforeunload", (e) => {
@@ -500,16 +504,16 @@
   // ── Submit ─────────────────────────────────────────────────────────────
   function submit(goNext) {
     if (state.busy) return;
-    if (state.open !== null) { toast("Finish the open clip first (press N), or press Delete to cancel it."); return; }
-    if (!state.clips.length) { toast("Create at least one clip before submitting."); return; }
+    if (state.open !== null) { toast(T("আগে খোলা ক্লিপটা শেষ করুন (N চাপুন), অথবা Delete চেপে বাতিল করুন।", "Finish the open clip first (press N), or press Delete to cancel it.")); return; }
+    if (!state.clips.length) { toast(T("জমা দেওয়ার আগে অন্তত একটা ক্লিপ বানান।", "Create at least one clip before submitting.")); return; }
     const gaps = uncoveredRanges();
-    if (MODE === "practice" && gaps.length && !window.confirm("Hands-present time is still uncovered (" + mmss(gaps[0][0]) + "–" + mmss(gaps[gaps.length - 1][1]) + "). Submit anyway?")) return;
+    if (MODE === "practice" && gaps.length && !window.confirm(T("হাত দেখা যাচ্ছে এমন কিছু অংশ এখনো ক্লিপের বাইরে আছে (" + mmss(gaps[0][0]) + "–" + mmss(gaps[gaps.length - 1][1]) + ")। তবুও জমা দেবেন?", "Hands-present time is still uncovered (" + mmss(gaps[0][0]) + "–" + mmss(gaps[gaps.length - 1][1]) + "). Submit anyway?"))) return;
     state.busy = true;
     video.pause();
     post(data.urls.submit, { clips: clipsPayload(), timeSpent: Math.floor(activeMs / 1000) })
       .then((res) => {
         state.dirty = false;
-        saveStatus.textContent = "Submitted";
+        saveStatus.textContent = T("জমা দেওয়া হয়েছে", "Submitted");
         if (MODE === "reference") {
           toast("Reference saved — " + res.clips.length + " clips.");
           if (goNext && data.urls.next) setTimeout(() => (location.href = data.urls.next), 600);
@@ -517,34 +521,34 @@
         }
         showResult(res, goNext);
       })
-      .catch((err) => toast("Could not submit: " + err.message))
+      .catch((err) => toast(T("জমা দেওয়া যায়নি: ", "Could not submit: ") + err.message))
       .finally(() => (state.busy = false));
   }
   function showResult(res, goNext) {
     const m = res.metrics || {};
     const pass = res.passed;
     const metric = (v, label) => '<div class="pt-metric"><b>' + (v == null ? "—" : v + "%") + "</b><span>" + label + "</span></div>";
-    const issues = (m.issues || []).slice(0, 6).map((i) => "<li>" + escapeHtml(i.text) + "</li>").join("");
+    const issues = (m.issues || []).slice(0, 6).map((i) => "<li>" + escapeHtml((BN && i.text_bn) || i.text) + "</li>").join("");
     $("[data-result-body]").innerHTML =
       '<div class="pt-score"><div class="pt-score-ring" style="--p:' + Math.round(res.score) + ";--ring-color:" + (pass ? "#1f6e58" : "#c2410c") + '"><span>' + Math.round(res.score) + "%</span></div>" +
-      "<div><span class=\"pt-pill " + (pass ? "is-pass" : "is-fail") + "\">" + (pass ? "Passed" : "Not passed yet") + "</span>" +
-      '<p style="margin:8px 0 0">Passing score: ' + res.passingScore + "% · " + (m.clip_count || 0) + " clips" + (m.reference_count ? " (reference: " + m.reference_count + ")" : "") + "</p></div></div>" +
-      '<div class="pt-metrics">' + metric(m.boundary_f1, "Boundary accuracy") + metric(m.mean_iou, "Clip overlap (IoU)") + metric(m.coverage, "Coverage") + "</div>" +
-      (issues ? '<ul class="pt-issues">' + issues + "</ul>" : '<p style="margin:14px 0 0;color:#146c4b">No issues found — great work!</p>');
+      "<div><span class=\"pt-pill " + (pass ? "is-pass" : "is-fail") + "\">" + (pass ? T("পাস", "Passed") : T("এখনো পাস হয়নি", "Not passed yet")) + "</span>" +
+      '<p style="margin:8px 0 0">' + T("পাস নম্বর: ", "Passing score: ") + res.passingScore + "% · " + (m.clip_count || 0) + T("টি ক্লিপ", " clips") + (m.reference_count ? T(" (রেফারেন্সে: " + m.reference_count + "টি)", " (reference: " + m.reference_count + ")") : "") + "</p></div></div>" +
+      '<div class="pt-metrics">' + metric(m.boundary_f1, T("শুরু/শেষের নির্ভুলতা", "Boundary accuracy")) + metric(m.mean_iou, T("ক্লিপ মিল (IoU)", "Clip overlap (IoU)")) + metric(m.coverage, T("কভারেজ", "Coverage")) + "</div>" +
+      (issues ? '<ul class="pt-issues">' + issues + "</ul>" : '<p style="margin:14px 0 0;color:#146c4b">' + T("কোনো ভুল পাওয়া যায়নি — দারুণ কাজ!", "No issues found — great work!") + "</p>");
     const foot = $("[data-result-foot]");
     foot.innerHTML = "";
     const btn = (label, cls, fn) => { const b = document.createElement("button"); b.type = "button"; b.className = "vp-fbtn " + cls; b.textContent = label; b.onclick = fn; foot.appendChild(b); };
-    btn("View detailed result", "vp-fbtn-mint", () => (location.href = res.resultUrl));
-    btn("Keep improving", "vp-fbtn-mint", () => closeModal($("#pt-result")));
-    if (data.urls.next) btn(goNext ? "Next task →" : "Next task", "vp-fbtn-green", () => (location.href = data.urls.next));
-    else btn("Back to Practice Lab", "vp-fbtn-green", () => (location.href = data.urls.back));
+    btn(T("বিস্তারিত ফলাফল দেখুন", "View detailed result"), "vp-fbtn-mint", () => (location.href = res.resultUrl));
+    btn(T("আবার চেষ্টা করুন", "Keep improving"), "vp-fbtn-mint", () => closeModal($("#pt-result")));
+    if (data.urls.next) btn(T("পরের টাস্ক →", goNext ? "Next task →" : "Next task"), "vp-fbtn-green", () => (location.href = data.urls.next));
+    else btn(T("প্র্যাকটিস ল্যাবে ফিরে যান", "Back to Practice Lab"), "vp-fbtn-green", () => (location.href = data.urls.back));
     openModal($("#pt-result"));
   }
   function escapeHtml(s) { return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
 
   function navigate(dir) {
     const url = dir < 0 ? data.urls.prev : data.urls.next;
-    if (!url) { toast(dir < 0 ? "This is the first task." : "This is the last task."); return; }
+    if (!url) { toast(dir < 0 ? T("এটাই প্রথম টাস্ক।", "This is the first task.") : T("এটাই শেষ টাস্ক।", "This is the last task.")); return; }
     if (!data.urls.save && state.dirty && !window.confirm("Leave without saving the reference?")) return;
     saveNow().finally(() => (location.href = url));
   }
@@ -554,8 +558,8 @@
     if (!data.urls.taskError) { toast("Task Error is not used in reference mode."); closeModal($("#pt-task-error")); return; }
     const reason = (root.querySelector("input[name=pt-reason]:checked") || {}).value || "other";
     post(data.urls.taskError, { reason, comment: $("[data-error-comment]").value })
-      .then(() => { closeModal($("#pt-task-error")); toast("Task error reported. Your trainer will review it."); })
-      .catch(() => toast("Could not send the report."));
+      .then(() => { closeModal($("#pt-task-error")); toast(T("টাস্ক এরর পাঠানো হয়েছে। আপনার ট্রেইনার এটা দেখবেন।", "Task error reported. Your trainer will review it.")); })
+      .catch(() => toast(T("রিপোর্ট পাঠানো যায়নি।", "Could not send the report.")));
   }
 
   // ── Modals ─────────────────────────────────────────────────────────────
@@ -576,8 +580,8 @@
     .map((a) => "<tr><td>" + escapeHtml(labels[a]) + "</td><td>" + cfg.shortcuts[a].map((k) => k.split("+").map((p) => '<span class="pt-kbd">' + escapeHtml(keyName(p || "+")) + "</span>").join("")).join(" ") + "</td></tr>")
     .join("");
   $("[data-cut-mode-note]").textContent = (cfg.cut_mode || "toggle") === "split"
-    ? "N cuts at the playhead: each cut closes a clip that starts at the previous cut."
-    : "N starts a clip at the playhead; press N again where the action ends to close it.";
+    ? T("N চাপলে প্লেহেডের জায়গায় কাট হয়: প্রতিটা কাট আগের কাট থেকে শুরু হওয়া ক্লিপটা বন্ধ করে।", "N cuts at the playhead: each cut closes a clip that starts at the previous cut.")
+    : T("N চাপলে প্লেহেডের জায়গা থেকে ক্লিপ শুরু হয়; অ্যাকশন যেখানে শেষ, সেখানে আবার N চাপলে ক্লিপ বন্ধ হয়।", "N starts a clip at the playhead; press N again where the action ends to close it.");
 
   // ── Keyboard ───────────────────────────────────────────────────────────
   const bindings = {};
@@ -615,7 +619,7 @@
   const actions = {
     play_pause: togglePlay,
     cut,
-    loop: () => { loopBox.checked = !loopBox.checked; toast(loopBox.checked ? "Loop current segment: on" : "Loop current segment: off"); },
+    loop: () => { loopBox.checked = !loopBox.checked; toast(loopBox.checked ? T("লুপ চালু: বর্তমান অংশটা বারবার চলবে", "Loop current segment: on") : T("লুপ বন্ধ", "Loop current segment: off")); },
     delete_clip: deleteSelected,
     seek_back: () => seek(now() - 1),
     seek_forward: () => seek(now() + 1),

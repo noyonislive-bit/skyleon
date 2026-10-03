@@ -33,7 +33,7 @@ class Project(models.Model):
     status = models.CharField(max_length=20, choices=ProjectStatus.choices, default=ProjectStatus.ACTIVE, db_index=True)
     annotation_type = models.CharField(max_length=200, blank=True)
     platform = models.CharField(max_length=200, blank=True)
-    color = models.CharField(max_length=9, default="#6366f1")
+    color = models.CharField(max_length=9, default="#088650")
     start_date = models.DateField(null=True, blank=True)
     end_date = models.DateField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)

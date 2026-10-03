@@ -13,6 +13,6 @@ class AccountStatusMiddleware:
         user = getattr(request, "user", None)
         if user is not None and user.is_authenticated and user.status == "suspended":
             logout(request)
-            messages.error(request, "Your account has been suspended. Please contact your manager.")
+            messages.error(request, "আপনার অ্যাকাউন্টটি স্থগিত (suspended) করা হয়েছে। আপনার ম্যানেজারের সাথে যোগাযোগ করুন।")
             return redirect("accounts:login")
         return self.get_response(request)

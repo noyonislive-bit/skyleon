@@ -10,7 +10,7 @@ from apps.projects.models import Project
 from apps.projects.services import add_member
 
 from .importer import GuideImportError, export_guide, import_guide
-from .models import Guide, GuideProgress, GuideStep
+from .models import Guide, GuideProgress, GuideStep, GuideTaskError
 from .video import embed_info, parse_start
 
 SAMPLE = Path(__file__).resolve().parent / "fixtures" / "sample_guide.json"
@@ -36,6 +36,14 @@ class VideoEmbedTests(SimpleTestCase):
     def test_rejects_non_http(self):
         self.assertIsNone(embed_info("javascript:alert(1)"))
         self.assertIsNone(embed_info("ftp://example.com/a.mp4"))
+
+    def test_video_segment(self):
+        yt = embed_info("https://youtu.be/dQw4w9WgXcQ", "1:20", "2:05")
+        self.assertIn("start=80", yt["src"])
+        self.assertIn("end=125", yt["src"])
+        self.assertEqual(yt["segment"], "01:20 – 02:05")
+        self.assertTrue(embed_info("https://cdn.example.com/a.mp4", 10, 20)["src"].endswith("#t=10,20"))
+        self.assertIsNone(embed_info("https://cdn.example.com/a.mp4", 30, 20)["end"])  # end before start is ignored
 
     def test_parse_start(self):
         self.assertEqual(parse_start("1:30"), 90)
@@ -104,6 +112,86 @@ class GuideFlowTests(TestCase):
             self.assertEqual(self.client.get(url).status_code, 200, url)
         r = self.client.post(reverse("guides:manage_publish", args=[guide.pk]))
         self.assertEqual(r.status_code, 302)
+        self.assertFalse(Guide.objects.get(pk=guide.pk).is_published)  # unverified items block a plain publish
+        r = self.client.post(reverse("guides:manage_publish", args=[guide.pk]), {"force": "1"})
         self.assertTrue(Guide.objects.get(pk=guide.pk).is_published)
         r = self.client.get(reverse("guides:manage_export", args=[guide.pk]))
         self.assertEqual(json.loads(r.content)["slug"], guide.slug)
+
+
+class TaskErrorAndVerificationTests(TestCase):
+    def setUp(self):
+        self.data = json.loads(SAMPLE.read_text(encoding="utf-8"))
+        self.emp = User.objects.create_user("e@example.com", "pw-Strong-1", name="E")
+        approve_user(self.emp, send_email=False)
+        self.trainer = User.objects.create_user("t@example.com", "pw-Strong-1", name="T", role=Role.TRAINER, status=UserStatus.ACTIVE)
+
+    def test_import_export_task_errors(self):
+        result = import_guide(self.data, publish=True)
+        self.assertEqual(result.task_errors, 1)
+        err = GuideTaskError.objects.get(guide=result.guide)
+        self.assertEqual(err.step.anchor, "cut-with-n")
+        exported = export_guide(result.guide)
+        step = next(st for sec in exported["sections"] for st in sec["steps"] if st["anchor"] == "cut-with-n")
+        self.assertEqual(step["task_errors"][0]["title"], err.title)
+        bad = json.loads(json.dumps(self.data))
+        bad["task_errors"] = [{"title": "x", "video_start": 50, "video_end": 10}]
+        with self.assertRaises(GuideImportError) as ctx:
+            import_guide(bad, replace=True)
+        self.assertTrue(any("what_wrong" in e for e in ctx.exception.errors))
+        self.assertTrue(any("video_end" in e for e in ctx.exception.errors))
+
+    def test_replace_keeps_verification_only_when_unchanged(self):
+        guide = import_guide(self.data, publish=True).guide
+        GuideStep.objects.filter(guide=guide).update(verified_at="2026-01-01T00:00:00Z")
+        GuideTaskError.objects.filter(guide=guide).update(verified_at="2026-01-01T00:00:00Z")
+        changed = json.loads(json.dumps(self.data))
+        changed["sections"][0]["steps"][0]["body"] += "\n\nনতুন লাইন"
+        import_guide(changed, replace=True)
+        steps = {s.anchor: s for s in GuideStep.objects.filter(guide=guide)}
+        self.assertIsNone(steps["screen-layout"].verified_at)       # edited → must be checked again
+        self.assertIsNotNone(steps["playback"].verified_at)         # unchanged → kept
+        self.assertIsNotNone(GuideTaskError.objects.get(guide=guide).verified_at)
+
+    def test_reader_shows_task_error_cards(self):
+        guide = import_guide(self.data, publish=True).guide
+        self.client.force_login(self.emp)
+        r = self.client.get(reverse("guides:detail", args=[guide.slug]))
+        self.assertContains(r, 'id="task-errors"')
+        self.assertContains(r, "হিসেবে গণ্য হবে")
+        self.assertContains(r, "সঠিক পদ্ধতি")
+        r = self.client.get(reverse("guides:step", args=[guide.slug, "cut-with-n"]))
+        self.assertContains(r, "নমুনা: একটা ক্লিপ আরেকটার উপর ফেলা")
+
+    def test_admin_task_error_crud_and_verification(self):
+        guide = import_guide(self.data).guide
+        step = GuideStep.objects.get(guide=guide, anchor="playback")
+        self.client.force_login(self.trainer)
+        self.assertEqual(self.client.get(reverse("guides:manage_error_new", args=[guide.pk]) + f"?step={step.pk}").status_code, 200)
+        r = self.client.post(reverse("guides:manage_error_new", args=[guide.pk]), {
+            "step": step.pk, "title": "ভুল", "what_wrong": "কী", "correct_method": "ঠিক",
+            "video_url": "https://youtu.be/dQw4w9WgXcQ", "video_start": "0:10", "video_end": "0:20", "verified": "1",
+        })
+        self.assertEqual(r.status_code, 302)
+        err = GuideTaskError.objects.get(guide=guide, title="ভুল")
+        self.assertEqual((err.anchor, err.video_start, err.video_end), ("playback-error-1", 10, 20))
+        self.assertIsNotNone(err.verified_at)  # ticked afresh
+        # Editing the content with the box still ticked clears the mark.
+        r = self.client.post(reverse("guides:manage_error_edit", args=[err.pk]), {
+            "step": step.pk, "title": "ভুল", "what_wrong": "অন্য কিছু", "correct_method": "ঠিক", "anchor": err.anchor,
+            "verified": "1", "was_verified": "1",
+        })
+        err.refresh_from_db()
+        self.assertIsNone(err.verified_at)
+        r = self.client.post(reverse("guides:manage_verify", args=["error", err.pk]), {"verified": "1"})
+        err.refresh_from_db()
+        self.assertIsNotNone(err.verified_at)
+        r = self.client.post(reverse("guides:manage_verify", args=["step", step.pk]), {"verified": "1"})
+        step.refresh_from_db()
+        self.assertEqual(step.verified_by, self.trainer)
+        self.assertEqual(self.client.post(reverse("guides:manage_verify", args=["nope", step.pk])).status_code, 404)
+        self.assertEqual(self.client.get(reverse("guides:manage_edit", args=[guide.pk])).status_code, 200)
+        r = self.client.post(reverse("guides:manage_error_delete", args=[err.pk]))
+        self.assertFalse(GuideTaskError.objects.filter(pk=err.pk).exists())
+        self.client.force_login(self.emp)
+        self.assertEqual(self.client.get(reverse("guides:manage_error_new", args=[guide.pk])).status_code, 403)

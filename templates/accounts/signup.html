@@ -1,11 +1,11 @@
 {% extends "layouts/auth.html" %}
-{% block title %}Create your account · {{ brand.name }}{% endblock %}
-{% block panel_title %}Join a professional annotation team.{% endblock %}
-{% block panel_text %}Create your account, get approved by your manager, then start your project onboarding and training.{% endblock %}
+{% block title %}অ্যাকাউন্ট খুলুন · {{ brand.name }}{% endblock %}
+{% block panel_title %}একটা পেশাদার অ্যানোটেশন টিমে যোগ দিন।{% endblock %}
+{% block panel_text %}অ্যাকাউন্ট খুলুন, ম্যানেজার অনুমোদন দিলে আপনার প্রজেক্টের অনবোর্ডিং আর ট্রেনিং শুরু হবে।{% endblock %}
 {% block content %}
-<p class="eyebrow">Team member sign-up</p>
-<h1 class="mt-3 text-3xl font-semibold tracking-tight">Create your account</h1>
-<p class="mt-2 text-sm text-slate-500">A manager will review and approve your account before you can access projects.</p>
+<p class="eyebrow">নতুন সদস্যের রেজিস্ট্রেশন</p>
+<h1 class="mt-3 text-3xl font-semibold tracking-tight">অ্যাকাউন্ট খুলুন</h1>
+<p class="mt-2 text-sm text-slate-500">প্রজেক্টে ঢোকার আগে একজন ম্যানেজার আপনার অ্যাকাউন্টটি দেখে অনুমোদন দেবেন।</p>
 <form method="post" class="mt-8 space-y-4" novalidate>
   {% csrf_token %}
   {% include "components/honeypot.html" %}
@@ -19,8 +19,8 @@
   {% include "components/field.html" with field=form.password1 %}
   {% include "components/field.html" with field=form.password2 %}
   {% include "components/field.html" with field=form.agree %}
-  <button type="submit" class="btn btn-primary w-full py-3">Create account</button>
+  <button type="submit" class="btn btn-primary w-full py-3">অ্যাকাউন্ট খুলুন</button>
 </form>
-<p class="mt-8 text-center text-sm text-slate-500">Already have an account? <a href="{% url 'accounts:login' %}" class="font-semibold text-brand-600 hover:text-brand-700">Sign in</a></p>
-<p class="mt-2 text-center text-xs text-slate-400">Looking for work with us? <a href="{% url 'website:careers' %}" class="underline hover:text-slate-600">Apply through Careers</a></p>
+<p class="mt-8 text-center text-sm text-slate-500">আগেই অ্যাকাউন্ট আছে? <a href="{% url 'accounts:login' %}" class="font-semibold text-brand-600 hover:text-brand-700">লগইন করুন</a></p>
+<p class="mt-2 text-center text-xs text-slate-400">আমাদের সাথে কাজ করতে চান? <a href="{% url 'website:careers' %}" class="underline hover:text-slate-600">Careers পেজ থেকে আবেদন করুন</a></p>
 {% endblock %}

@@ -46,5 +46,10 @@
     </li>
     {% endfor %}
   </ol>
+  {% if outline.errors %}
+  <a href="{% if mode == 'doc' %}#{{ outline.errors_anchor }}{% else %}{{ guide.get_absolute_url }}#{{ outline.errors_anchor }}{% endif %}" class="g-toc-errors" data-g-link="{{ outline.errors_anchor }}">
+    {% icon "shield-alert" class="h-4 w-4 shrink-0" %}<span class="min-w-0 flex-1">সব Task Error উদাহরণ</span><span class="g-toc-count">{{ outline.error_count|bn }}</span>
+  </a>
+  {% endif %}
   {% if mode == "doc" %}<p class="px-2 py-6 text-center text-sm text-slate-500" data-g-search-empty hidden>কিছু পাওয়া যায়নি।</p>{% endif %}
 </nav>

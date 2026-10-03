@@ -1,6 +1,6 @@
 {% extends "portal/base.html" %}
 {% load static portal_tags %}
-{% block browser_title %}{{ test.title }} · attempt {{ attempt.attempt_number }}{% endblock %}
+{% block browser_title %}{{ test.title }} · চেষ্টা #{{ attempt.attempt_number }}{% endblock %}
 {% block content %}
 <form method="post" action="{% url 'portal:test_take' attempt.pk %}" data-test-form data-attempt="{{ attempt.pk }}" {% if remaining is not None %}data-remaining="{{ remaining }}"{% endif %} novalidate>
   {% csrf_token %}
@@ -11,18 +11,18 @@
     <div class="mx-auto flex max-w-3xl flex-wrap items-center gap-x-4 gap-y-2">
       <div class="min-w-0 flex-1">
         <p class="truncate text-sm font-semibold text-slate-900">{{ test.title }}</p>
-        <p class="text-xs text-slate-500">Attempt {{ attempt.attempt_number }} · pass mark {{ test.passing_score }}% · <span data-answered-count>0</span>/{{ questions|length }} answered</p>
+        <p class="text-xs text-slate-500">চেষ্টা #{{ attempt.attempt_number }} · পাস মার্ক {{ test.passing_score }}% · উত্তর দিয়েছেন <span data-answered-count>0</span>/{{ questions|length }}</p>
       </div>
       {% if remaining is not None %}
-      <div class="flex items-center gap-2 rounded-lg bg-slate-100 px-3 py-1.5 font-mono text-sm font-semibold text-slate-900 tabular-nums ring-1 ring-slate-200" data-timer role="timer" aria-live="off" aria-label="Time remaining">
+      <div class="flex items-center gap-2 rounded-lg bg-slate-100 px-3 py-1.5 font-mono text-sm font-semibold text-slate-900 tabular-nums ring-1 ring-slate-200" data-timer role="timer" aria-live="off" aria-label="বাকি সময়">
         {% icon "timer" class="h-4 w-4 text-slate-500" %}<span data-timer-text>{{ remaining|duration }}</span>
       </div>
       {% endif %}
-      <button type="submit" class="btn btn-primary btn-sm" data-submit>Submit</button>
+      <button type="submit" class="btn btn-primary btn-sm" data-submit>জমা দিন</button>
     </div>
-    <div class="mx-auto mt-2 flex max-w-3xl items-center gap-1.5 overflow-x-auto pb-0.5" aria-label="Questions">
+    <div class="mx-auto mt-2 flex max-w-3xl items-center gap-1.5 overflow-x-auto pb-0.5" aria-label="প্রশ্নগুলো">
       {% for q in questions %}
-        <a href="#q-{{ q.id }}" class="flex h-7 min-w-7 items-center justify-center rounded-md bg-slate-100 px-1.5 font-mono text-xs font-semibold text-slate-500 ring-1 ring-slate-200 transition hover:ring-brand-300" data-nav="{{ q.id }}" title="Question {{ q.index }}">{{ q.index }}</a>
+        <a href="#q-{{ q.id }}" class="flex h-7 min-w-7 items-center justify-center rounded-md bg-slate-100 px-1.5 font-mono text-xs font-semibold text-slate-500 ring-1 ring-slate-200 transition hover:ring-brand-300" data-nav="{{ q.id }}" title="প্রশ্ন {{ q.index }}">{{ q.index }}</a>
       {% endfor %}
     </div>
   </div>
@@ -32,10 +32,10 @@
     <fieldset id="q-{{ q.id }}" class="card scroll-mt-40" data-question="{{ q.id }}" aria-labelledby="q-{{ q.id }}-prompt">
       <div class="card-body sm:p-6">
         <div class="flex flex-wrap items-center justify-between gap-2">
-          <p class="font-mono text-xs tracking-wider text-slate-400 uppercase">Question {{ q.index }} of {{ questions|length }}</p>
+          <p class="text-xs font-medium text-slate-400">প্রশ্ন {{ q.index }} / {{ questions|length }}</p>
           <p class="flex items-center gap-2">
-            <span class="badge badge-neutral">{% if q.multi %}Select all that apply{% elif q.qtype == "true_false" %}True or false{% else %}Choose one{% endif %}</span>
-            <span class="text-xs text-slate-400">{{ q.points }} pt{{ q.points|pluralize }}</span>
+            <span class="badge badge-neutral">{% if q.multi %}সঠিক সবগুলো বেছে নিন{% elif q.qtype == "true_false" %}সত্য না মিথ্যা{% else %}একটি বেছে নিন{% endif %}</span>
+            <span class="text-xs text-slate-400">{{ q.points }} পয়েন্ট</span>
           </p>
         </div>
         <p id="q-{{ q.id }}-prompt" class="mt-2 text-lg leading-7 font-semibold text-slate-900">{{ q.prompt|linebreaksbr }}</p>
@@ -45,7 +45,7 @@
             {% if q.media.is_video %}
               <video src="{{ q.media.url }}" controls playsinline preload="metadata" controlslist="nodownload" class="aspect-video w-full bg-black"></video>
             {% else %}
-              <img src="{{ q.media.url }}" alt="Image for question {{ q.index }}" class="max-h-[28rem] w-full object-contain">
+              <img src="{{ q.media.url }}" alt="প্রশ্ন {{ q.index }}-এর ছবি" class="max-h-[28rem] w-full object-contain">
             {% endif %}
           </div>
         {% endif %}
@@ -55,7 +55,7 @@
             {% for o in q.options %}
             <label class="option-card">
               <input type="{% if q.multi %}checkbox{% else %}radio{% endif %}" name="q_{{ q.id }}" value="{{ o.id }}" class="sr-only">
-              {% if o.media %}<img src="{{ o.media.url }}" alt="Option {{ forloop.counter|letter }}{% if o.text %}: {{ o.text }}{% endif %}" loading="lazy">{% else %}<span class="flex aspect-[4/3] items-center justify-center bg-slate-50 text-slate-400">{% icon "image-off" class="h-6 w-6" %}</span>{% endif %}
+              {% if o.media %}<img src="{{ o.media.url }}" alt="অপশন {{ forloop.counter|letter }}{% if o.text %}: {{ o.text }}{% endif %}" loading="lazy">{% else %}<span class="flex aspect-[4/3] items-center justify-center bg-slate-50 text-slate-400">{% icon "image-off" class="h-6 w-6" %}</span>{% endif %}
               <span class="flex items-center gap-2 border-t border-slate-100 px-3 py-2.5 text-sm font-medium text-slate-700"><span class="option-key">{{ forloop.counter|letter }}</span>{{ o.text|default:"" }}</span>
               <span class="option-check {% if q.multi %}rounded-md{% endif %}" aria-hidden="true">{% icon "check" class="h-3.5 w-3.5" stroke_width="3" %}</span>
             </label>
@@ -78,10 +78,10 @@
 
     <div class="card card-body flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
       <div>
-        <p class="text-sm font-semibold text-slate-900">Ready to submit?</p>
-        <p class="text-sm text-slate-500">You can't change your answers after submitting. <span data-unanswered-hint></span></p>
+        <p class="text-sm font-semibold text-slate-900">জমা দিতে প্রস্তুত?</p>
+        <p class="text-sm text-slate-500">জমা দেওয়ার পর উত্তর আর বদলানো যাবে না। <span data-unanswered-hint></span></p>
       </div>
-      <button type="submit" class="btn btn-primary btn-lg" data-submit>{% icon "send" class="h-4 w-4" %} Submit answers</button>
+      <button type="submit" class="btn btn-primary btn-lg" data-submit>{% icon "send" class="h-4 w-4" %} উত্তর জমা দিন</button>
     </div>
   </div>
 </form>
@@ -89,13 +89,13 @@
 <dialog class="m-auto w-[min(28rem,calc(100vw-2rem))] rounded-2xl p-0 shadow-2xl ring-1 ring-slate-200 backdrop:bg-ink-950/50 backdrop:backdrop-blur-sm" data-confirm-dialog aria-labelledby="confirm-title">
   <div class="p-6">
     <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-amber-50 text-amber-600 ring-1 ring-amber-200">{% icon "alert-triangle" class="h-5 w-5" %}</div>
-    <h2 id="confirm-title" class="mt-4 text-lg font-semibold text-slate-900">Some questions are unanswered</h2>
-    <p class="mt-1.5 text-sm text-slate-600">You haven't answered <strong data-unanswered-count></strong>. Unanswered questions score zero.</p>
+    <h2 id="confirm-title" class="mt-4 text-lg font-semibold text-slate-900">কিছু প্রশ্নের উত্তর দেওয়া হয়নি</h2>
+    <p class="mt-1.5 text-sm text-slate-600">এখনো <strong data-unanswered-count></strong> উত্তর দেননি। উত্তর না দেওয়া প্রশ্নে শূন্য পাবেন।</p>
     <p class="mt-2 font-mono text-xs text-slate-500" data-unanswered-list></p>
   </div>
   <div class="flex flex-col-reverse gap-2 border-t border-slate-100 bg-slate-50 px-6 py-4 sm:flex-row sm:justify-end">
-    <button type="button" class="btn btn-secondary" data-confirm-cancel autofocus>Keep answering</button>
-    <button type="button" class="btn btn-primary" data-confirm-submit>Submit anyway</button>
+    <button type="button" class="btn btn-secondary" data-confirm-cancel autofocus>ফিরে গিয়ে উত্তর দিন</button>
+    <button type="button" class="btn btn-primary" data-confirm-submit>তবুও জমা দিন</button>
   </div>
 </dialog>
 {% endblock %}

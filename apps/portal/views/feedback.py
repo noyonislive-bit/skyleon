@@ -25,10 +25,10 @@ from ..helpers import (
 from ..scope import portal_api, portal_view
 
 TABS = [
-    ("new", "New"),
-    ("pending", "Pending"),
-    ("completed", "Completed"),
-    ("all", "All"),
+    ("new", "নতুন"),
+    ("pending", "বাকি"),
+    ("completed", "সম্পন্ন"),
+    ("all", "সব"),
 ]
 
 
@@ -80,9 +80,9 @@ def feedback_list(request):
         "counts": counts,
         "test_summary": test_summary,
         "pending_feedback_tests": pending_tests,
-        "page_title": "My feedback",
-        "page_subtitle": "QA feedback from your trainers. Watch each video, read the explanation and take the short test.",
-        "crumbs": crumbs(("My feedback", None)),
+        "page_title": "আমার ফিডব্যাক",
+        "page_subtitle": "ট্রেইনারদের দেওয়া QA ফিডব্যাক। প্রতিটি ভিডিও দেখুন, ব্যাখ্যা পড়ুন, তারপর ছোট টেস্টটা দিন।",
+        "crumbs": crumbs(("আমার ফিডব্যাক", None)),
     })
 
 
@@ -131,7 +131,7 @@ def feedback_detail(request, number):
         "badge": badge,
         "attempts": attempts,
         "question_count": test.questions.count() if test else 0,
-        "crumbs": crumbs(("My feedback", reverse("portal:feedback")), (fb.display_number, None)),
+        "crumbs": crumbs(("আমার ফিডব্যাক", reverse("portal:feedback")), (fb.display_number, None)),
     })
 
 
@@ -142,7 +142,7 @@ def feedback_ack(request, number):
     if not recipient.acknowledged_at:
         recipient.acknowledged_at = timezone.now()
         recipient.save(update_fields=["acknowledged_at"])
-        messages.success(request, f"Thanks — feedback {recipient.feedback.display_number} acknowledged.")
+        messages.success(request, f"ধন্যবাদ! ফিডব্যাক {recipient.feedback.display_number} বুঝেছেন বলে রেকর্ড করা হয়েছে।")
     return redirect("portal:feedback_detail", number=number)
 
 
@@ -151,14 +151,14 @@ def feedback_heartbeat(request, number):
     scope = request.portal
     recipient = scope.recipients().select_related("feedback", "feedback__video").filter(feedback__number=number).first()
     if recipient is None:
-        return JsonResponse({"error": "not found"}, status=404)
+        return JsonResponse({"error": "ফিডব্যাকটি পাওয়া যায়নি।"}, status=404)
     video = recipient.feedback.video
     if video is None:
-        return JsonResponse({"error": "this feedback has no video"}, status=400)
+        return JsonResponse({"error": "এই ফিডব্যাকে কোনো ভিডিও নেই।"}, status=400)
     data = read_json(request)
     duration = trusted_duration(video, data.get("duration"))
     if duration is None:
-        return JsonResponse({"error": "unknown duration"}, status=400)
+        return JsonResponse({"error": "ভিডিওর দৈর্ঘ্য জানা যায়নি।"}, status=400)
     throttled = False
     with transaction.atomic():
         recipient = FeedbackRecipient.objects.select_for_update().get(pk=recipient.pk)
@@ -176,5 +176,5 @@ def feedback_heartbeat(request, number):
         "status": "completed" if watched_at else ("in_progress" if recipient.watched_seconds else "not_started"),
         "completed": bool(watched_at),
         "throttled": throttled,
-        "completed_at": date_format(watched_at, "M j, Y · H:i") if watched_at else None,
+        "completed_at": date_format(watched_at, "j M Y · H:i") if watched_at else None,
     })

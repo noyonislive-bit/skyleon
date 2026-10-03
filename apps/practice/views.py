@@ -6,14 +6,14 @@ from django.contrib import messages
 from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
-from django.utils import timezone
+from django.utils import timezone, translation
 from django.views.decorators.http import require_POST
 
 from apps.accounts.decorators import employee_required
 from apps.storage.services import media_url
 
 from . import services
-from .config import ACTION_LABELS, tool_config
+from .config import ACTION_LABELS, ACTION_LABELS_BN, tool_config
 from .models import AttemptStatus, PracticeAttempt, PracticeTask
 from .scoring import clean_clips
 
@@ -35,6 +35,7 @@ def _visible_task_or_404(request, pk):
 def workspace_payload(request, task, *, mode, clips, urls):
     lo, hi = services.task_range(task)
     video_url = media_url(task.video, request.user) if task.video_id else ""
+    bangla = translation.get_language() == "bn"
     return {
         "mode": mode,
         "task": {"id": task.pk, "title": task.title, "rangeStart": lo, "rangeEnd": hi,
@@ -42,7 +43,8 @@ def workspace_payload(request, task, *, mode, clips, urls):
         "video": {"url": video_url, "hls": bool(task.video_id and task.video.is_hls)},
         "clips": clips,
         "config": tool_config(),
-        "labels": ACTION_LABELS,
+        "labels": ACTION_LABELS_BN if bangla else ACTION_LABELS,
+        "lang": "bn" if bangla else "en",
         "urls": urls,
     }
 
@@ -58,8 +60,8 @@ def task_list(request):
         .order_by("-submitted_at")[:8]
     )
     return render(request, "practice/list.html", {
-        "rows": rows, "recent": recent, "page_title": "Practice Lab", "crumbs": [{"label": "Practice Lab", "url": ""}],
-        "page_subtitle": "Practise clipping in an exact replica of the production tool. Your clips are scored against the trainer's reference.",
+        "rows": rows, "recent": recent, "page_title": "প্র্যাকটিস ল্যাব", "crumbs": [{"label": "প্র্যাকটিস ল্যাব", "url": ""}],
+        "page_subtitle": "আসল কাজের টুলের হুবহু কপিতে ক্লিপিং প্র্যাকটিস করুন। আপনার ক্লিপগুলো ট্রেইনারের রেফারেন্সের সাথে মিলিয়ে স্কোর দেওয়া হয়।",
     })
 
 
@@ -132,12 +134,14 @@ def result(request, attempt_id):
     if attempt.status != AttemptStatus.SUBMITTED:
         return redirect("practice:workspace", pk=attempt.task_id)
     ctx = result_context(attempt, back_url=reverse("practice:list"))
-    ctx["crumbs"] = [{"label": "Practice Lab", "url": reverse("practice:list")}, {"label": "Result", "url": ""}]
+    ctx["crumbs"] = [{"label": "প্র্যাকটিস ল্যাব", "url": reverse("practice:list")}, {"label": "ফলাফল", "url": ""}]
     return render(request, "practice/result.html", ctx)
 
 
 def result_context(attempt, *, back_url):
+    """Shared by the employee result page (Bangla) and the admin attempt view (English)."""
     task = attempt.task
+    bn = translation.get_language() == "bn"
     lo, hi = services.task_range(task)
     span = max(hi - lo, 0.001)
     ref = clean_clips(task.reference_clips, lo, hi)
@@ -158,10 +162,10 @@ def result_context(attempt, *, back_url):
         "gap_bars": bars([tuple(g) for g in (attempt.metrics or {}).get("uncovered", [])]),
         "ticks": ticks, "range_label": f"{int(lo // 60):02d}:{int(lo % 60):02d} – {int(hi // 60):02d}:{int(hi % 60):02d}",
         "comparison_rows": [
-            {"label": "Your clips", "bars": bars([tuple(c) for c in attempt.clips]), "css": "bg-brand-500/80"},
-            {"label": "Reference", "bars": bars(ref), "css": "bg-emerald-500/80"},
-            {"label": "Uncovered", "bars": bars([tuple(g) for g in (attempt.metrics or {}).get("uncovered", [])]), "css": "bg-amber-400/80"},
+            {"label": "আপনার ক্লিপ" if bn else "Your clips", "bars": bars([tuple(c) for c in attempt.clips]), "css": "bg-brand-500/80"},
+            {"label": "রেফারেন্স" if bn else "Reference", "bars": bars(ref), "css": "bg-emerald-500/80"},
+            {"label": "বাদ পড়া অংশ" if bn else "Uncovered", "bars": bars([tuple(g) for g in (attempt.metrics or {}).get("uncovered", [])]), "css": "bg-amber-400/80"},
         ],
         "back_url": back_url,
-        "page_title": f"Result · {task.title}",
+        "page_title": f"{'ফলাফল' if bn else 'Result'} · {task.title}",
     }

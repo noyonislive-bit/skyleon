@@ -1,13 +1,9 @@
-{% autoescape off %}Hi {{ user.first_name }},
-
-You're invited to: {{ meeting.title }}
-When: {{ meeting.starts_at|date:'l, j F Y H:i' }} ({{ meeting.duration_min }} min)
-{% if meeting.meeting_url %}Link: {{ meeting.meeting_url }}
+{% autoescape off %}{{ user.first_name }}, আপনাকে একটা মিটিংয়ে আমন্ত্রণ জানানো হয়েছে: {{ meeting.title }}
+সময়: {{ meeting.starts_at|date:"l, j F Y g:i A" }} ({{ meeting.duration_min }} মিনিট)
+{% if meeting.meeting_url %}লিংক: {{ meeting.meeting_url }}
 {% endif %}{% if meeting.agenda %}
 {{ meeting.agenda }}{% endif %}
-{% if link %}
-View in portal: {{ link }}{% endif %}
 
-— The {{ brand.name }} team
+— {{ brand.name }} টিম
 {{ APP_URL }}
 {% endautoescape %}

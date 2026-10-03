@@ -6,8 +6,8 @@
       <div class="flex flex-wrap items-center gap-4 bg-ink-900 p-5 text-slate-300">
         <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-white/10 text-accent-300">{% icon "clapperboard" class="h-5 w-5" %}</div>
         <div class="min-w-0 flex-1">
-          <p class="font-semibold text-white">Same tool, same shortcuts as production</p>
-          <p class="mt-0.5 text-sm">Press <kbd class="rounded bg-white/10 px-1.5 font-mono text-xs text-white">Space</kbd> to play, <kbd class="rounded bg-white/10 px-1.5 font-mono text-xs text-white">N</kbd> to cut, <kbd class="rounded bg-white/10 px-1.5 font-mono text-xs text-white">L</kbd> to loop. Your clips are compared with the trainer's reference and scored instantly.</p>
+          <p class="font-semibold text-white">আসল কাজের টুল, একই শর্টকাট</p>
+          <p class="mt-0.5 text-sm"><kbd class="rounded bg-white/10 px-1.5 font-mono text-xs text-white">Space</kbd> চাপলে ভিডিও চলবে, <kbd class="rounded bg-white/10 px-1.5 font-mono text-xs text-white">N</kbd> চাপলে কাট হবে, <kbd class="rounded bg-white/10 px-1.5 font-mono text-xs text-white">L</kbd> চাপলে লুপ। আপনার ক্লিপগুলো ট্রেইনারের রেফারেন্সের সাথে মিলিয়ে সাথে সাথে স্কোর দেওয়া হবে।</p>
         </div>
       </div>
     </div>
@@ -19,25 +19,25 @@
         <div class="min-w-0 flex-1">
           <div class="flex flex-wrap items-center gap-2">
             <h2 class="font-semibold text-slate-900 group-hover:text-brand-700">{{ t.title }}</h2>
-            {% if row.passed %}{% status_badge "passed" "Passed" %}{% elif row.attempts %}{% status_badge "review" "Keep practising" %}{% elif row.draft %}{% status_badge "in_progress" "In progress" %}{% else %}{% status_badge "new" "New" %}{% endif %}
+            {% if row.passed %}{% status_badge "passed" "পাস" %}{% elif row.attempts %}{% status_badge "review" "আরও প্র্যাকটিস দরকার" %}{% elif row.draft %}{% status_badge "in_progress" "চলছে" %}{% else %}{% status_badge "new" "নতুন" %}{% endif %}
           </div>
-          <p class="mt-1 text-sm text-slate-500">{{ t.project.name|default:"All projects" }} · passing score {{ t.passing_score }}%{% if not t.has_reference %} · coverage practice{% endif %}</p>
+          <p class="mt-1 text-sm text-slate-500">{{ t.project.name|default:"সব প্রজেক্ট" }} · পাস নম্বর {{ t.passing_score }}%{% if not t.has_reference %} · কভারেজ প্র্যাকটিস{% endif %}</p>
         </div>
         <div class="flex items-center gap-6 text-sm">
-          <div class="text-right"><p class="text-xs text-slate-500">Best score</p><p class="font-semibold tabular-nums text-slate-900">{% if row.best is not None %}{{ row.best|floatformat:0 }}%{% else %}—{% endif %}</p></div>
-          <div class="text-right"><p class="text-xs text-slate-500">Attempts</p><p class="font-semibold tabular-nums text-slate-900">{{ row.attempts }}</p></div>
-          <span class="btn btn-primary btn-sm">{% if row.draft %}Continue{% elif row.attempts %}Practise again{% else %}Start{% endif %} {% icon "arrow-right" class="h-4 w-4" %}</span>
+          <div class="text-right"><p class="text-xs text-slate-500">সেরা স্কোর</p><p class="font-semibold tabular-nums text-slate-900">{% if row.best is not None %}{{ row.best|floatformat:0 }}%{% else %}—{% endif %}</p></div>
+          <div class="text-right"><p class="text-xs text-slate-500">চেষ্টা</p><p class="font-semibold tabular-nums text-slate-900">{{ row.attempts }}</p></div>
+          <span class="btn btn-primary btn-sm">{% if row.draft %}চালিয়ে যান{% elif row.attempts %}আবার প্র্যাকটিস করুন{% else %}শুরু করুন{% endif %} {% icon "arrow-right" class="h-4 w-4" %}</span>
         </div>
       </a>
       {% endwith %}
     {% empty %}
-      <div class="card">{% include "components/empty_state.html" with icon="clapperboard" title="No practice tasks yet" text="Your trainer will add clipping exercises here. Check back soon." %}</div>
+      <div class="card">{% include "components/empty_state.html" with icon="clapperboard" title="এখনো কোনো প্র্যাকটিস টাস্ক নেই" text="আপনার ট্রেইনার এখানে ক্লিপিংয়ের অনুশীলন যোগ করবেন। কিছুদিন পর আবার দেখুন।" %}</div>
     {% endfor %}
   </div>
 
   <aside class="space-y-4">
     <div class="card">
-      <div class="card-header"><h2 class="card-title">Recent results</h2></div>
+      <div class="card-header"><h2 class="card-title">সাম্প্রতিক ফলাফল</h2></div>
       <ul class="divide-y divide-slate-100">
         {% for a in recent %}
           <li><a href="{% url 'practice:result' a.pk %}" class="flex items-center justify-between gap-3 px-5 py-3 text-sm hover:bg-slate-50">
@@ -45,16 +45,16 @@
             <span class="font-semibold tabular-nums {% if a.passed %}text-emerald-700{% else %}text-amber-700{% endif %}">{{ a.score|floatformat:0 }}%</span>
           </a></li>
         {% empty %}
-          <li class="px-5 py-6 text-sm text-slate-500">Your submitted practice attempts will appear here.</li>
+          <li class="px-5 py-6 text-sm text-slate-500">প্র্যাকটিস জমা দিলে তার ফলাফল এখানে দেখা যাবে।</li>
         {% endfor %}
       </ul>
     </div>
     <div class="card card-body text-sm text-slate-600">
-      <h2 class="card-title mb-2">How scoring works</h2>
+      <h2 class="card-title mb-2">স্কোর কীভাবে হিসাব হয়</h2>
       <ul class="list-disc space-y-1.5 pl-4">
-        <li><strong>Boundary accuracy</strong> — your clip start/end points within the allowed tolerance of the reference.</li>
-        <li><strong>Clip overlap</strong> — how well each reference action is covered by one of your clips.</li>
-        <li><strong>Coverage</strong> — how much of the “hands present” range you clipped.</li>
+        <li><strong>শুরু/শেষের নির্ভুলতা</strong> — আপনার ক্লিপের শুরু আর শেষ রেফারেন্সের কতটা কাছে (নির্দিষ্ট ছাড়ের মধ্যে) পড়েছে।</li>
+        <li><strong>ক্লিপ মিল (IoU)</strong> — রেফারেন্সের প্রতিটা অ্যাকশন আপনার কোনো একটা ক্লিপের সাথে কতটা মিলেছে।</li>
+        <li><strong>কভারেজ</strong> — যেখানে হাত দেখা যাচ্ছে (“Hands present”), তার কতটুকু আপনি ক্লিপ করেছেন।</li>
       </ul>
     </div>
   </aside>

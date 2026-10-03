@@ -7,6 +7,8 @@ Validation collects every problem first and reports them together, with a path
 such as `sections[2].steps[1].video_url`. The import runs in one transaction.
 With `replace=True` an existing guide's sections/steps are rebuilt; steps whose
 anchors still exist are updated in place, so employees' progress on them is kept.
+A step / Task Error example keeps its "verified against the original" mark only
+when its content is unchanged.
 """
 
 import json
@@ -20,14 +22,21 @@ from apps.core.choices import ContentStatus
 from apps.core.icons import ICONS
 
 from . import services
-from .models import Guide, GuideAccent, GuideKind, GuideSection, GuideStep
+from .models import Guide, GuideAccent, GuideKind, GuideSection, GuideStep, GuideTaskError
 from .video import clean_url, parse_start
 
 SLUG_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 
-TOP_KEYS = {"slug", "title", "title_en", "summary", "kind", "icon", "accent", "source_url", "project_code", "order", "sections"}
+TOP_KEYS = {"slug", "title", "title_en", "summary", "kind", "icon", "accent", "source_url", "project_code", "order", "sections", "task_errors"}
 SECTION_KEYS = {"title", "title_en", "anchor", "intro", "steps"}
-STEP_KEYS = {"title", "anchor", "body", "body_en", "video_url", "video_caption", "video_start", "actions", "estimated_minutes"}
+STEP_KEYS = {"title", "anchor", "body", "body_en", "video_url", "video_caption", "video_start", "video_end", "actions",
+             "estimated_minutes", "source_ref", "task_errors"}
+ERROR_KEYS = {"title", "anchor", "what_wrong", "why_wrong", "how_to_avoid", "correct_method", "video_url", "video_start",
+              "video_end", "video_caption", "source_ref", "source_text_en"}
+STEP_FIELDS = ("title", "body", "body_en", "video_url", "video_caption", "video_start", "video_end", "actions",
+               "estimated_minutes", "source_ref")
+ERROR_FIELDS = ("title", "what_wrong", "why_wrong", "how_to_avoid", "correct_method", "video_url", "video_start",
+                "video_end", "video_caption", "source_ref", "source_text_en")
 ACTION_KEYS = {"key", "label_bn", "description_bn", "type"}
 
 SCHEMA_HELP = """\
@@ -60,15 +69,31 @@ JSON format (UTF-8):
           "video_url": "https://…",      optional · ORIGINAL video link (YouTube, Vimeo, Drive, Loom,
                                                    Stream/SharePoint, Lark/Feishu, .mp4/.webm/.mov, .m3u8)
           "video_caption": "…",          optional · Bangla caption (max 300)
-          "video_start": 90,             optional · seconds, or "1:30"
+          "video_start": 90,             optional · seconds, or "1:30" — where the part of the video
+          "video_end": 125,              optional   that this step's text describes starts / ends
           "actions": [                   optional · "which button does what"
             {"key": "N", "label_bn": "কাট", "description_bn": "…"}
           ],
-          "estimated_minutes": 2         optional · reading time in minutes
+          "estimated_minutes": 2,        optional · reading time in minutes
+          "source_ref": "Doc §2, point 3 · video 01:20–02:05",   optional · where it comes from (staff only)
+          "task_errors": [               optional · Task Error examples shown with this step
+            {
+              "title": "…",              required · short Bangla name of the mistake
+              "what_wrong": "…",         required · কী ভুল হয়েছে (Markdown)
+              "why_wrong": "…",          optional · কেন ভুল
+              "how_to_avoid": "…",       optional · কীভাবে এড়াবেন
+              "correct_method": "…",     optional · সঠিক পদ্ধতি
+              "video_url": "https://…",  optional · ORIGINAL video that shows the mistake
+              "video_start": "3:10", "video_end": "3:40", "video_caption": "…",
+              "source_ref": "…", "source_text_en": "…",   optional · traceability (staff only)
+              "anchor": "…"              optional · generated as <step-anchor>-error-<n>
+            }
+          ]
         }
       ]
     }
-  ]
+  ],
+  "task_errors": [ … ]                   optional · general Task Error examples (same fields)
 }
 """
 
@@ -88,6 +113,7 @@ class ImportResult:
     steps_kept: int = 0
     steps_removed: int = 0
     progress_kept: int = 0
+    task_errors: int = 0
     warnings: list = field(default_factory=list)
 
 
@@ -259,12 +285,8 @@ def validate(data) -> tuple[dict, list[str], list[str]]:
                 "video_caption": v.text(st, "video_caption", tp, max_len=300),
                 "estimated_minutes": v.int_or_none(st, "estimated_minutes", tp, lo=1, hi=600),
             }
-            vs = st.get("video_start")
-            t["video_start"] = None
-            if vs not in (None, ""):
-                t["video_start"] = parse_start(vs) if not isinstance(vs, bool) else None
-                if t["video_start"] is None:
-                    v.err(f"{tp}.video_start", f"must be seconds (e.g. 90) or \"m:ss\" (e.g. \"1:30\"), got {vs!r}")
+            t["source_ref"] = v.text(st, "source_ref", tp, max_len=300)
+            t["video_start"], t["video_end"] = _segment(v, st, tp)
             raw_anchor = st.get("anchor")
             if isinstance(raw_anchor, str) and SLUG_RE.match(raw_anchor.strip()):
                 t["anchor"] = raw_anchor.strip()
@@ -273,12 +295,74 @@ def validate(data) -> tuple[dict, list[str], list[str]]:
             t["actions"] = clean_actions(st.get("actions"), f"{tp}.actions", v.errors)
             if not t["body"] and not t["video_url"]:
                 v.warnings.append(f"{tp}: step has neither a body nor a video")
+            t["task_errors"] = _errors(v, st.get("task_errors"), f"{tp}.task_errors", taken, t["anchor"])
             s["steps"].append(t)
             total_steps += 1
         g["sections"].append(s)
     if sections and not total_steps:
         v.warnings.append("the guide has no steps")
+    g["task_errors"] = _errors(v, data.get("task_errors"), "task_errors", taken, None)
     return g, v.errors, v.warnings
+
+
+def _segment(v, obj, path):
+    """(start, end) seconds of the video segment, validated."""
+    out = []
+    for key in ("video_start", "video_end"):
+        raw = obj.get(key)
+        value = None
+        if raw not in (None, ""):
+            value = parse_start(raw) if not isinstance(raw, bool) else None
+            if value is None:
+                v.err(f"{path}.{key}", f"must be seconds (e.g. 90) or \"m:ss\" (e.g. \"1:30\"), got {raw!r}")
+        out.append(value)
+    start, end = out
+    if end is not None and end <= (start or 0):
+        v.err(f"{path}.video_end", "must be after video_start")
+        end = None
+    return start, end
+
+
+def _errors(v, raw, path, taken, step_anchor):
+    """Validate a task_errors list."""
+    if raw in (None, ""):
+        return []
+    if not isinstance(raw, list):
+        v.err(path, "must be a list of Task Error examples")
+        return []
+    out = []
+    for k, e in enumerate(raw, start=1):
+        ep = f"{path}[{k}]"
+        if not isinstance(e, dict):
+            v.err(ep, "must be an object with at least a title and what_wrong")
+            continue
+        v.unknown(e, ERROR_KEYS, ep)
+        row = {
+            "title": v.text(e, "title", ep, required=True, max_len=200),
+            "what_wrong": v.text(e, "what_wrong", ep, required=True),
+            "why_wrong": v.text(e, "why_wrong", ep),
+            "how_to_avoid": v.text(e, "how_to_avoid", ep),
+            "correct_method": v.text(e, "correct_method", ep),
+            "video_url": v.url(e, "video_url", ep, max_len=1000),
+            "video_caption": v.text(e, "video_caption", ep, max_len=300),
+            "source_ref": v.text(e, "source_ref", ep, max_len=300),
+            "source_text_en": v.text(e, "source_text_en", ep),
+        }
+        row["video_start"], row["video_end"] = _segment(v, e, ep)
+        if not row["correct_method"]:
+            v.warnings.append(f"{ep}: no correct_method — employees should see the right way next to the mistake")
+        a = e.get("anchor")
+        if isinstance(a, str) and SLUG_RE.match(a.strip()) and len(a.strip()) <= 100:
+            if a.strip() in taken:
+                v.err(f"{ep}.anchor", f"{a.strip()!r} is already used in this guide")
+            row["anchor"] = a.strip()
+            taken.add(row["anchor"])
+        else:
+            if a not in (None, ""):
+                v.err(f"{ep}.anchor", f"use up to 100 lowercase letters, digits and hyphens, got {a!r}")
+            row["anchor"] = services.unique_anchor(services.error_anchor_base(step_anchor, k), taken, f"task-error-{k}")
+        out.append(row)
+    return out
 
 
 def clean_actions(raw, path, errors: list) -> list[dict]:
@@ -365,19 +449,39 @@ def import_guide(data, *, replace=False, publish=False, user=None, dry_run=False
         sections[s["anchor"]] = sec
         result.sections += 1
 
+    old_errors = {e.anchor: e for e in GuideTaskError.objects.filter(guide=guide)}
+    GuideTaskError.objects.filter(guide=guide).delete()  # rebuilt below (verification kept when unchanged)
+
+    def save_errors(rows, step):
+        for k, row in enumerate(rows, start=1):
+            err = GuideTaskError(guide=guide, step=step, anchor=row["anchor"], order=k)
+            for f in ERROR_FIELDS:
+                setattr(err, f, row[f])
+            old = old_errors.get(row["anchor"])
+            if old is not None and not services.content_changed(services.snapshot(old), err):
+                err.verified_at, err.verified_by_id = old.verified_at, old.verified_by_id
+            err.save()
+            result.task_errors += 1
+
     for s in cleaned["sections"]:
         for j, t in enumerate(s["steps"], start=1):
             st = old_steps.get(t["anchor"])
+            before = None
             if st is not None:
                 result.steps_kept += 1
                 result.progress_kept += st.progress.count()
+                before = services.snapshot(st)
             else:
                 st = GuideStep(guide=guide, anchor=t["anchor"])
             st.section, st.guide, st.order = sections[s["anchor"]], guide, j
-            for f in ("title", "body", "body_en", "video_url", "video_caption", "video_start", "actions", "estimated_minutes"):
+            for f in STEP_FIELDS:
                 setattr(st, f, t[f])
+            if services.content_changed(before, st):
+                st.verified_at, st.verified_by = None, None
             st.save()
+            save_errors(t["task_errors"], st)
             result.steps += 1
+    save_errors(cleaned["task_errors"], None)
 
     # Sections that are gone (their surviving steps were moved above).
     GuideSection.objects.filter(pk__in=[s.pk for a, s in old_sections.items() if a not in new_section_anchors]).delete()
@@ -393,18 +497,20 @@ def export_guide(guide) -> dict:
         "kind": guide.kind, "icon": guide.icon, "accent": guide.accent, "source_url": guide.source_url,
         "project_code": guide.project.code if guide.project_id else None, "order": guide.order, "sections": [],
     }
-    steps = {}
+    steps, errors = {}, {}
     for st in GuideStep.objects.filter(guide=guide).order_by("order", "pk"):
         steps.setdefault(st.section_id, []).append(st)
+    for e in GuideTaskError.objects.filter(guide=guide).order_by("order", "pk"):
+        errors.setdefault(e.step_id, []).append({"anchor": e.anchor, **{f: getattr(e, f) for f in ERROR_FIELDS}})
     for sec in guide.sections.all():
         out["sections"].append({
             "title": sec.title, "title_en": sec.title_en, "anchor": sec.anchor, "intro": sec.intro,
             "steps": [{
-                "title": st.title, "anchor": st.anchor, "body": st.body, "body_en": st.body_en,
-                "video_url": st.video_url, "video_caption": st.video_caption, "video_start": st.video_start,
-                "actions": st.actions or [], "estimated_minutes": st.estimated_minutes,
+                "anchor": st.anchor, **{f: (getattr(st, f) or [] if f == "actions" else getattr(st, f)) for f in STEP_FIELDS},
+                "task_errors": errors.get(st.pk, []),
             } for st in steps.get(sec.pk, [])],
         })
+    out["task_errors"] = errors.get(None, [])
     return out
 
 

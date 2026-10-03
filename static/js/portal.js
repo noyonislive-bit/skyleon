@@ -27,8 +27,8 @@
         $$("[data-next-here]", panel).forEach((input) => (input.value = window.location.pathname + window.location.search));
       } catch (_) {
         loaded = false;
-        panel.innerHTML = '<p class="p-6 text-center text-sm text-slate-500">Could not load notifications. <a class="font-medium text-brand-600" href="' +
-          toggle.getAttribute("href") + '">Open the list</a></p>';
+        panel.innerHTML = '<p class="p-6 text-center text-sm text-slate-500">নোটিফিকেশন লোড করা যায়নি। <a class="font-medium text-brand-600" href="' +
+          toggle.getAttribute("href") + '">পুরো তালিকা খুলুন</a></p>';
       }
     };
     toggle.addEventListener("click", (e) => {
@@ -65,6 +65,33 @@
       } catch (_) {
         details.dataset.read = "0";
       }
+    });
+  });
+
+  // Copy to clipboard with Bangla feedback: <button data-portal-copy="text"> --
+  // (site.js's [data-copy] shows English text and loses icon-only content.)
+  $$("[data-portal-copy]").forEach((btn) => {
+    const original = { html: btn.innerHTML, title: btn.getAttribute("title"), label: btn.getAttribute("aria-label") };
+    const iconOnly = !btn.textContent.trim();
+    const restoreAttr = (name, value) => (value === null ? btn.removeAttribute(name) : btn.setAttribute(name, value));
+    let timer = null;
+    btn.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(btn.dataset.portalCopy);
+      } catch (_) {
+        return;
+      }
+      if (iconOnly) btn.classList.add("text-emerald-600");
+      else btn.textContent = "কপি হয়েছে";
+      btn.setAttribute("title", "কপি হয়েছে");
+      btn.setAttribute("aria-label", "কপি হয়েছে");
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => {
+        btn.innerHTML = original.html;
+        btn.classList.remove("text-emerald-600");
+        restoreAttr("title", original.title);
+        restoreAttr("aria-label", original.label);
+      }, 1400);
     });
   });
 

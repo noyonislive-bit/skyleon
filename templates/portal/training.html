@@ -6,52 +6,52 @@
     <span class="block font-semibold text-white">ভিডিও ক্লিপিং প্র্যাকটিস — Practice Lab</span>
     <span class="mt-0.5 block text-sm">আসল কাজের টুলের হুবহু কপি: <kbd class="rounded bg-white/10 px-1.5 font-mono text-xs text-white">Space</kbd> প্লে, <kbd class="rounded bg-white/10 px-1.5 font-mono text-xs text-white">N</kbd> কাট, টাইমলাইন, Submit — অনুশীলন করুন আর সাথে সাথে স্কোর দেখুন।</span>
   </span>
-  <span class="btn btn-white btn-sm">Open Practice Lab {% icon "arrow-right" class="h-4 w-4" %}</span>
+  <span class="btn btn-white btn-sm">প্র্যাকটিস ল্যাব খুলুন {% icon "arrow-right" class="h-4 w-4" %}</span>
 </a>
-<form method="get" class="card card-body" data-autosubmit role="search" aria-label="Filter tutorials">
+<form method="get" class="card card-body" data-autosubmit role="search" aria-label="টিউটোরিয়াল ফিল্টার">
   <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.6fr)_repeat(4,minmax(0,1fr))]">
     <div class="sm:col-span-2 lg:col-span-1">
-      <label for="f-q" class="sr-only">Search by title</label>
+      <label for="f-q" class="sr-only">নাম দিয়ে খুঁজুন</label>
       <div class="relative">
         <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-400">{% icon "search" class="h-4 w-4" %}</span>
-        <input id="f-q" type="search" name="q" value="{{ f.q }}" class="input pl-9" placeholder="Search tutorials…">
+        <input id="f-q" type="search" name="q" value="{{ f.q }}" class="input pl-9" placeholder="টিউটোরিয়াল খুঁজুন…">
       </div>
     </div>
     <div>
-      <label for="f-category" class="sr-only">Category</label>
+      <label for="f-category" class="sr-only">ক্যাটাগরি</label>
       <select id="f-category" name="category" class="select">
-        <option value="">All categories</option>
+        <option value="">সব ক্যাটাগরি</option>
         {% for c in categories %}<option value="{{ c.slug }}" {% if f.category == c.slug %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
       </select>
     </div>
     <div>
-      <label for="f-project" class="sr-only">Project</label>
+      <label for="f-project" class="sr-only">প্রজেক্ট</label>
       <select id="f-project" name="project" class="select">
-        <option value="">All projects</option>
-        <option value="company" {% if f.project == "company" %}selected{% endif %}>Company-wide</option>
+        <option value="">সব প্রজেক্ট</option>
+        <option value="company" {% if f.project == "company" %}selected{% endif %}>কোম্পানির সবার জন্য</option>
         {% for p in projects %}<option value="{{ p.slug }}" {% if f.project == p.slug %}selected{% endif %}>{{ p.code }} · {{ p.name }}</option>{% endfor %}
       </select>
     </div>
     <div>
-      <label for="f-cadence" class="sr-only">Type</label>
+      <label for="f-cadence" class="sr-only">ধরন</label>
       <select id="f-cadence" name="cadence" class="select">
-        <option value="">All types</option>
+        <option value="">সব ধরন</option>
         {% for value, label in cadences %}<option value="{{ value }}" {% if f.cadence == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
       </select>
     </div>
     <div>
-      <label for="f-status" class="sr-only">Status</label>
+      <label for="f-status" class="sr-only">অবস্থা</label>
       <select id="f-status" name="status" class="select">
-        <option value="">Any status</option>
+        <option value="">যেকোনো অবস্থা</option>
         {% for value, label in status_filters %}<option value="{{ value }}" {% if f.status == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
       </select>
     </div>
   </div>
   <div class="mt-3 flex flex-wrap items-center justify-between gap-2 text-sm">
-    <p class="text-slate-500"><span class="font-medium text-slate-900">{{ page.paginator.count }}</span> tutorial{{ page.paginator.count|pluralize }}{% if filtered %} match your filters{% endif %} · required &amp; unfinished first</p>
+    <p class="text-slate-500"><span class="font-medium text-slate-900">{{ page.paginator.count }}</span>টি টিউটোরিয়াল{% if filtered %} ফিল্টারের সাথে মিলেছে{% endif %} · বাধ্যতামূলক আর অসমাপ্তগুলো আগে</p>
     <div class="flex items-center gap-2">
-      {% if filtered %}<a href="{% url 'portal:training' %}" class="btn btn-ghost btn-sm">{% icon "x" class="h-3.5 w-3.5" %} Clear filters</a>{% endif %}
-      <noscript><button type="submit" class="btn btn-secondary btn-sm">Apply</button></noscript>
+      {% if filtered %}<a href="{% url 'portal:training' %}" class="btn btn-ghost btn-sm">{% icon "x" class="h-3.5 w-3.5" %} ফিল্টার মুছুন</a>{% endif %}
+      <noscript><button type="submit" class="btn btn-secondary btn-sm">ফিল্টার করুন</button></noscript>
     </div>
   </div>
 </form>
@@ -60,13 +60,13 @@
   <div class="mt-6 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
     {% for t in page.object_list %}{% include "portal/includes/tutorial_card.html" with t=t new_since=new_since %}{% endfor %}
   </div>
-  {% if page.has_other_pages %}<div class="card mt-6">{% include "components/pagination.html" with page=page %}</div>{% endif %}
+  {% if page.has_other_pages %}<div class="card mt-6">{% include "portal/includes/pagination.html" with page=page %}</div>{% endif %}
 {% else %}
   <div class="card mt-6">
     {% if filtered %}
-      {% include "portal/includes/empty.html" with icon="search" title="No tutorials match these filters" text="Try another category or clear the filters." action_url="/portal/training/" action_label="Clear filters" action_icon="x" %}
+      {% include "portal/includes/empty.html" with icon="search" title="এই ফিল্টারে কোনো টিউটোরিয়াল পাওয়া যায়নি" text="অন্য ক্যাটাগরি বেছে নিন, অথবা ফিল্টার মুছে দিন।" action_url="/portal/training/" action_label="ফিল্টার মুছুন" action_icon="x" %}
     {% else %}
-      {% include "portal/includes/empty.html" with icon="graduation-cap" title="No training published yet" text="Training videos for your projects will appear here as soon as they're published." %}
+      {% include "portal/includes/empty.html" with icon="graduation-cap" title="এখনো কোনো ট্রেনিং প্রকাশ হয়নি" text="আপনার প্রজেক্টের ট্রেনিং ভিডিও প্রকাশ হলেই এখানে চলে আসবে।" %}
     {% endif %}
   </div>
 {% endif %}

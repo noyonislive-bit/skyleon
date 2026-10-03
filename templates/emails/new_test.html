@@ -1,7 +1,8 @@
 {% extends "emails/base.html" %}
+{% block lang %}bn{% endblock %}
 {% block content %}
-<h1 style="margin:0 0 12px;font-size:20px;line-height:28px;color:#0f172a">You have a new assessment to complete</h1>
-<p style="margin:0 0 12px;font-size:15px;line-height:24px">Hi {{ user.first_name }}, a new assessment has been assigned to you:</p><p style="margin:0 0 12px;font-size:15px;line-height:24px"><strong>{{ test.title }}</strong><br>Passing score: {{ test.passing_score }}%{% if test.attempt_limit %} · Attempts allowed: {{ test.attempt_limit }}{% endif %}{% if test.time_limit_min %} · Time limit: {{ test.time_limit_min }} min{% endif %}</p>
-{% if link %}{% include "emails/_button.html" with url=link label="Start the assessment" %}{% endif %}
-<p style="margin:16px 0 0;font-size:13px;color:#94a3b8">— The {{ brand.name }} team</p>
+<h1 style="margin:0 0 12px;font-size:20px;line-height:30px;color:#121c17">আপনার জন্য নতুন টেস্ট</h1>
+<p style="margin:0 0 12px;font-size:15px;line-height:26px">{{ user.first_name }}, আপনাকে একটা নতুন টেস্ট দেওয়া হয়েছে:</p><p style="margin:0 0 12px;font-size:15px;line-height:26px"><strong>{{ test.title }}</strong><br>পাস মার্ক: {{ test.passing_score }}%{% if test.attempt_limit %} · চেষ্টা করতে পারবেন: {{ test.attempt_limit }} বার{% endif %}{% if test.time_limit_min %} · সময়সীমা: {{ test.time_limit_min }} মিনিট{% endif %}</p>
+{% if link %}{% include "emails/_button.html" with url=link label="টেস্ট শুরু করুন" %}{% endif %}
+<p style="margin:16px 0 0;font-size:13px;color:#91a199">— {{ brand.name }} টিম</p>
 {% endblock %}

@@ -89,7 +89,17 @@ def clean_url(url) -> str | None:
     return url
 
 
-def _result(kind, src, provider, original, start=None, **extra):
+def clock(seconds) -> str:
+    """90 → "01:30", 3725 → "1:02:05"."""
+    seconds = int(seconds or 0)
+    h, rem = divmod(seconds, 3600)
+    m, s = divmod(rem, 60)
+    return f"{h}:{m:02d}:{s:02d}" if h else f"{m:02d}:{s:02d}"
+
+
+def _result(kind, src, provider, original, start=None, end=None, **extra):
+    if end is not None and start is not None and end <= start:
+        end = None
     return {
         "kind": kind,
         "src": src,
@@ -97,6 +107,9 @@ def _result(kind, src, provider, original, start=None, **extra):
         "provider_label": PROVIDERS[provider],
         "original": original,
         "start": start,
+        "end": end,
+        # The part of the original video that matches the text next to it ("01:20 – 02:05").
+        "segment": (f"{clock(start or 0)} – {clock(end)}" if end is not None else (f"{clock(start)} থেকে" if start else "")),
         "needs_login": provider in LOGIN_PROVIDERS,
         "allow": IFRAME_ALLOW if kind == "iframe" else "",
         **extra,
@@ -141,7 +154,10 @@ def _drive_id(host, path, query):
     return None
 
 
-def embed_info(url, start=None) -> dict | None:
+def embed_info(url, start=None, end=None) -> dict | None:
+    """Player info for the ORIGINAL link. start/end (seconds or "m:ss") mark the part of the
+    video a step or Task Error example refers to: players that support it start there (and
+    YouTube / direct files also stop at `end`); the segment is always shown as a label."""
     original = clean_url(url)
     if original is None:
         return None
@@ -150,6 +166,7 @@ def embed_info(url, start=None) -> dict | None:
     path = parts.path or "/"
     query = parse_qs(parts.query)
     start = parse_start(start)
+    end = parse_start(end)
 
     # YouTube --------------------------------------------------------------
     yt = _youtube_id(host, path, query)
@@ -161,7 +178,9 @@ def embed_info(url, start=None) -> dict | None:
         params = {"rel": "0"}
         if start:
             params["start"] = str(start)
-        return _result("iframe", f"https://www.youtube-nocookie.com/embed/{yt}?{urlencode(params)}", "youtube", original, start)
+        if end and end > (start or 0):
+            params["end"] = str(end)
+        return _result("iframe", f"https://www.youtube-nocookie.com/embed/{yt}?{urlencode(params)}", "youtube", original, start, end)
 
     # Vimeo ----------------------------------------------------------------
     vid, vhash = _vimeo(host, path, query)
@@ -172,12 +191,12 @@ def embed_info(url, start=None) -> dict | None:
             start = parse_start(parts.fragment[2:])
         if start:
             src += f"#t={start}s"
-        return _result("iframe", src, "vimeo", original, start)
+        return _result("iframe", src, "vimeo", original, start, end)
 
     # Google Drive -----------------------------------------------------------
     did = _drive_id(host, path, query)
     if did and DRIVE_ID.match(did):
-        return _result("iframe", f"https://drive.google.com/file/d/{did}/preview", "drive", original, None)
+        return _result("iframe", f"https://drive.google.com/file/d/{did}/preview", "drive", original, start, end)
 
     # Loom -------------------------------------------------------------------
     if _host_is(host, "loom.com"):
@@ -186,7 +205,7 @@ def embed_info(url, start=None) -> dict | None:
             if start is None:
                 start = parse_start((query.get("t") or [None])[0])
             src = f"https://www.loom.com/embed/{m.group(1)}" + (f"?t={start}" if start else "")
-            return _result("iframe", src, "loom", original, start)
+            return _result("iframe", src, "loom", original, start, end)
 
     # Microsoft Stream / SharePoint / OneDrive -------------------------------
     if _host_is(host, "sharepoint.com", "microsoftstream.com", "onedrive.live.com", "1drv.ms") or host == "stream.microsoft.com":
@@ -194,25 +213,25 @@ def embed_info(url, start=None) -> dict | None:
         m = re.match(r"^/video/([0-9a-f-]{36})", path)
         if host == "web.microsoftstream.com" and m:  # classic Stream
             src = f"https://web.microsoftstream.com/embed/video/{m.group(1)}"
-        return _result("iframe", src, "stream", original, start)
+        return _result("iframe", src, "stream", original, start, end)
 
     # Lark / Feishu ----------------------------------------------------------
     if _host_is(host, "larksuite.com", "feishu.cn", "larkoffice.com", "feishu.net", "larksuite.cn"):
-        return _result("iframe", original, "lark", original, start)
+        return _result("iframe", original, "lark", original, start, end)
 
     # Direct files / HLS -----------------------------------------------------
     ext = path.rsplit(".", 1)[-1].lower() if "." in path.rsplit("/", 1)[-1] else ""
     if ext == "m3u8":
-        return _result("hls", original, "hls", original, start)
+        return _result("hls", original, "hls", original, start, end)
     if ext in VIDEO_EXT:
         src = original
         if _host_is(host, "dropbox.com"):  # share page → raw file
             q = {k: v[0] for k, v in query.items() if k != "dl"}
             q["raw"] = "1"
             src = urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(q), ""))
-        if start:
-            src = src.split("#", 1)[0] + f"#t={start}"
-        return _result("video", src, "file", original, start, mime=VIDEO_EXT[ext], ext=ext.upper())
+        if start or (end and end > (start or 0)):
+            src = src.split("#", 1)[0] + f"#t={start or 0}" + (f",{end}" if end and end > (start or 0) else "")
+        return _result("video", src, "file", original, start, end, mime=VIDEO_EXT[ext], ext=ext.upper())
 
     return _result("link", original, "link", original, None, host=host.removeprefix("www."))
 

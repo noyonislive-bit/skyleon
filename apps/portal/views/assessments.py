@@ -19,9 +19,28 @@ from apps.storage.services import media_url
 
 from ..helpers import crumbs, feedback_gate, paginate, state_badge, tests_with_state
 from ..scope import attempts_by_test, portal_view
+from ..templatetags.portal_tags import choice_bn
 
-TABS = [("pending", "Pending"), ("completed", "Completed"), ("all", "All")]
+TABS = [("pending", "বাকি"), ("completed", "সম্পন্ন"), ("all", "সব")]
 DEADLINE_GRACE_SECONDS = 120  # matches the "late" tolerance in assessments.services.submit_attempt
+
+# assessments.services.start_attempt raises AttemptError with English texts (shared with the admin panel);
+# employees see these Bangla versions.
+ATTEMPT_ERRORS_BN = {
+    "This test is not available.": "এই টেস্টটি এখন দেওয়া যাবে না।",
+    "You have already passed this test.": "আপনি এই টেস্টে আগেই পাস করেছেন।",
+    "You have used all attempts for this test.": "এই টেস্টের সব চেষ্টা শেষ।",
+    "This test has no questions yet.": "এই টেস্টে এখনো কোনো প্রশ্ন যোগ করা হয়নি।",
+}
+
+
+def attempt_error_bn(exc) -> str:
+    message = str(exc)
+    if message in ATTEMPT_ERRORS_BN:
+        return ATTEMPT_ERRORS_BN[message]
+    if any("\u0980" <= ch <= "\u09ff" for ch in message):  # already Bangla
+        return message
+    return "টেস্টটি এখন শুরু করা যাচ্ছে না।"
 
 
 @portal_view
@@ -46,9 +65,9 @@ def test_list(request):
         "tabs": [{"key": k, "label": label, "count": len(groups[k])} for k, label in TABS],
         "items": items,
         "now": now,
-        "page_title": "Tests & quizzes",
-        "page_subtitle": "Training, onboarding and feedback tests assigned to you.",
-        "crumbs": crumbs(("Tests", None)),
+        "page_title": "টেস্ট ও কুইজ",
+        "page_subtitle": "আপনাকে দেওয়া ট্রেনিং, অনবোর্ডিং আর ফিডব্যাক টেস্ট।",
+        "crumbs": crumbs(("টেস্ট", None)),
     })
 
 
@@ -76,7 +95,7 @@ def test_detail(request, pk):
         "gate": gate,
         "recipient": recipient,
         "feedback": getattr(test, "feedback", None),
-        "crumbs": crumbs(("Tests", reverse("portal:tests")), (test.title, None)),
+        "crumbs": crumbs(("টেস্ট", reverse("portal:tests")), (test.title, None)),
     })
 
 
@@ -92,7 +111,7 @@ def test_start(request, pk):
     try:
         attempt = start_attempt(request.user, test)
     except AttemptError as exc:
-        messages.error(request, str(exc))
+        messages.error(request, attempt_error_bn(exc))
         return redirect("portal:test_detail", pk=test.pk)
     return redirect("portal:test_take", attempt_id=attempt.pk)
 
@@ -139,7 +158,7 @@ def build_questions(attempt, user, *, reveal=False):
             "index": index,
             "prompt": q.prompt,
             "qtype": q.qtype,
-            "qtype_label": q.get_qtype_display(),
+            "qtype_label": choice_bn("question_type", q.qtype),
             "multi": q.qtype == QuestionType.MULTI_SELECT,
             "points": q.points,
             "media": _media(q.media, user) if q.media_id else None,
@@ -174,12 +193,12 @@ def test_take(request, attempt_id):
                 selections[str(q.pk)] = values
         submit_attempt(attempt, selections)
         if request.POST.get("auto") == "1":
-            messages.info(request, "Time is up — your answers were submitted automatically.")
+            messages.info(request, "সময় শেষ — আপনার উত্তরগুলো নিজে থেকেই জমা হয়ে গেছে।")
         return redirect("portal:result_detail", attempt_id=attempt.pk)
 
     if deadline and now > deadline + timezone.timedelta(seconds=DEADLINE_GRACE_SECONDS):
         submit_attempt(attempt, {})
-        messages.warning(request, "The time limit for this attempt has passed, so it was submitted without answers.")
+        messages.warning(request, "এই চেষ্টার সময় আগেই শেষ হয়ে গিয়েছিল, তাই উত্তর ছাড়াই জমা হয়ে গেছে।")
         return redirect("portal:result_detail", attempt_id=attempt.pk)
 
     questions = build_questions(attempt, request.user, reveal=False)
@@ -190,8 +209,8 @@ def test_take(request, attempt_id):
         "questions": questions,
         "deadline": deadline,
         "remaining": remaining,
-        "crumbs": crumbs(("Tests", reverse("portal:tests")), (test.title, reverse("portal:test_detail", args=[test.pk])),
-                         (f"Attempt {attempt.attempt_number}", None)),
+        "crumbs": crumbs(("টেস্ট", reverse("portal:tests")), (test.title, reverse("portal:test_detail", args=[test.pk])),
+                         (f"চেষ্টা #{attempt.attempt_number}", None)),
     })
 
 
@@ -220,7 +239,7 @@ def result_detail(request, attempt_id):
         "correct_count": sum(1 for q in questions if q["correct"]),
         "feedback": fb,
         "history": [a for a in all_attempts if a.submitted_at],
-        "crumbs": crumbs(("Results", reverse("portal:results")), (f"{test.title} · attempt {attempt.attempt_number}", None)),
+        "crumbs": crumbs(("ফলাফল", reverse("portal:results")), (f"{test.title} · চেষ্টা #{attempt.attempt_number}", None)),
     })
 
 
@@ -236,7 +255,7 @@ def results(request):
     return render(request, "portal/results.html", {
         "page": page,
         "summary": summary,
-        "page_title": "Results history",
-        "page_subtitle": "Every test attempt you've submitted, with your score.",
-        "crumbs": crumbs(("Results", None)),
+        "page_title": "ফলাফলের ইতিহাস",
+        "page_subtitle": "আপনার জমা দেওয়া প্রতিটি টেস্ট আর তার স্কোর।",
+        "crumbs": crumbs(("ফলাফল", None)),
     })

@@ -90,10 +90,12 @@ def score_attempt(user_clips: list[Clip], ref_clips: list[Clip], lo: float, hi: 
 
     overlaps = [(a, b) for a, b in zip(user_clips, user_clips[1:]) if b[0] < a[1] - 1e-6]
     for a, b in overlaps[:10]:
-        issues.append({"kind": "overlap", "text": f"Clips overlap between {fmt(b[0])} and {fmt(min(a[1], b[1]))}."})
+        issues.append({"kind": "overlap", "text": f"Clips overlap between {fmt(b[0])} and {fmt(min(a[1], b[1]))}.",
+                       "text_bn": f"{fmt(b[0])} থেকে {fmt(min(a[1], b[1]))} পর্যন্ত দুটো ক্লিপ একটার ওপর আরেকটা পড়েছে।"})
     for s, e in gaps[:10]:
         if e - s >= tol:
-            issues.append({"kind": "uncovered", "text": f"Hands-present time not covered: {fmt(s)} – {fmt(e)}."})
+            issues.append({"kind": "uncovered", "text": f"Hands-present time not covered: {fmt(s)} – {fmt(e)}.",
+                           "text_bn": f"{fmt(s)} – {fmt(e)} অংশে হাত দেখা যাচ্ছে, কিন্তু কোনো ক্লিপ নেই।"})
 
     result = {
         "coverage": round(coverage * 100, 1),
@@ -117,17 +119,21 @@ def score_attempt(user_clips: list[Clip], ref_clips: list[Clip], lo: float, hi: 
         best_iou, best_clip = scored[0] if scored else (0.0, None)
         best.append(best_iou)
         if best_iou < 0.5:
-            issues.append({"kind": "missed", "text": f"Reference clip {idx} ({fmt(r[0])} – {fmt(r[1])}) has no matching clip."})
+            issues.append({"kind": "missed", "text": f"Reference clip {idx} ({fmt(r[0])} – {fmt(r[1])}) has no matching clip.",
+                           "text_bn": f"রেফারেন্সের {idx} নম্বর ক্লিপের ({fmt(r[0])} – {fmt(r[1])}) সাথে মেলে এমন কোনো ক্লিপ আপনি বানাননি।"})
         elif best_clip:
             ds, de = best_clip[0] - r[0], best_clip[1] - r[1]
             if abs(ds) > tol:
-                issues.append({"kind": "boundary", "text": f"Clip for reference {idx} starts {abs(ds):.2f}s {'late' if ds > 0 else 'early'}."})
+                issues.append({"kind": "boundary", "text": f"Clip for reference {idx} starts {abs(ds):.2f}s {'late' if ds > 0 else 'early'}.",
+                               "text_bn": f"রেফারেন্সের {idx} নম্বর ক্লিপের তুলনায় আপনার ক্লিপ {abs(ds):.2f} সেকেন্ড {'দেরিতে' if ds > 0 else 'আগে'} শুরু হয়েছে।"})
             if abs(de) > tol:
-                issues.append({"kind": "boundary", "text": f"Clip for reference {idx} ends {abs(de):.2f}s {'late' if de > 0 else 'early'}."})
+                issues.append({"kind": "boundary", "text": f"Clip for reference {idx} ends {abs(de):.2f}s {'late' if de > 0 else 'early'}.",
+                               "text_bn": f"রেফারেন্সের {idx} নম্বর ক্লিপের তুলনায় আপনার ক্লিপ {abs(de):.2f} সেকেন্ড {'দেরিতে' if de > 0 else 'আগে'} শেষ হয়েছে।"})
     mean_iou = sum(best) / len(best) if best else 0.0
     extra_clips = [u for u in user_clips if max((iou(u, r) for r in ref_clips), default=0) < 0.3]
     for u in extra_clips[:10]:
-        issues.append({"kind": "extra", "text": f"Extra clip {fmt(u[0])} – {fmt(u[1])} does not match any reference action."})
+        issues.append({"kind": "extra", "text": f"Extra clip {fmt(u[0])} – {fmt(u[1])} does not match any reference action.",
+                       "text_bn": f"{fmt(u[0])} – {fmt(u[1])} ক্লিপটা বাড়তি — রেফারেন্সের কোনো অ্যাকশনের সাথে মেলে না।"})
 
     score = 100 * (0.5 * f1 + 0.3 * mean_iou + 0.2 * coverage)
     result.update(

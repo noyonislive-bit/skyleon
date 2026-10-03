@@ -64,9 +64,9 @@ def onboarding(request):
         "overall_percent": round(done / total * 100) if total else 0,
         "overall_done": done,
         "overall_total": total,
-        "page_title": "Onboarding",
-        "page_subtitle": "Complete each step in order to get qualified for production work.",
-        "crumbs": crumbs(("Onboarding", None)),
+        "page_title": "অনবোর্ডিং",
+        "page_subtitle": "প্রোডাকশনের কাজের জন্য কোয়ালিফাইড হতে ধাপগুলো একটার পর একটা শেষ করুন।",
+        "crumbs": crumbs(("অনবোর্ডিং", None)),
     })
 
 
@@ -81,16 +81,16 @@ def complete_step(request, pk):
             break
     fallback = reverse("portal:onboarding")
     if item is None:
-        messages.error(request, "This onboarding step is not part of your onboarding.")
+        messages.error(request, "এই ধাপটি আপনার অনবোর্ডিংয়ের অংশ নয়।")
     elif item["locked"]:
-        messages.error(request, "Complete the previous steps first.")
+        messages.error(request, "আগে আগের ধাপগুলো শেষ করুন।")
     elif item["rule"] != "manual":
-        messages.error(request, "This step completes automatically when its video, test or qualification is done.")
+        messages.error(request, "এই ধাপের ভিডিও, টেস্ট বা কোয়ালিফিকেশন শেষ হলে এটি নিজে থেকেই সম্পন্ন হবে।")
     elif item["done_at"]:
-        messages.info(request, f"“{step.title}” is already complete.")
+        messages.info(request, f"“{step.title}” আগেই সম্পন্ন হয়েছে।")
     else:
         complete_manual_step(step, request.user)
-        messages.success(request, f"Step “{step.title}” marked as complete.")
+        messages.success(request, f"“{step.title}” ধাপটি সম্পন্ন হিসেবে চিহ্নিত হয়েছে।")
     nxt = request.POST.get("next") or ""
     target = nxt if nxt.startswith("/portal/") and not nxt.startswith("//") else fallback
     return redirect(f"{target}#step-{step.pk}")

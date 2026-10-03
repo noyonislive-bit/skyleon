@@ -1,6 +1,6 @@
 {% comment %} Timeline comparison: your clips vs reference vs uncovered gaps. {% endcomment %}
 <div class="card">
-  <div class="card-header"><h2 class="card-title">Timeline comparison</h2><span class="font-mono text-xs text-slate-500">{{ range_label }}</span></div>
+  <div class="card-header"><h2 class="card-title">{% bn "টাইমলাইনে তুলনা" "Timeline comparison" %}</h2><span class="font-mono text-xs text-slate-500">{{ range_label }}</span></div>
   <div class="card-body">
     <div class="relative ml-24 h-5 border-b border-slate-200">
       {% for t in ticks %}<span class="absolute -translate-x-1/2 font-mono text-[10px] text-slate-400" style="left: {{ t.left|stringformat:'.3f' }}%">{{ t.label }}</span>{% endfor %}
@@ -13,6 +13,6 @@
         </div>
       </div>
     {% endfor %}
-    <p class="mt-4 text-xs text-slate-500">Hover a bar to see exact times. Tolerance for boundaries: ±{{ task.tolerance_sec }}s.</p>
+    <p class="mt-4 text-xs text-slate-500">{% bn "সঠিক সময় দেখতে বারের ওপর মাউস রাখুন। শুরু/শেষের জন্য ছাড়" "Hover a bar to see exact times. Tolerance for boundaries:" %} ±{{ task.tolerance_sec }}s.</p>
   </div>
 </div>

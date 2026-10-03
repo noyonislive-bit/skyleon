@@ -32,6 +32,7 @@
           <li>{% icon "layers" class="h-4 w-4" %} {{ outline.sections|length|bn }}টি অধ্যায়</li>
           <li>{% icon "list-checks" class="h-4 w-4" %} {{ outline.total|bn }}টি ধাপ</li>
           {% if outline.video_count %}<li>{% icon "circle-play" class="h-4 w-4" %} {{ outline.video_count|bn }}টি ভিডিও</li>{% endif %}
+          {% if outline.errors %}<li><a href="#{{ outline.errors_anchor }}" class="g-meta-err">{% icon "shield-alert" class="h-4 w-4" %} {{ outline.error_count|bn }}টি Task Error উদাহরণ</a></li>{% endif %}
           <li>{% icon "clock" class="h-4 w-4" %} আনুমানিক {{ outline.minutes|bn }} মিনিট</li>
         </ul>
       </div>
@@ -97,6 +98,37 @@
         </div>
       </section>
       {% endfor %}
+
+      {% if outline.errors %}
+      <section id="{{ outline.errors_anchor }}" class="g-errsum" aria-labelledby="g-errsum-h" tabindex="-1">
+        <header class="g-errsum-head">
+          <span class="g-err-icon">{% icon "shield-alert" class="h-5 w-5" %}</span>
+          <div class="min-w-0">
+            <h2 id="g-errsum-h" class="g-errsum-title">কাজ শুরুর আগে: সব Task Error উদাহরণ</h2>
+            <p class="g-errsum-sub">মূল ডকুমেন্ট আর ভিডিওতে দেখানো যে ভুলগুলো করলে টাস্ক Task Error হয় — এক জায়গায়। প্রতিটির পাশে সঠিক পদ্ধতিও দেওয়া আছে।</p>
+          </div>
+        </header>
+        <ol class="g-errsum-list">
+          {% for err in outline.errors %}
+          <li>
+            <a href="#{{ err.anchor }}" class="g-errsum-link">
+              <span class="g-errsum-num">{{ err.label }}</span>
+              <span class="min-w-0 flex-1">
+                <span class="g-errsum-name">{{ err.obj.title }}</span>
+                <span class="g-errsum-where">{% if err.step %}ধাপ {{ err.step.label }} · {{ err.step.obj.title }}{% else %}সাধারণ উদাহরণ{% endif %}{% if err.video %} · {% icon "circle-play" class="inline h-3 w-3" %} ভিডিওসহ{% endif %}</span>
+              </span>
+              {% icon "arrow-right" class="h-4 w-4 shrink-0 text-slate-400" %}
+            </a>
+          </li>
+          {% endfor %}
+        </ol>
+        {% if outline.guide_errors %}
+        <div class="g-errsum-general">
+          {% for err in outline.guide_errors %}{% include "guides/_task_error.html" %}{% endfor %}
+        </div>
+        {% endif %}
+      </section>
+      {% endif %}
 
       <section id="g-finish" class="g-finish card" tabindex="-1" aria-label="গাইড শেষ">
         <div class="flex flex-col items-center gap-3 px-6 py-10 text-center" data-g-finish-done{% if not outline.is_complete %} hidden{% endif %}>

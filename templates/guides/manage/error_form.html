@@ -1,0 +1,64 @@
+{% extends "backoffice/base.html" %}
+{% load static guides_tags %}
+{% block page_actions %}
+  {% if preview_url %}<a href="{{ preview_url }}" class="btn btn-secondary">{% icon "eye" class="h-4 w-4" %} Preview as employee</a>{% endif %}
+{% endblock %}
+{% block content %}
+<form method="post" class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]" novalidate data-guide-step-form>
+  {% csrf_token %}
+  <div class="space-y-6">
+    <div class="alert alert-warning">{% icon "shield-alert" class="mt-0.5 h-4 w-4 shrink-0" %}
+      <p class="flex-1 text-sm">Add only mistakes that the <strong>original document or video</strong> shows as a Task Error — do not invent new rules. Employees see this as a separate red card: “এই কাজটি এভাবে ভুল করলে Task Error হিসেবে গণ্য হবে”, followed by the four parts below, next to the part of the original video that shows the mistake.</p>
+    </div>
+    <div class="card card-body space-y-5">
+      {% include "components/form_errors.html" %}
+      {% include "components/field.html" with field=form.title %}
+      <div class="grid gap-5 sm:grid-cols-2">
+        {% include "components/field.html" with field=form.step %}
+        {% include "components/field.html" with field=form.anchor %}
+      </div>
+      {% include "components/field.html" with field=form.what_wrong %}
+      {% include "components/field.html" with field=form.why_wrong %}
+      {% include "components/field.html" with field=form.how_to_avoid %}
+      {% include "components/field.html" with field=form.correct_method %}
+    </div>
+
+    <div class="card card-body space-y-5">
+      <h2 class="card-title">{% icon "circle-play" class="mr-1 inline h-4 w-4" %} Where the original video shows it</h2>
+      <div>
+        {% include "components/field.html" with field=form.video_url hint="The ORIGINAL video link (never downloaded or re-hosted)." %}
+        <span class="g-detect{% if video_label %} is-ok{% endif %}" data-guide-detect {% if not video_label %}hidden{% endif %}>{{ video_label }}</span>
+      </div>
+      <div class="grid gap-5 sm:grid-cols-2">
+        {% include "components/field.html" with field=form.video_start %}
+        {% include "components/field.html" with field=form.video_end %}
+      </div>
+      {% include "components/field.html" with field=form.video_caption %}
+      <div class="rounded-xl bg-slate-50 p-3 ring-1 ring-slate-200" data-guide-preview {% if not video_info %}hidden{% endif %}>
+        {% if video_info %}{% include "guides/_video.html" with info=video_info title="Preview" caption="" compact=True %}{% endif %}
+      </div>
+    </div>
+  </div>
+
+  <aside class="space-y-6">
+    <div class="card card-body space-y-4">
+      <h2 class="card-title">{% icon "file-check" class="mr-1 inline h-4 w-4" %} Source of truth</h2>
+      {% include "components/field.html" with field=form.source_ref %}
+      {% include "components/field.html" with field=form.source_text_en %}
+      <label class="flex items-start gap-2.5 rounded-lg bg-slate-50 p-3 text-sm ring-1 ring-slate-200">
+        <input type="hidden" name="was_verified" value="{% if error.verified_at %}1{% endif %}">
+        <input type="checkbox" name="verified" value="1" class="checkbox mt-0.5" {% if error.verified_at %}checked{% endif %}>
+        <span><strong class="text-slate-800">Verified against the original</strong><br><span class="text-xs text-slate-500">Checked against the original document and the video segment: the mistake and the correct method are exactly as shown there. {% if error.verified_at %}Last verified {{ error.verified_at|date:"j M Y" }}. Unticked automatically when the content changes.{% endif %}</span></span>
+      </label>
+    </div>
+    <div class="card card-body">
+      <div class="flex flex-col gap-2">
+        <button class="btn btn-primary" name="then" value="">Save example</button>
+        <button class="btn btn-secondary" name="then" value="add">Save &amp; add another</button>
+        <a href="{% url 'guides:manage_edit' guide.pk %}{% if error %}#{{ error.anchor }}{% endif %}" class="btn btn-ghost">Cancel</a>
+      </div>
+    </div>
+  </aside>
+</form>
+{% endblock %}
+{% block scripts %}{{ block.super }}<script src="{% static 'js/guides-admin.js' %}" defer></script>{% endblock %}

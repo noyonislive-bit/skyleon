@@ -1,38 +1,38 @@
 {% extends "portal/base.html" %}
 {% load portal_tags %}
-{% block page_actions %}<a href="{% url 'portal:tests' %}" class="btn btn-secondary btn-sm">{% icon "clipboard-check" class="h-3.5 w-3.5" %} My tests</a>{% endblock %}
+{% block page_actions %}<a href="{% url 'portal:tests' %}" class="btn btn-secondary btn-sm">{% icon "clipboard-check" class="h-3.5 w-3.5" %} আমার টেস্ট</a>{% endblock %}
 {% block content %}
 <div class="grid grid-cols-3 gap-3 sm:gap-4">
-  <div class="stat"><p class="stat-label">Attempts</p><p class="stat-value">{{ summary.taken }}</p></div>
-  <div class="stat"><p class="stat-label">Passed</p><p class="stat-value">{{ summary.passed }}</p></div>
-  <div class="stat"><p class="stat-label">Avg. score</p><p class="stat-value">{% if summary.avg is not None %}{{ summary.avg|floatformat:0 }}<span class="text-lg text-slate-400">%</span>{% else %}—{% endif %}</p></div>
+  <div class="stat"><p class="stat-label">মোট চেষ্টা</p><p class="stat-value">{{ summary.taken }}</p></div>
+  <div class="stat"><p class="stat-label">পাস</p><p class="stat-value">{{ summary.passed }}</p></div>
+  <div class="stat"><p class="stat-label">গড় স্কোর</p><p class="stat-value">{% if summary.avg is not None %}{{ summary.avg|floatformat:0 }}<span class="text-lg text-slate-400">%</span>{% else %}—{% endif %}</p></div>
 </div>
 
 <div class="card mt-6">
   {% if page.object_list %}
   <div class="table-wrap">
     <table class="table">
-      <thead><tr><th>Test</th><th class="num">Score</th><th>Result</th><th class="hidden sm:table-cell">Attempt</th><th class="hidden md:table-cell">Submitted</th><th><span class="sr-only">Open</span></th></tr></thead>
+      <thead><tr><th>টেস্ট</th><th class="num">স্কোর</th><th>ফলাফল</th><th class="hidden sm:table-cell">চেষ্টা</th><th class="hidden md:table-cell">জমার সময়</th><th><span class="sr-only">খুলুন</span></th></tr></thead>
       <tbody>
         {% for a in page.object_list %}
         <tr>
           <td>
             <a href="{% url 'portal:result_detail' a.pk %}" class="font-medium text-slate-900 hover:text-brand-700">{{ a.test.title }}</a>
-            <p class="text-xs text-slate-500">{{ a.test.get_kind_display }}{% if a.test.project %} · {{ a.test.project.code }}{% endif %}<span class="md:hidden"> · {{ a.submitted_at|date:"M j" }}</span></p>
+            <p class="text-xs text-slate-500">{{ a.test.kind|label_bn:"test_kind" }}{% if a.test.project %} · {{ a.test.project.code }}{% endif %}<span class="md:hidden"> · {{ a.submitted_at|date:"j M" }}</span></p>
           </td>
           <td class="num font-mono font-semibold text-slate-900">{{ a.score|floatformat:0 }}%</td>
-          <td>{% if a.passed %}<span class="badge badge-success">Passed</span>{% else %}<span class="badge badge-danger">Failed</span>{% endif %}</td>
+          <td>{% if a.passed %}<span class="badge badge-success">পাস</span>{% else %}<span class="badge badge-danger">পাস হয়নি</span>{% endif %}</td>
           <td class="hidden font-mono sm:table-cell">#{{ a.attempt_number }}</td>
-          <td class="hidden whitespace-nowrap md:table-cell">{{ a.submitted_at|date:"M j, Y · H:i" }}</td>
-          <td class="text-right"><a href="{% url 'portal:result_detail' a.pk %}" class="btn btn-ghost btn-sm" aria-label="View result">{% icon "chevron-right" class="h-4 w-4" %}</a></td>
+          <td class="hidden whitespace-nowrap md:table-cell">{{ a.submitted_at|date:"j M Y · H:i" }}</td>
+          <td class="text-right"><a href="{% url 'portal:result_detail' a.pk %}" class="btn btn-ghost btn-sm" aria-label="ফলাফল দেখুন">{% icon "chevron-right" class="h-4 w-4" %}</a></td>
         </tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
-  {% include "components/pagination.html" with page=page %}
+  {% include "portal/includes/pagination.html" with page=page %}
   {% else %}
-    {% include "portal/includes/empty.html" with icon="trophy" title="No results yet" text="Take a test to see your scores here." action_url="/portal/tests/" action_label="Go to tests" %}
+    {% include "portal/includes/empty.html" with icon="trophy" title="এখনো কোনো ফলাফল নেই" text="টেস্ট দিলে আপনার স্কোর এখানে দেখাবে।" action_url="/portal/tests/" action_label="টেস্টে যান" %}
   {% endif %}
 </div>
 {% endblock %}

@@ -18,7 +18,7 @@ from django.conf import settings
 from django.core.mail import EmailMultiAlternatives, get_connection
 from django.db import transaction
 from django.template.loader import render_to_string
-from django.utils import timezone
+from django.utils import timezone, translation
 
 from apps.core import site_settings
 
@@ -36,7 +36,19 @@ def absolute_url(path: str) -> str:
     return f"{settings.APP_URL}{path}"
 
 
+# Emails employees receive are written in Bangla (like the portal); dates/numbers in them are formatted to match.
+BANGLA_EMAILS = frozenset({
+    "account_approved", "account_invite", "announcement", "meeting_invite", "new_feedback",
+    "new_test", "new_training", "password_reset", "project_assigned",
+})
+
+
 def render_email(template: str, context: dict) -> tuple[str, str]:
+    with translation.override("bn" if template in BANGLA_EMAILS else "en"):
+        return _render_email(template, context)
+
+
+def _render_email(template: str, context: dict) -> tuple[str, str]:
     ctx = {
         "brand": site_settings.BRAND,
         "company": site_settings.company(),

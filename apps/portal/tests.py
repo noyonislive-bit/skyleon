@@ -156,7 +156,7 @@ class AccessControlTests(PortalTestBase):
     def test_api_returns_json_403_for_anonymous(self):
         resp = self.hb(reverse("portal:tutorial_heartbeat", args=[self.tut_a.pk]), {"duration": 100, "ranges": [[0, 5]]}, Client())
         self.assertEqual(resp.status_code, 403)
-        self.assertEqual(resp.json()["error"], "forbidden")
+        self.assertEqual(resp.json()["error"], "এই কাজের অনুমতি আপনার নেই।")
 
     def test_other_project_content_hidden(self):
         self.assertEqual(self.c.get(reverse("portal:tutorial_detail", args=[self.tut_b.pk])).status_code, 404)
@@ -222,7 +222,7 @@ class AccessControlTests(PortalTestBase):
                 self.assertEqual(pm.get(url).status_code, 200)
 
     def test_processing_video_message(self):
-        self.assertContains(self.c.get(reverse("portal:tutorial_detail", args=[self.tut_processing.pk])), "still processing")
+        self.assertContains(self.c.get(reverse("portal:tutorial_detail", args=[self.tut_processing.pk])), "এখনো প্রসেস হচ্ছে")
 
     def test_dashboard_query_count_is_bounded(self):
         self.c.get(reverse("portal:dashboard"))  # warm up (session, content types)
@@ -289,7 +289,7 @@ class HeartbeatTests(PortalTestBase):
         self.assertEqual(data["status"], ProgressStatus.COMPLETED)
         self.assertTrue(data["completed_at"])
         resp = self.c.get(reverse("portal:tutorial_detail", args=[self.tut_a.pk]))
-        self.assertContains(resp, "recorded on")
+        self.assertContains(resp, "তারিখে রেকর্ড হয়েছে")
 
     def test_stored_duration_wins_over_client(self):
         data = self.hb(self.url(), {"duration": 10, "position": 10, "ranges": [[0, 10]]}).json()
@@ -379,7 +379,7 @@ class TestFlowTests(PortalTestBase):
         self.assertTrue(attempt.passed)
         self.assertEqual(attempt.score, 100)
         result = self.c.get(reverse("portal:result_detail", args=[attempt.pk]))
-        self.assertContains(result, "Passed")
+        self.assertContains(result, "দারুণ! আপনি পাস মার্ক")
         self.assertContains(result, "A is right")  # explanation revealed
         # Submitted attempts can't be re-taken; the take URL goes to the result.
         self.assertRedirects(self.c.get(reverse("portal:test_take", args=[attempt.pk])),
@@ -396,7 +396,7 @@ class TestFlowTests(PortalTestBase):
         self.c.post(reverse("portal:test_take", args=[a2.pk]), data={})
         self.assertFalse(self.c.get(reverse("portal:result_detail", args=[a2.pk])).context["can_retake"])
         resp = self.c.post(reverse("portal:test_start", args=[self.test_a.pk]), follow=True)
-        self.assertContains(resp, "used all attempts")
+        self.assertContains(resp, "এই টেস্টের সব চেষ্টা শেষ।")
         self.assertEqual(TestAttempt.objects.filter(test=self.test_a, user=self.emp).count(), 2)
 
     def test_hidden_answers_when_reveal_disabled(self):
@@ -405,7 +405,7 @@ class TestFlowTests(PortalTestBase):
         self.c.post(reverse("portal:test_take", args=[attempt.pk]), data=correct_answers(self.test_a))
         resp = self.c.get(reverse("portal:result_detail", args=[attempt.pk]))
         self.assertNotContains(resp, "A is right")
-        self.assertNotContains(resp, ">Correct answer<")
+        self.assertNotContains(resp, ">সঠিক উত্তর<")
         self.assertNotContains(resp, "is-correct")
 
     def test_other_users_cannot_open_attempt(self):
@@ -464,7 +464,7 @@ class OnboardingTests(PortalTestBase):
 
     def test_page_shows_progress_and_manual_button(self):
         resp = self.c.get(reverse("portal:onboarding"))
-        self.assertContains(resp, "Mark as complete")
+        self.assertContains(resp, "সম্পন্ন হিসেবে চিহ্নিত করুন")
         self.assertEqual(resp.context["overall_total"], 3)
 
     def test_completed_track_shows_celebration(self):
@@ -475,8 +475,8 @@ class OnboardingTests(PortalTestBase):
         )
         resp = self.c.get(reverse("portal:onboarding"))
         self.assertEqual(resp.context["overall_percent"], 100)
-        self.assertContains(resp, "Onboarding complete")
-        self.assertNotContains(resp, "Mark as complete")
+        self.assertContains(resp, "অনবোর্ডিং সম্পন্ন")
+        self.assertNotContains(resp, "সম্পন্ন হিসেবে চিহ্নিত করুন")
 
     def test_guideline_ack_records_version(self):
         self.c.post(reverse("portal:guideline_ack", args=["alpha", self.guideline.pk]))
@@ -557,3 +557,58 @@ class ProfileTests(PortalTestBase):
         })
         self.assertEqual(resp.status_code, 200)
         self.assertTrue(resp.context["password_form"].errors)
+
+
+class BanglaTextTests(PortalTestBase):
+    """Employees read the portal in Bangla (docs/BANGLA_STYLE.md); user-entered content stays as entered."""
+
+    def test_pages_are_bangla(self):
+        for name, args, text in [
+            ("portal:dashboard", [], "বাধ্যতামূলক ট্রেনিং"),
+            ("portal:training", [], "ট্রেনিং লাইব্রেরি"),
+            ("portal:feedback", [], "আমার ফিডব্যাক"),
+            ("portal:tests", [], "টেস্ট ও কুইজ"),
+            ("portal:projects", [], "আমার প্রজেক্ট"),
+            ("portal:meetings", [], "সামনের মিটিং"),
+            ("portal:profile", [], "পাসওয়ার্ড বদলান"),
+        ]:
+            with self.subTest(page=name):
+                resp = self.c.get(reverse(name, args=args))
+                self.assertContains(resp, text)
+                self.assertContains(resp, '<html lang="bn"')
+                self.assertContains(resp, "এমপ্লয়ি পোর্টাল")  # sidebar label
+
+    def test_choice_labels_are_mapped(self):
+        Tutorial.objects.filter(pk=self.tut_a.pk).update(cadence="daily")
+        resp = self.c.get(reverse("portal:tutorial_detail", args=[self.tut_a.pk]))
+        self.assertContains(resp, "দৈনিক ট্রেনিং")  # Cadence.DAILY ("Daily training")
+        self.assertNotContains(resp, "Daily training")
+        self.assertContains(resp, "Alpha tutorial")  # database content is not translated
+        resp = self.c.get(reverse("portal:tests"))
+        self.assertContains(resp, "ট্রেনিং টেস্ট")
+        self.assertNotContains(resp, "Training test")
+
+    def test_relative_times(self):
+        from apps.portal.templatetags.portal_tags import bn_ago, bn_until
+
+        now = timezone.now()
+        self.assertEqual(bn_ago(now - timedelta(hours=3, minutes=5)), "3 ঘণ্টা 5 মিনিট আগে")
+        self.assertEqual(bn_ago(now - timedelta(seconds=20)), "এইমাত্র")
+        self.assertEqual(bn_until(now + timedelta(days=2, minutes=1)), "2 দিন পরে")
+        self.assertEqual(bn_ago(None), "")
+
+    def test_messages_and_django_errors_in_bangla(self):
+        resp = self.c.post(reverse("portal:profile"), {
+            "action": "password", "pw-old_password": "nope", "pw-new_password1": "12345678",
+            "pw-new_password2": "12345678",
+        })
+        self.assertContains(resp, "বর্তমান পাসওয়ার্ড")
+        self.assertNotContains(resp, "Your old password was entered incorrectly")
+        resp = self.c.post(reverse("portal:onboarding_complete_step", args=[self.step1.pk]), follow=True)
+        self.assertContains(resp, "সম্পন্ন হিসেবে চিহ্নিত হয়েছে")
+
+    def test_attempt_error_is_translated(self):
+        from apps.portal.views.assessments import attempt_error_bn
+
+        self.assertEqual(attempt_error_bn(Exception("This test has no questions yet.")), "এই টেস্টে এখনো কোনো প্রশ্ন যোগ করা হয়নি।")
+        self.assertEqual(attempt_error_bn(Exception("Something new")), "টেস্টটি এখন শুরু করা যাচ্ছে না।")

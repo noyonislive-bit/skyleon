@@ -1,11 +1,9 @@
-{% autoescape off %}Hi {{ user.first_name }},
+{% autoescape off %}{{ user.first_name }}, একটা নতুন ঘোষণা এসেছে:
 
 {{ announcement.title }}
 
 {{ announcement.body }}
-{% if link %}
-Open the portal: {{ link }}{% endif %}
 
-— The {{ brand.name }} team
+— {{ brand.name }} টিম
 {{ APP_URL }}
 {% endautoescape %}
