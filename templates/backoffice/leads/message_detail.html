@@ -1,0 +1,30 @@
+{% extends "backoffice/base.html" %}
+{% load backoffice_tags %}
+{% block page_header %}
+<div class="bo-header">
+  <div class="min-w-0">
+    <p class="eyebrow mb-2">Contact message #{{ msg.pk }}</p>
+    <div class="flex flex-wrap items-center gap-2"><h1 class="page-title">{{ msg.subject|default:"(no subject)" }}</h1>{% status_badge msg.status msg.get_status_display %}</div>
+    <p class="page-subtitle">From {{ msg.name }} · {{ msg.created_at|date:"j M Y, H:i" }}</p>
+  </div>
+  <a href="mailto:{{ msg.email }}?subject={{ 'Re: '|add:msg.subject|urlencode }}" class="btn btn-primary btn-sm">{% icon "mail" class="h-4 w-4" %} Reply by email</a>
+</div>
+{% endblock %}
+{% block content %}
+<div class="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
+  <section class="card min-w-0">
+    <div class="card-body"><p class="text-[15px] leading-7 whitespace-pre-line text-slate-800">{{ msg.message }}</p></div>
+    <dl class="bo-kv border-t border-slate-100 card-body">
+      <div><dt>Email</dt><dd><a href="mailto:{{ msg.email }}" class="bo-link">{{ msg.email }}</a></dd></div>
+      <div><dt>Phone</dt><dd>{{ msg.phone|default:"—" }}</dd></div>
+      <div><dt>Company</dt><dd>{{ msg.company|default:"—" }}</dd></div>
+      {% if msg.ip_address %}<div><dt>IP address</dt><dd class="bo-num text-xs">{{ msg.ip_address }}</dd></div>{% endif %}
+    </dl>
+  </section>
+  <form method="post" class="card card-body h-fit space-y-4">{% csrf_token %}
+    <h2 class="bo-section">Status</h2>
+    {% include "components/field.html" with field=form.status %}
+    <button class="btn btn-primary w-full">Save</button>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,11 @@
+{% if crumbs %}
+<nav aria-label="Breadcrumb">
+  <ol class="crumbs">
+    <li><a href="{% url 'website:home' %}">Home</a></li>
+    {% for label, url in crumbs %}
+      <li aria-hidden="true" class="text-slate-700">/</li>
+      <li>{% if url and not forloop.last %}<a href="{{ url }}">{{ label }}</a>{% elif forloop.last %}<span aria-current="page" class="text-slate-300">{{ label }}</span>{% else %}<span>{{ label }}</span>{% endif %}</li>
+    {% endfor %}
+  </ol>
+</nav>
+{% endif %}

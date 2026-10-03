@@ -1,0 +1,45 @@
+{% extends "backoffice/base.html" %}
+{% load backoffice_tags %}
+{% block page_actions %}
+  <a href="{% url 'backoffice:feedback_tracking' %}" class="btn btn-secondary btn-sm">{% icon "scan-eye" class="h-4 w-4" %} Tracking</a>
+  <a href="{% url 'backoffice:feedback_create' %}" class="btn btn-primary btn-sm">{% icon "plus" class="h-4 w-4" %} New feedback</a>
+{% endblock %}
+{% block content %}
+<div class="card">
+  <form method="get" class="bo-filters" data-autosubmit>
+    {% include "backoffice/components/search.html" with value=filters.q placeholder="#001 or topic" %}
+    <select name="project" class="select" aria-label="Project"><option value="">All projects</option>{% for p in projects %}<option value="{{ p.pk }}"{% if filters.project == p.pk|stringformat:"s" %} selected{% endif %}>{{ p.code }} · {{ p.name }}</option>{% endfor %}</select>
+    <select name="status" class="select" aria-label="Status"><option value="">Any status</option>{% for v, l in statuses %}<option value="{{ v }}"{% if filters.status == v %} selected{% endif %}>{{ l }}</option>{% endfor %}</select>
+    <select name="severity" class="select" aria-label="Severity"><option value="">Any severity</option>{% for v, l in severities %}<option value="{{ v }}"{% if filters.severity == v %} selected{% endif %}>{{ l }}</option>{% endfor %}</select>
+    <select name="cadence" class="select" aria-label="Cadence"><option value="">Any cadence</option>{% for v, l in cadences %}<option value="{{ v }}"{% if filters.cadence == v %} selected{% endif %}>{{ l }}</option>{% endfor %}</select>
+    {% if filters.q or filters.project or filters.status or filters.severity or filters.cadence %}<a href="{% url 'backoffice:feedback_list' %}" class="btn btn-ghost btn-sm sm:!w-auto">Reset</a>{% endif %}
+  </form>
+  {% if page.object_list %}
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>#</th><th>Topic</th><th>Project · team</th><th>Severity</th><th>Status</th><th>Published</th><th class="num">Recipients</th><th>Watched</th><th>Test passed</th><th></th></tr></thead>
+      <tbody>
+      {% for fb in page %}
+        <tr>
+          <td><a href="{% url 'backoffice:feedback_detail' fb.pk %}" class="bo-code">{{ fb.display_number }}</a></td>
+          <td class="min-w-56"><a href="{% url 'backoffice:feedback_detail' fb.pk %}" class="font-medium text-slate-900 hover:text-brand-700">{{ fb.topic }}</a><span class="block max-w-xs truncate text-xs text-slate-500">{{ fb.summary|default:fb.get_cadence_display }}</span></td>
+          <td class="text-sm whitespace-nowrap"><span class="bo-chip"><span class="dot h-1.5 w-1.5" style="background: {{ fb.project.color }}"></span>{{ fb.project.code }}</span> <span class="text-xs text-slate-500">{{ fb.team.name|default:"All" }}</span></td>
+          <td>{% if fb.severity != "normal" %}{% status_badge fb.severity fb.get_severity_display %}{% else %}<span class="text-xs text-slate-500">Normal</span>{% endif %}</td>
+          <td>{% status_badge fb.status fb.get_status_display %}</td>
+          <td class="text-xs whitespace-nowrap text-slate-500">{{ fb.published_at|date:"j M Y"|default:"—" }}</td>
+          <td class="num bo-num">{{ fb.total }}</td>
+          <td class="w-36">{% if fb.total %}{% include "backoffice/components/meter.html" with value=fb.watch_pct %}{% else %}<span class="bo-muted">—</span>{% endif %}</td>
+          <td class="w-36">{% if fb.test_id %}{% if fb.total %}{% include "backoffice/components/meter.html" with value=fb.pass_pct %}{% else %}<span class="text-xs text-slate-500">Test linked</span>{% endif %}{% else %}<span class="text-xs text-slate-400">No test</span>{% endif %}</td>
+          <td><a href="{% url 'backoffice:feedback_detail' fb.pk %}" class="bo-icon-btn" title="Tracking">{% icon "chevron-right" class="h-4 w-4" %}</a></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% include "components/pagination.html" with page=page %}
+  {% else %}
+    {% url 'backoffice:feedback_create' as new_url %}
+    {% include "components/empty_state.html" with icon="message-square-text" title="No feedback found" text="Write daily or weekly QA feedback with a short video and an optional test." action_url=new_url action_label="New feedback" %}
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,26 @@
+<div class="ws-window">
+  <div class="flex items-center gap-2 border-b border-white/10 bg-ink-950/50 px-4 py-2.5">
+    <span class="text-label-violet">{% icon "message-square-text" class="h-4 w-4" %}</span>
+    <p class="truncate font-mono text-[11px] text-slate-400">descriptions / clip_0217</p>
+    <span class="ml-auto rounded-md bg-white/5 px-2 py-1 font-mono text-[10px] text-slate-400 ring-1 ring-white/10">vocabulary v3</span>
+  </div>
+  <div class="space-y-2 p-3 sm:p-4">
+    <div class="hidden grid-cols-[64px_1fr_1fr_1fr] gap-2 px-2 font-mono text-[9.5px] tracking-wider text-slate-500 uppercase sm:grid"><span>segment</span><span>hand</span><span>action</span><span>object</span></div>
+    {% for s in segments %}
+      <div class="rounded-lg bg-white/[0.03] p-2 ring-1 ring-white/5 {% if forloop.counter == 3 %}bg-white/[0.06] ring-white/15{% endif %}">
+        <div class="grid grid-cols-[48px_1fr_1fr_1fr] items-center gap-1.5 sm:grid-cols-[64px_1fr_1fr_1fr] sm:gap-2">
+          <span class="flex items-center gap-1.5 font-mono text-[10px] text-slate-500"><span class="h-2 w-2 rounded-full {{ s.tone.bg }}"></span>{{ forloop.counter|stringformat:"02d" }}</span>
+          <span class="truncate rounded-md bg-label-lime/10 px-1.5 py-1 font-mono text-[10px] text-label-lime ring-1 ring-label-lime/20 sm:text-[10.5px]">{{ s.hand }}</span>
+          <span class="truncate rounded-md bg-label-violet/10 px-1.5 py-1 font-mono text-[10px] text-label-violet ring-1 ring-label-violet/20 sm:text-[10.5px]">{{ s.verb }}</span>
+          <span class="truncate rounded-md bg-label-cyan/10 px-1.5 py-1 font-mono text-[10px] text-label-cyan ring-1 ring-label-cyan/20 sm:text-[10.5px]">{{ s.object }}</span>
+        </div>
+        <p class="mt-1.5 flex items-center gap-2 pl-1 text-[12.5px] text-slate-200 {% if forloop.counter == 3 %}ws-caret{% endif %}">{% icon "corner-down-right" class="h-3 w-3 text-slate-600" %}{{ s.hand }} {{ s.verb }} {{ s.object }}.</p>
+      </div>
+    {% endfor %}
+  </div>
+  <div class="grid gap-1.5 border-t border-white/10 px-4 py-3 text-[12px] sm:grid-cols-3">
+    <span class="flex items-center gap-1.5 text-slate-300">{% icon "circle-check" class="h-3.5 w-3.5 text-emerald-400" %} Verbs in vocabulary</span>
+    <span class="flex items-center gap-1.5 text-slate-300">{% icon "circle-check" class="h-3.5 w-3.5 text-emerald-400" %} Object names consistent</span>
+    <span class="flex items-center gap-1.5 text-slate-300">{% icon "circle-check" class="h-3.5 w-3.5 text-emerald-400" %} Aligned to segments</span>
+  </div>
+</div>

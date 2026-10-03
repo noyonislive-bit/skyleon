@@ -1,0 +1,119 @@
+{% extends "backoffice/base.html" %}
+{% load static backoffice_tags %}
+{% block page_header %}
+<div class="bo-header">
+  <div class="min-w-0">
+    <div class="flex flex-wrap items-center gap-2">
+      {% status_badge tutorial.status tutorial.get_status_display %}
+      {% if tutorial.project %}<span class="bo-chip"><span class="dot h-1.5 w-1.5" style="background: {{ tutorial.project.color }}"></span>{{ tutorial.project.code }}</span>{% else %}<span class="bo-chip">{% icon "globe" class="h-3 w-3" %} Company-wide</span>{% endif %}
+      <span class="bo-chip">{{ tutorial.get_cadence_display }}</span>
+      {% if tutorial.is_required %}<span class="bo-chip">Required</span>{% else %}<span class="bo-chip">Optional</span>{% endif %}
+    </div>
+    <h1 class="page-title mt-2">{{ tutorial.title }}</h1>
+    <p class="page-subtitle">{{ tutorial.category.name|default:"Uncategorised" }}{% if tutorial.created_by %} · by {{ tutorial.created_by.name }}{% endif %}{% if tutorial.published_at %} · published {{ tutorial.published_at|date:"j M Y" }}{% endif %}</p>
+  </div>
+  {% if can_edit %}
+  <div class="flex flex-wrap gap-2">
+    {% if tutorial.status != "published" %}
+      <form method="post" action="{% url 'backoffice:tutorial_status' tutorial.pk %}" data-confirm="Publish “{{ tutorial.title }}”?{% if tutorial.is_required %} It will be assigned to {% if tutorial.project %}every active member of {{ tutorial.project.code }}{% else %}all active employees{% endif %} and they will be notified.{% endif %}">{% csrf_token %}<input type="hidden" name="action" value="publish"><button class="btn btn-primary btn-sm">{% icon "send" class="h-4 w-4" %} Publish</button></form>
+    {% else %}
+      <form method="post" action="{% url 'backoffice:tutorial_status' tutorial.pk %}" data-confirm="Move back to draft? Employees will no longer see it.">{% csrf_token %}<input type="hidden" name="action" value="unpublish"><button class="btn btn-secondary btn-sm">Unpublish</button></form>
+    {% endif %}
+    {% if tutorial.status != "archived" %}<form method="post" action="{% url 'backoffice:tutorial_status' tutorial.pk %}" data-confirm="Archive this tutorial? Its tracking history is kept.">{% csrf_token %}<input type="hidden" name="action" value="archive"><button class="btn btn-secondary btn-sm">{% icon "archive" class="h-4 w-4" %} Archive</button></form>{% endif %}
+    <a href="{% url 'backoffice:tutorial_edit' tutorial.pk %}" class="btn btn-secondary btn-sm">{% icon "pencil" class="h-4 w-4" %} Edit</a>
+    {% if tutorial.status != "published" %}<form method="post" action="{% url 'backoffice:tutorial_delete' tutorial.pk %}" data-confirm="Delete “{{ tutorial.title }}” and all of its tracking data? This cannot be undone.">{% csrf_token %}<button class="btn btn-danger-soft btn-sm">{% icon "trash-2" class="h-4 w-4" %}</button></form>{% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+{% block content %}
+<div class="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_21rem]">
+  <div class="min-w-0 space-y-6">
+    <section class="grid grid-cols-2 gap-3 sm:grid-cols-4" aria-label="Tracking summary">
+      <div class="stat"><p class="stat-label">Completion</p><p class="stat-value !text-2xl">{% if completion is not None %}{{ completion }}%{% else %}—{% endif %}</p><div class="bo-meter mt-2{% if completion >= 100 %} is-good{% endif %}"><span style="width: {{ completion|default:0 }}%"></span></div></div>
+      <div class="stat"><p class="stat-label">Watched</p><p class="stat-value !text-2xl">{{ summary.completed }}</p><p class="stat-meta">of {{ summary.assigned }} assigned</p></div>
+      <div class="stat"><p class="stat-label">In progress</p><p class="stat-value !text-2xl">{{ summary.in_progress }}</p><p class="stat-meta">started, not finished</p></div>
+      <div class="stat"><p class="stat-label">Not started</p><p class="stat-value !text-2xl">{{ summary.not_started }}</p><p class="stat-meta">never pressed play</p></div>
+    </section>
+
+    <section class="card">
+      <div class="card-header flex-wrap">
+        <div><h2 class="card-title">Who has watched it</h2><p class="mt-0.5 text-xs text-slate-500">“Watched” = at least {{ threshold }}% of the video really played (tracked from playback, not a button).</p></div>
+      </div>
+      <form method="get" class="bo-filters" data-autosubmit>
+        {% include "backoffice/components/search.html" with value=filters.q placeholder="Employee name or ID" %}
+        <select name="status" class="select" aria-label="Status">
+          <option value="">All employees</option>
+          <option value="watched"{% if filters.status == "watched" %} selected{% endif %}>Watched</option>
+          <option value="not_watched"{% if filters.status == "not_watched" %} selected{% endif %}>Not watched</option>
+          <option value="in_progress"{% if filters.status == "in_progress" %} selected{% endif %}>In progress</option>
+          <option value="not_started"{% if filters.status == "not_started" %} selected{% endif %}>Not started</option>
+        </select>
+        {% if tutorial.project %}
+        <select name="member" class="select" aria-label="Project membership">
+          <option value="">Members &amp; others</option>
+          <option value="members"{% if filters.member == "members" %} selected{% endif %}>{{ tutorial.project.code }} members</option>
+          <option value="others"{% if filters.member == "others" %} selected{% endif %}>Not members</option>
+        </select>
+        {% if teams %}<select name="team" class="select" aria-label="Team"><option value="">All teams</option>{% for t in teams %}<option value="{{ t.pk }}"{% if filters.team == t.pk|stringformat:"s" %} selected{% endif %}>{{ t.name }}</option>{% endfor %}</select>{% endif %}
+        {% endif %}
+      </form>
+      {% if page.object_list %}
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>Employee</th><th>Video</th><th>Watched</th><th>% watched</th><th>Completion date</th></tr></thead>
+          <tbody>
+          {% for p in page %}
+            <tr>
+              <td class="min-w-48">{% include "backoffice/components/person.html" with u=p.user link=True %}</td>
+              <td class="max-w-48 truncate text-xs text-slate-500">{{ tutorial.title|truncatechars:28 }}</td>
+              <td>{% if p.status == "completed" %}{% status_badge "watched" "Watched" %}{% elif p.status == "in_progress" %}{% status_badge "in_progress" "In progress" %}{% else %}{% status_badge "not_watched" "Not watched" %}{% endif %}{% if not p.assigned %}<span class="ml-1 bo-chip">self-started</span>{% endif %}</td>
+              <td class="w-44">{% include "backoffice/components/meter.html" with value=p.percent|floatformat:0|add:0 %}<p class="mt-0.5 text-[11px] text-slate-400">{{ p.watched_seconds|duration }} played{% if p.last_viewed_at %} · seen {{ p.last_viewed_at|timesince }} ago{% endif %}</p></td>
+              <td class="text-xs whitespace-nowrap">{% if p.completed_at %}{{ p.completed_at|date:"j M Y, H:i" }}{% elif p.due_at %}<span class="text-slate-500">due {{ p.due_at|date:"j M" }}</span>{% else %}<span class="bo-muted">—</span>{% endif %}</td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% include "components/pagination.html" with page=page %}
+      {% else %}
+        {% include "components/empty_state.html" with icon="eye" title="No tracking rows" text="Rows appear when the tutorial is assigned or someone opens it." %}
+      {% endif %}
+    </section>
+
+    {% if tutorial.description %}
+    <section class="card"><div class="card-header"><h2 class="card-title">Description</h2></div><div class="card-body prose-content">{{ tutorial.description|markdown }}</div></section>
+    {% endif %}
+  </div>
+
+  <aside class="min-w-0 space-y-6">
+    <section class="card overflow-hidden">
+      {% if tutorial.video %}
+        <video controls preload="metadata" playsinline class="aspect-video w-full bg-ink-950" data-src="{% asset_url tutorial.video %}"{% if tutorial.video.is_hls %} data-hls data-hls-lib="{% static 'vendor/hls.min.js' %}"{% endif %}{% if tutorial.video.thumbnail %} poster="{% asset_url tutorial.video.thumbnail %}"{% endif %}></video>
+        <dl class="bo-kv card-body !grid-cols-2 !gap-y-3">
+          <div><dt>Length</dt><dd class="bo-num">{{ tutorial.video.duration_sec|duration }}</dd></div>
+          <div><dt>Resolution</dt><dd class="bo-num">{% if tutorial.video.width %}{{ tutorial.video.width }}×{{ tutorial.video.height }}{% else %}—{% endif %}</dd></div>
+          <div><dt>Stored in</dt><dd>{{ tutorial.video.get_provider_display }}</dd></div>
+          <div><dt>Size</dt><dd class="bo-num">{{ tutorial.video.size_bytes|filesize_h }}</dd></div>
+        </dl>
+        <p class="border-t border-slate-100 px-5 py-3 text-xs text-slate-500">Admin preview — playback here is not tracked.</p>
+      {% else %}
+        <div class="flex aspect-video flex-col items-center justify-center gap-2 bg-slate-100 text-sm text-slate-500">{% icon "file-video" class="h-8 w-8" %}No video yet{% if can_edit %}<a href="{% url 'backoffice:tutorial_edit' tutorial.pk %}" class="bo-link">Upload one</a>{% endif %}</div>
+      {% endif %}
+    </section>
+
+    {% if assign_form and assign_form.fields.users.queryset.exists %}
+    <form method="post" action="{% url 'backoffice:tutorial_assign' tutorial.pk %}" class="card card-body space-y-4">{% csrf_token %}
+      <div><h2 class="bo-section">Assign to employees</h2><p class="mt-1 text-xs text-slate-500">{% if tutorial.project %}Members of {{ tutorial.project.code }} who don't have it yet.{% else %}Active employees who don't have it yet.{% endif %} They get an in-app notification and an email.</p></div>
+      {% include "backoffice/components/picker.html" with field=assign_form.users empty="Everyone already has this tutorial." %}
+      {% include "components/field.html" with field=assign_form.due_date %}
+      <button class="btn btn-primary w-full">{% icon "send" class="h-4 w-4" %} Assign</button>
+    </form>
+    {% elif assign_form %}
+    <div class="rounded-xl bg-slate-50 p-4 text-sm text-slate-600 ring-1 ring-slate-200">{% icon "check-circle-2" class="mr-1 inline h-4 w-4 text-emerald-600" %} Everyone in the audience already has this tutorial.</div>
+    {% elif can_edit and not tutorial.is_published %}
+    <div class="alert alert-info">{% icon "info" class="mt-0.5 h-4 w-4 shrink-0" %}<p>Publish the tutorial to assign it to specific employees.</p></div>
+    {% endif %}
+  </aside>
+</div>
+{% endblock %}

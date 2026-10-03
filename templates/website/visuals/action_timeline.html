@@ -1,0 +1,43 @@
+{% load website_tags %}
+{% comment %}
+  Human action & video understanding visual: frame strip, coloured action segments
+  (reach → grasp → pick up → place), segment-aligned Hand + Action + Object descriptions.
+  Requires `segments` (content.ACTION_SEGMENTS) in context.
+{% endcomment %}
+<div class="ws-window p-3 sm:p-5">
+  <div class="flex items-center gap-2">
+    <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-white/5 text-accent-300 ring-1 ring-white/10">{% icon "clapperboard" class="h-4 w-4" %}</span>
+    <p class="truncate font-mono text-[11px] text-slate-400">egocentric / clip_0217.mp4</p>
+    <span class="ml-auto hidden rounded-md bg-white/5 px-2 py-1 font-mono text-[10px] text-slate-400 ring-1 ring-white/10 sm:inline">hand + action + object</span>
+  </div>
+
+  <div class="mt-4 grid grid-cols-4 gap-2 sm:gap-3">
+    {% include "website/visuals/_mini_frame.html" with hx=-16 hy=4 hex="#a78bfa" label="reach" frame="012" %}
+    {% include "website/visuals/_mini_frame.html" with hx=0 hy=0 hex="#22d3ee" label="grasp" frame="036" %}
+    {% include "website/visuals/_mini_frame.html" with hx=2 hy=-14 cx=2 cy=-14 hex="#a3e635" label="pick up" frame="058" %}
+    {% include "website/visuals/_mini_frame.html" with hx=40 hy=-4 cx=40 cy=-4 hex="#fbbf24" label="place" frame="090" %}
+  </div>
+
+  <div class="mt-4 rounded-lg bg-ink-950/60 p-3 ring-1 ring-white/5">
+    <div class="relative">
+      <div class="flex h-7 gap-0.5">
+        {% for s in segments %}
+          <span class="ws-seg {{ s.tone.bg }}" style="width: {{ s.span|pct_span }}%">{{ s.label }}</span>
+        {% endfor %}
+      </div>
+      <div class="ws-playhead" aria-hidden="true"></div>
+    </div>
+    <div class="mt-1.5 flex justify-between font-mono text-[9.5px] text-slate-600" aria-hidden="true"><span>00:00</span><span>00:01</span><span>00:02</span><span>00:03</span><span>00:04</span></div>
+  </div>
+
+  <ol class="mt-3 space-y-1.5">
+    {% for s in segments %}
+      <li class="flex items-center gap-2.5 rounded-lg bg-white/[0.03] px-3 py-2 ring-1 ring-white/5 {% if forloop.counter == 3 %}bg-white/[0.06] ring-white/15{% endif %}">
+        <span class="h-2 w-2 shrink-0 rounded-full {{ s.tone.bg }}"></span>
+        <span class="hidden w-16 shrink-0 font-mono text-[10px] text-slate-500 sm:inline">seg {{ forloop.counter|zfill2 }}</span>
+        <span class="text-[12.5px] text-slate-200 sm:text-[13px]"><span class="text-label-lime">{{ s.hand }}</span> <span class="text-label-violet">{{ s.verb }}</span> <span class="text-label-cyan">{{ s.object }}</span>.</span>
+        {% if forloop.counter == 3 %}<span class="ml-auto hidden items-center gap-1 font-mono text-[10px] text-emerald-300 sm:inline-flex">{% icon "circle-check" class="h-3 w-3" %} QA</span>{% endif %}
+      </li>
+    {% endfor %}
+  </ol>
+</div>

@@ -1,0 +1,37 @@
+{% extends "backoffice/base.html" %}
+{% load static backoffice_tags %}
+{% block content %}
+<form method="post" class="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]" novalidate>{% csrf_token %}
+  <div class="card min-w-0">
+    <div class="card-body space-y-5">
+      {% include "components/form_errors.html" %}
+      {% include "components/field.html" with field=form.title %}
+      <div>
+        <label class="label">Video</label>
+        {% uploader form.video kind="video" purpose="tutorial" %}
+      </div>
+      {% include "components/field.html" with field=form.description hint="Markdown supported — what employees learn and what to watch for." %}
+    </div>
+  </div>
+  <aside class="min-w-0 space-y-6">
+    <div class="card card-body space-y-4">
+      <h2 class="bo-section">Settings</h2>
+      {% include "components/field.html" with field=form.project %}
+      {% include "components/field.html" with field=form.category %}
+      {% include "components/field.html" with field=form.cadence %}
+      {% include "components/field.html" with field=form.is_required %}
+      <p class="text-xs leading-5 text-slate-500">Required tutorials are assigned to the whole audience when published (and to new project members later). Completion is only counted when ≥ the configured share of the video has really been played.</p>
+    </div>
+    <div class="card card-body space-y-2">
+      {% if tutorial and tutorial.is_published %}
+        <button class="btn btn-primary w-full" name="then" value="save">Save changes</button>
+      {% else %}
+        <button class="btn btn-primary w-full" name="then" value="publish">{% icon "send" class="h-4 w-4" %} Save &amp; publish</button>
+        <button class="btn btn-secondary w-full" name="then" value="save">Save as draft</button>
+      {% endif %}
+      <a href="{% if tutorial %}{% url 'backoffice:tutorial_detail' tutorial.pk %}{% else %}{% url 'backoffice:tutorial_list' %}{% endif %}" class="btn btn-ghost w-full">Cancel</a>
+    </div>
+  </aside>
+</form>
+{% endblock %}
+{% block page_scripts %}<script src="{% static 'js/uploader.js' %}" defer></script>{% endblock %}

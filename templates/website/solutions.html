@@ -1,0 +1,88 @@
+{% extends "website/base_site.html" %}
+{% block content %}
+{% url 'website:quote' as quote_url %}{% url 'website:services' as services_url %}
+{% include "website/partials/page_hero.html" with eyebrow="Annotation solutions" title="Annotation that trains computer vision models." lead="Computer vision models learn from labelled examples. How complete, precise and consistent those labels are sets the ceiling for what your model can learn." primary_url=quote_url primary_label="Request a Quote" secondary_url=services_url secondary_label="Explore services" %}
+
+{# How annotation trains CV models #}
+<section class="section bg-white">
+  <div class="container-page">
+    <div class="reveal mx-auto max-w-3xl text-center">
+      <p class="eyebrow">Where we fit</p>
+      <h2 class="section-title mt-4">Your data in. A validated, model-ready dataset out.</h2>
+      <p class="lead mt-5">{{ statements.DATASET_STATEMENT }}</p>
+    </div>
+    <ol class="reveal mt-14 grid gap-4 lg:grid-cols-[1fr_auto_1.25fr_auto_1fr] lg:items-stretch">
+      <li class="rounded-2xl bg-slate-50 p-6 ring-1 ring-slate-200">
+        <span class="font-mono text-[11px] tracking-[0.16em] text-slate-400 uppercase">You provide</span>
+        <h3 class="mt-3 flex items-center gap-2 text-lg font-semibold">{% icon "database" class="h-5 w-5 text-slate-500" %}Raw data &amp; guidelines</h3>
+        <p class="mt-2 text-sm leading-6 text-slate-600">Images, video, text or documents — plus your label list, examples and expected output.</p>
+      </li>
+      <li class="hidden items-center text-slate-300 lg:flex" aria-hidden="true">{% icon "arrow-right" class="h-6 w-6" %}</li>
+      <li class="relative overflow-hidden rounded-2xl bg-ink-900 p-6 text-slate-300 ring-1 ring-ink-800">
+        <span class="absolute inset-0 grid-bg" aria-hidden="true"></span>
+        <span class="absolute -top-16 -right-10 h-48 w-48 rounded-full bg-brand-600/40 blur-3xl" aria-hidden="true"></span>
+        <span class="relative font-mono text-[11px] tracking-[0.16em] text-accent-300 uppercase">Our role</span>
+        <h3 class="relative mt-3 flex items-center gap-2 text-lg font-semibold text-white">{% icon "layers" class="h-5 w-5 text-accent-300" %}Annotation · review · QA</h3>
+        <p class="relative mt-2 text-sm leading-6 text-slate-400">Trained teams label your data; reviewers and QA validate it; corrections are made before delivery.</p>
+        <div class="relative mt-4 flex flex-wrap gap-1.5">{% for s in cv_solutions %}<span class="chip-dark">{{ s.name }}</span>{% endfor %}</div>
+      </li>
+      <li class="hidden items-center text-slate-300 lg:flex" aria-hidden="true">{% icon "arrow-right" class="h-6 w-6" %}</li>
+      <li class="rounded-2xl bg-slate-50 p-6 ring-1 ring-slate-200">
+        <span class="font-mono text-[11px] tracking-[0.16em] text-slate-400 uppercase">Your team</span>
+        <h3 class="mt-3 flex items-center gap-2 text-lg font-semibold">{% icon "cpu" class="h-5 w-5 text-slate-500" %}Training &amp; evaluation</h3>
+        <p class="mt-2 text-sm leading-6 text-slate-600">Your engineers train, evaluate and improve models using the validated dataset in your format.</p>
+      </li>
+    </ol>
+  </div>
+</section>
+
+{% for s in cv_solutions %}
+  <section id="{{ s.slug }}" class="scroll-mt-24 border-t border-slate-100 py-20 sm:py-24 {% cycle 'bg-slate-50/70' '' %}">
+    <div class="container-page grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
+      <div class="reveal {% if forloop.counter|divisibleby:2 %}lg:order-2{% endif %}">
+        <div class="flex items-center gap-3"><span class="icon-tile">{% icon s.icon class="h-5 w-5" %}</span><span class="font-mono text-xs tracking-[0.16em] text-slate-400">{{ forloop.counter|stringformat:"02d" }} / 05</span></div>
+        <h2 class="section-title mt-6">{{ s.name }}</h2>
+        <p class="lead mt-4">{{ s.summary }}</p>
+        <div class="mt-8 grid gap-6 sm:grid-cols-2">
+          <div>
+            <p class="font-mono text-[11px] tracking-[0.16em] text-slate-400 uppercase">What we annotate</p>
+            <ul class="mt-3 space-y-2">{% for a in s.annotation %}<li class="flex items-center gap-2.5 text-[15px] text-slate-700">{% icon "check" class="h-4 w-4 text-brand-600" stroke_width="2.25" %}{{ a }}</li>{% endfor %}</ul>
+          </div>
+          <div>
+            <p class="font-mono text-[11px] tracking-[0.16em] text-slate-400 uppercase">Datasets for</p>
+            <div class="mt-3 flex flex-wrap gap-1.5">{% for m in s.models %}<span class="chip-mono">{{ m }}</span>{% endfor %}</div>
+          </div>
+        </div>
+      </div>
+      <div class="reveal min-w-0 {% if forloop.counter|divisibleby:2 %}lg:order-1{% endif %}">
+        {% include "website/partials/cv_window.html" with kind=s.visual title=s.slug|add:" / sample_0042" %}
+      </div>
+    </div>
+  </section>
+{% endfor %}
+
+<section class="section bg-white border-t border-slate-100" id="use-cases">
+  <div class="container-page">
+    <div class="reveal flex flex-wrap items-end justify-between gap-6">
+      <div class="max-w-2xl">
+        <p class="eyebrow">Explore by use case</p>
+        <h2 class="section-title mt-4">Annotation solutions in depth.</h2>
+        <p class="lead mt-5">Detailed guides to the most common annotation projects we support — what we deliver, how the workflow runs and how quality is checked.</p>
+      </div>
+    </div>
+    <div class="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {% for p in solution_pages %}
+        <a href="{% url 'website:solution_detail' p.slug %}" class="reveal card card-lift group flex items-start gap-4 p-5">
+          <span class="icon-tile">{% icon p.icon class="h-5 w-5" %}</span>
+          <span class="min-w-0">
+            <span class="flex items-center gap-1.5 font-semibold text-slate-900">{{ p.name }}<span class="text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-brand-600">{% icon "arrow-right" class="h-4 w-4" %}</span></span>
+            <span class="mt-1 block text-sm leading-6 text-slate-600">{{ p.lead|truncatewords:18 }}</span>
+          </span>
+        </a>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+{% include "website/partials/cta_band.html" with title="Tell us what your model needs to learn" text="Share the task, target classes and output format. We'll map it to an annotation schema and propose a pilot." %}
+{% endblock %}

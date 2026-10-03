@@ -1,0 +1,28 @@
+{% comment %}
+  Closing call-to-action band.
+  {% include "website/partials/cta_band.html" with title="…" text="…" primary_label="…" %}
+{% endcomment %}
+<section class="bg-white py-16 sm:py-24 {{ section_class|default:'' }}">
+  <div class="container-page">
+    <div class="reveal relative isolate overflow-hidden rounded-3xl bg-ink-950 px-6 py-14 ring-1 ring-white/10 sm:px-14 sm:py-20">
+      <div class="absolute inset-0 grid-bg opacity-80" aria-hidden="true"></div>
+      <div class="absolute -top-32 -left-24 -z-0 h-[420px] w-[420px] rounded-full bg-brand-600/40 blur-[110px]" aria-hidden="true"></div>
+      <div class="absolute -right-24 -bottom-40 -z-0 h-[420px] w-[420px] rounded-full bg-accent-500/25 blur-[110px]" aria-hidden="true"></div>
+      {# decorative annotation box #}
+      <svg class="pointer-events-none absolute top-8 right-8 hidden h-40 w-56 lg:block" viewBox="0 0 224 160" aria-hidden="true">
+        <rect x="6" y="22" width="200" height="128" rx="3" fill="#22d3ee" fill-opacity=".04" stroke="#22d3ee" stroke-opacity=".6" stroke-width="1.5" stroke-dasharray="6 6" class="animate-dash"/>
+        <rect x="6" y="2" width="92" height="18" rx="3" fill="#22d3ee"/><text x="12" y="15" class="ws-label" fill="#05080f">your_dataset</text>
+        <g fill="#22d3ee"><rect x="3" y="19" width="6" height="6"/><rect x="203" y="19" width="6" height="6"/><rect x="3" y="147" width="6" height="6"/><rect x="203" y="147" width="6" height="6"/></g>
+      </svg>
+      <div class="relative max-w-2xl">
+        <p class="eyebrow-dark"><span class="h-1.5 w-1.5 rounded-full bg-accent-300"></span>{{ eyebrow|default:"Start your project" }}</p>
+        <h2 class="mt-4 text-3xl font-semibold tracking-tight text-white sm:text-[2.6rem] sm:leading-[1.1]" style="letter-spacing:-0.032em">{{ title|default:"Start your project" }}</h2>
+        <p class="mt-5 text-lg leading-8 text-slate-400">{{ text|default:"Tell us about your data, annotation type and timeline. We'll review your requirements and suggest a pilot so you can evaluate quality before production." }}</p>
+        <div class="mt-9 flex flex-wrap gap-3">
+          <a href="{% url 'website:quote' %}{% if quote_type %}?type={{ quote_type }}{% endif %}" class="btn btn-white btn-lg">{{ primary_label|default:"Request a Quote" }} {% icon "arrow-right" class="h-4 w-4" %}</a>
+          <a href="{% url 'website:contact' %}" class="btn btn-light btn-lg">Contact our team</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

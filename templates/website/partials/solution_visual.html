@@ -1,0 +1,9 @@
+{% comment %} Visual for an SEO solution page `sp`. {% endcomment %}
+{% if sp.visual == "workspace" %}{% include "website/visuals/hero_workspace.html" with compact=True %}
+{% elif sp.visual == "video" %}{% include "website/visuals/svc_video.html" %}
+{% elif sp.visual == "image" %}{% include "website/visuals/svc_image.html" %}
+{% elif sp.visual == "timeline" %}{% include "website/visuals/action_timeline.html" %}
+{% elif sp.visual == "action" %}{% include "website/partials/cv_window.html" with kind="action" title="actions / clip_0388.mp4" %}
+{% elif sp.visual == "detection" %}{% include "website/partials/cv_window.html" with kind="detection" title="street / frame_00412.jpg" %}
+{% elif sp.visual == "pose" %}{% include "website/partials/cv_window.html" with kind="pose" title="activity / clip_0144 · keypoints" %}
+{% endif %}

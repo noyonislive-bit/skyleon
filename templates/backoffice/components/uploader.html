@@ -1,0 +1,64 @@
+{% comment %}
+  Direct-to-storage upload widget (static/js/uploader.js). Rendered by {% uploader form.field kind=… purpose=… %}.
+  The file input has no name: only the MediaAsset id travels with the form, the bytes go straight to storage.
+{% endcomment %}
+<div class="bo-uploader{% if compact %} is-compact{% endif %}" data-uploader data-kind="{{ kind }}" data-purpose="{{ purpose }}">
+  <input type="hidden" name="{{ field.html_name }}" id="{{ field.auto_id }}" value="{{ asset.pk|default:'' }}" data-uploader-value>
+
+  {# Current file #}
+  <div class="bo-upload-preview" data-uploader-preview{% if not asset %} hidden{% endif %}>
+    <div class="bo-upload-thumb">
+      <img src="{{ thumb_url }}" alt="" data-uploader-thumb{% if not thumb_url %} hidden{% endif %}>
+      <span class="bo-upload-thumb-icon" data-uploader-icon{% if thumb_url %} hidden{% endif %}>{% if kind == "document" %}{% icon "file-text" class="h-6 w-6" %}{% elif kind == "image" %}{% icon "image" class="h-6 w-6" %}{% else %}{% icon "file-video" class="h-6 w-6" %}{% endif %}</span>
+      <span class="bo-upload-duration" data-uploader-duration{% if not asset.duration_sec %} hidden{% endif %}>{{ asset.duration_sec|duration }}</span>
+    </div>
+    <div class="min-w-0 flex-1">
+      <p class="truncate text-sm font-medium text-slate-900" data-uploader-name>{{ asset.original_name|default:"Uploaded file" }}</p>
+      <p class="mt-0.5 truncate text-xs text-slate-500" data-uploader-meta>{% if asset %}{{ asset.get_provider_display }}{% if asset.size_bytes %} · {{ asset.size_bytes|filesize_h }}{% endif %}{% if asset.width %} · {{ asset.width }}×{{ asset.height }}{% endif %}{% endif %}</p>
+      <div class="mt-2 flex flex-wrap gap-1.5">
+        <a href="{{ asset_url }}" target="_blank" rel="noopener" class="btn btn-ghost btn-sm" data-uploader-open{% if not asset_url %} hidden{% endif %}>{% icon "eye" class="h-3.5 w-3.5" %} Preview</a>
+        <button type="button" class="btn btn-secondary btn-sm" data-uploader-replace>{% icon "refresh-cw" class="h-3.5 w-3.5" %} Replace</button>
+        <button type="button" class="btn btn-ghost btn-sm text-red-600 hover:bg-red-50 hover:text-red-700" data-uploader-remove>{% icon "trash-2" class="h-3.5 w-3.5" %} Remove</button>
+      </div>
+    </div>
+  </div>
+
+  {# Drop zone #}
+  <div class="bo-dropzone" data-uploader-drop{% if asset %} hidden{% endif %}>
+    <input type="file" class="sr-only" accept="{{ accept }}" data-uploader-file tabindex="-1" aria-hidden="true">
+    <span class="bo-dropzone-icon">{% icon "cloud-upload" class="h-5 w-5" %}</span>
+    <div class="min-w-0 text-sm">
+      <p class="font-medium text-slate-800">
+        <button type="button" class="font-semibold text-brand-600 hover:text-brand-700" data-uploader-browse>Choose {% if kind == "video" %}a video{% elif kind == "image" %}an image{% elif kind == "media" %}an image or video{% else %}a file{% endif %}</button>
+        <span class="hidden sm:inline">or drag it here</span>
+      </p>
+      {% if not compact %}<p class="mt-0.5 text-xs text-slate-500">{% if kind == "video" %}MP4, WebM or MOV · thumbnail and duration are read in your browser{% elif kind == "image" %}JPG, PNG, WebP or GIF{% elif kind == "media" %}Image (JPG, PNG, WebP) or video (MP4, WebM){% else %}PDF, Word, text, spreadsheet, ZIP or image · max 15 MB{% endif %}</p>{% endif %}
+    </div>
+    {% if external %}<button type="button" class="btn btn-ghost btn-sm ml-auto shrink-0" data-uploader-external-toggle>{% icon "link" class="h-3.5 w-3.5" %} <span class="hidden sm:inline">Use an external video URL</span><span class="sm:hidden">URL</span></button>{% endif %}
+  </div>
+
+  {% if external %}
+  <div class="mt-2 rounded-lg bg-slate-50 p-3 ring-1 ring-slate-200" data-uploader-external hidden>
+    <label class="label !mb-1 text-xs">External video URL (HLS .m3u8 or MP4 from Bunny Stream, Cloudflare Stream, Vimeo …)</label>
+    <div class="flex flex-col gap-2 sm:flex-row">
+      <input type="url" class="input" placeholder="https://…/playlist.m3u8" data-uploader-external-url>
+      <button type="button" class="btn btn-secondary shrink-0" data-uploader-external-save>Use this URL</button>
+    </div>
+  </div>
+  {% endif %}
+
+  {# Progress #}
+  <div class="bo-upload-progress" data-uploader-progress hidden>
+    <div class="flex items-center justify-between gap-3 text-xs">
+      <span class="flex min-w-0 items-center gap-2 font-medium text-slate-700"><span class="animate-spin text-brand-600">{% icon "loader-circle" class="h-3.5 w-3.5" %}</span><span class="truncate" data-uploader-status>Preparing…</span></span>
+      <span class="flex shrink-0 items-center gap-3"><span class="font-mono tabular-nums text-slate-500" data-uploader-percent>0%</span><button type="button" class="font-medium text-slate-500 hover:text-red-600" data-uploader-cancel>Cancel</button></span>
+    </div>
+    <div class="progress mt-2"><div class="progress-bar" style="width:0%" data-uploader-bar></div></div>
+  </div>
+
+  <p class="field-error" data-uploader-error hidden></p>
+  {% for error in field.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+  {% if note and kind == "video" %}
+    <p class="help-text flex items-start gap-1.5">{% icon "shield-check" class="mt-px h-3.5 w-3.5 shrink-0 text-emerald-600" %}<span>Videos are uploaded straight from your browser to private object storage and streamed with signed, expiring links — they are never stored in the database or on the public website.</span></p>
+  {% endif %}
+</div>

@@ -1,0 +1,124 @@
+{% load website_tags %}{% website_nav as nav %}
+<header class="site-header" data-site-header>
+  <div class="container-page flex h-16 items-center gap-4 xl:h-[72px]">
+    <a href="{% url 'website:home' %}" class="shrink-0 rounded-lg" aria-label="{{ brand.name }} — home">{% include "components/logo.html" with dark=True %}</a>
+
+    {# Desktop navigation #}
+    <nav class="ml-6 hidden items-center gap-0.5 xl:flex" aria-label="Main">
+      <div class="nav-item" data-nav-item>
+        <button type="button" class="nav-link {% nav_active '/services/' %}" aria-expanded="false" aria-controls="menu-services" data-nav-trigger>
+          Services {% icon "chevron-down" class="nav-chevron" %}
+        </button>
+        <div class="nav-panel -left-4 w-[780px]" id="menu-services">
+          <div class="menu-card grid grid-cols-[1fr_250px] gap-2">
+            <div class="grid grid-cols-2 gap-0.5 p-1">
+              {% for s in nav.services %}
+                <a href="{% url 'website:service_detail' s.slug %}" class="menu-link">
+                  <span class="menu-icon">{% icon s.icon class="h-[18px] w-[18px]" %}</span>
+                  <span>
+                    <span class="menu-link-title flex items-center gap-2">{{ s.name }}{% if s.badge %}<span class="dot animate-pulse-soft bg-label-amber" title="{{ s.badge }}"></span>{% endif %}</span>
+                    <span class="menu-link-text block">{{ s.short }}</span>
+                  </span>
+                </a>
+              {% endfor %}
+              <div class="col-span-2 mt-1 flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3 text-sm">
+                <a href="{% url 'website:services' %}" class="link-arrow">All services {% icon "arrow-right" class="h-4 w-4" %}</a>
+                <a href="{% url 'website:solutions' %}" class="font-medium text-slate-500 transition hover:text-slate-900">Annotation solutions →</a>
+              </div>
+            </div>
+            <a href="{% url 'website:service_detail' 'action-activity-annotation' %}" class="group relative flex flex-col overflow-hidden rounded-xl bg-ink-900 p-5 text-slate-300">
+              <span class="absolute inset-0 grid-bg opacity-60"></span>
+              <span class="absolute -top-16 -right-16 h-40 w-40 rounded-full bg-brand-600/40 blur-3xl"></span>
+              <span class="relative eyebrow-dark text-[10px]">Specialization</span>
+              <span class="relative mt-3 text-[15px] leading-snug font-semibold text-white">Human action &amp; video understanding</span>
+              <span class="relative mt-2 text-[13px] leading-5 text-slate-400">Hand movement, object interaction, action segments and structured descriptions.</span>
+              <span class="relative mt-auto pt-5">
+                <span class="flex h-5 gap-0.5 overflow-hidden rounded">
+                  <span class="w-[24%] bg-label-violet/80"></span><span class="w-[16%] bg-label-cyan/80"></span><span class="w-[34%] bg-label-lime/80"></span><span class="w-[26%] bg-label-amber/80"></span>
+                </span>
+                <span class="mt-2 block font-mono text-[10.5px] text-slate-400">“Right hand picks up a cup.”</span>
+                <span class="mt-4 inline-flex items-center gap-1.5 text-[13px] font-semibold text-accent-300 transition group-hover:gap-2.5">Explore {% icon "arrow-right" class="h-3.5 w-3.5" %}</span>
+              </span>
+            </a>
+          </div>
+        </div>
+      </div>
+      <a href="{% url 'website:industries' %}" class="nav-link {% nav_active '/industries/' %}">Industries</a>
+      <a href="{% url 'website:solutions' %}" class="nav-link {% nav_active '/solutions/' %}">Solutions</a>
+      <a href="{% url 'website:capability' %}" class="nav-link {% nav_active '/capability/' %}">Capability</a>
+      <a href="{% url 'website:quality' %}" class="nav-link {% nav_active '/quality-assurance/' %}">Quality</a>
+      <div class="nav-item" data-nav-item>
+        <button type="button" class="nav-link" aria-expanded="false" aria-controls="menu-company" data-nav-trigger>
+          Company {% icon "chevron-down" class="nav-chevron" %}
+        </button>
+        <div class="nav-panel left-0 w-[340px]" id="menu-company">
+          <div class="menu-card">
+            <a href="{% url 'website:about' %}" class="menu-link"><span class="menu-icon">{% icon "building-2" class="h-[18px] w-[18px]" %}</span><span><span class="menu-link-title block">About Us</span><span class="menu-link-text block">Who we are and how we work.</span></span></a>
+            <a href="{% url 'website:platforms' %}" class="menu-link"><span class="menu-icon">{% icon "workflow" class="h-[18px] w-[18px]" %}</span><span><span class="menu-link-title block">Platforms &amp; Workflow</span><span class="menu-link-text block">Your tools, our team — formats and process.</span></span></a>
+            <a href="{% url 'website:security' %}" class="menu-link"><span class="menu-icon">{% icon "shield-check" class="h-[18px] w-[18px]" %}</span><span><span class="menu-link-title block">Security</span><span class="menu-link-text block">Confidentiality and access control.</span></span></a>
+            <a href="{% url 'website:careers' %}" class="menu-link"><span class="menu-icon">{% icon "users" class="h-[18px] w-[18px]" %}</span><span><span class="menu-link-title block">Careers / Join Team</span><span class="menu-link-text block">Annotator, reviewer and QA roles.</span></span></a>
+          </div>
+        </div>
+      </div>
+      <a href="{% url 'website:contact' %}" class="nav-link {% nav_active '/contact/' %}">Contact</a>
+    </nav>
+
+    <div class="ml-auto flex items-center gap-2">
+      <div class="nav-item hidden xl:block" data-nav-item>
+        <button type="button" class="nav-link" aria-expanded="false" aria-controls="menu-login" data-nav-trigger>
+          {% icon "log-in" class="h-4 w-4 opacity-70" %} Login {% icon "chevron-down" class="nav-chevron" %}
+        </button>
+        <div class="nav-panel right-0 w-[290px]" id="menu-login">
+          <div class="menu-card">
+            <a href="{% url 'accounts:login' %}" class="menu-link"><span class="menu-icon">{% icon "user-round" class="h-[18px] w-[18px]" %}</span><span><span class="menu-link-title block">Employee Login</span><span class="menu-link-text block">Training portal for team members.</span></span></a>
+            <a href="{% url 'accounts:client_login' %}" class="menu-link"><span class="menu-icon">{% icon "building-2" class="h-[18px] w-[18px]" %}</span><span><span class="menu-link-title block">Client Login</span><span class="menu-link-text block">Project access for clients.</span></span></a>
+          </div>
+        </div>
+      </div>
+      <a href="{% url 'website:quote' %}" class="btn btn-accent hidden sm:inline-flex">Request a Quote</a>
+
+      {# Mobile / tablet navigation — native <details>, enhanced by website.js #}
+      <details class="group mobile-nav xl:hidden" data-mobile-nav>
+        <summary class="flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg text-white ring-1 ring-white/15 transition hover:bg-white/10" aria-label="Open menu">
+          <span class="group-open:hidden">{% icon "menu" class="h-5 w-5" %}</span>
+          <span class="hidden group-open:inline">{% icon "x" class="h-5 w-5" %}</span>
+        </summary>
+        <div class="mobile-panel" id="mobile-menu">
+          <nav aria-label="Mobile" class="mx-auto max-w-2xl">
+            <details class="mobile-group">
+              <summary>Services {% icon "chevron-down" class="nav-chevron h-4 w-4 opacity-60 transition-transform" %}</summary>
+              <div class="mb-2 grid gap-0.5 pl-2 sm:grid-cols-2">
+                {% for s in nav.services %}
+                  <a href="{% url 'website:service_detail' s.slug %}" class="mobile-link">{% icon s.icon class="h-4 w-4 text-accent-300" %} {{ s.name }}</a>
+                {% endfor %}
+                <a href="{% url 'website:services' %}" class="mobile-link font-semibold text-accent-300">All services →</a>
+              </div>
+            </details>
+            <a href="{% url 'website:industries' %}" class="mobile-top-link">Industries</a>
+            <a href="{% url 'website:solutions' %}" class="mobile-top-link">Solutions</a>
+            <a href="{% url 'website:capability' %}" class="mobile-top-link">Our Capability</a>
+            <a href="{% url 'website:quality' %}" class="mobile-top-link">Quality Assurance</a>
+            <details class="mobile-group">
+              <summary>Company {% icon "chevron-down" class="nav-chevron h-4 w-4 opacity-60 transition-transform" %}</summary>
+              <div class="mb-2 grid gap-0.5 pl-2">
+                <a href="{% url 'website:about' %}" class="mobile-link">{% icon "building-2" class="h-4 w-4 text-accent-300" %} About Us</a>
+                <a href="{% url 'website:platforms' %}" class="mobile-link">{% icon "workflow" class="h-4 w-4 text-accent-300" %} Platforms &amp; Workflow</a>
+                <a href="{% url 'website:security' %}" class="mobile-link">{% icon "shield-check" class="h-4 w-4 text-accent-300" %} Security</a>
+                <a href="{% url 'website:careers' %}" class="mobile-link">{% icon "users" class="h-4 w-4 text-accent-300" %} Careers / Join Team</a>
+              </div>
+            </details>
+            <a href="{% url 'website:contact' %}" class="mobile-top-link">Contact</a>
+            <div class="mt-6 border-t border-white/10 pt-6">
+              <p class="px-3 font-mono text-[11px] tracking-[0.16em] text-slate-500 uppercase">Login</p>
+              <div class="mt-3 grid grid-cols-2 gap-2">
+                <a href="{% url 'accounts:login' %}" class="btn btn-light">{% icon "user-round" class="h-4 w-4" %} Employee</a>
+                <a href="{% url 'accounts:client_login' %}" class="btn btn-light">{% icon "building-2" class="h-4 w-4" %} Client</a>
+              </div>
+              <a href="{% url 'website:quote' %}" class="btn btn-accent btn-lg mt-3 w-full">Request a Quote {% icon "arrow-right" class="h-4 w-4" %}</a>
+            </div>
+          </nav>
+        </div>
+      </details>
+    </div>
+  </div>
+</header>

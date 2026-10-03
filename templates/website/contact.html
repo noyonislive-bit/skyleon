@@ -1,0 +1,85 @@
+{% extends "website/base_site.html" %}
+{% load website_tags %}
+{% block content %}
+<section class="hero-dark">
+  <div class="absolute inset-0 grid-bg fade-grid" aria-hidden="true"></div>
+  <div class="glow-brand -top-48 left-[10%] h-[520px] w-[520px]" aria-hidden="true"></div>
+  <div class="glow-accent top-10 -right-24 h-[420px] w-[420px]" aria-hidden="true"></div>
+  <div class="container-page relative pt-28 pb-36 sm:pt-36 sm:pb-40">
+    <div class="max-w-3xl">
+      {% include "website/partials/breadcrumbs.html" %}
+      <p class="eyebrow-dark mt-7"><span class="h-1.5 w-1.5 rounded-full bg-accent-300"></span>Contact</p>
+      <h1 class="mt-4 text-[2.3rem] leading-[1.08] font-semibold tracking-tight sm:text-5xl" style="letter-spacing:-0.035em">Let's talk.</h1>
+      <p class="lead-dark mt-6 max-w-2xl">Questions about our services, a partnership or a project in early planning? Send us a message and a member of our team will reply.</p>
+    </div>
+  </div>
+</section>
+
+<section class="relative z-10 -mt-24 pb-20 sm:pb-28">
+  <div class="container-page grid gap-8 lg:grid-cols-[1fr_1.5fr] lg:gap-10">
+    <aside class="space-y-5">
+      <div class="rounded-2xl bg-white p-6 shadow-card ring-1 ring-slate-200 sm:p-7">
+        <h2 class="text-lg font-semibold">Company information</h2>
+        <p class="mt-1 text-sm text-slate-500">{{ brand.legal_name }}</p>
+        <ul class="mt-6 space-y-5 text-sm">
+          {% if company.email %}<li class="flex items-start gap-3"><span class="icon-tile h-9 w-9">{% icon "mail" class="h-4 w-4" %}</span><span><span class="block font-medium text-slate-900">Email</span><a href="mailto:{{ company.email }}" class="text-brand-600 hover:text-brand-700">{{ company.email }}</a></span></li>{% endif %}
+          {% if company.careers_email %}<li class="flex items-start gap-3"><span class="icon-tile h-9 w-9">{% icon "briefcase" class="h-4 w-4" %}</span><span><span class="block font-medium text-slate-900">Careers</span><a href="mailto:{{ company.careers_email }}" class="text-brand-600 hover:text-brand-700">{{ company.careers_email }}</a></span></li>{% endif %}
+          {% if company.phone %}<li class="flex items-start gap-3"><span class="icon-tile h-9 w-9">{% icon "phone" class="h-4 w-4" %}</span><span><span class="block font-medium text-slate-900">Phone</span><a href="{{ company.phone|tel_href }}" class="text-slate-700 hover:text-brand-700">{{ company.phone }}</a></span></li>{% endif %}
+          {% if company.whatsapp %}<li class="flex items-start gap-3"><span class="icon-tile h-9 w-9">{% brand_icon "whatsapp" class="h-4 w-4" %}</span><span><span class="block font-medium text-slate-900">WhatsApp</span><a href="{{ company.whatsapp|whatsapp_href }}" class="text-slate-700 hover:text-brand-700" rel="noopener" target="_blank">Message us</a></span></li>{% endif %}
+          {% if company.business_hours %}<li class="flex items-start gap-3"><span class="icon-tile h-9 w-9">{% icon "clock" class="h-4 w-4" %}</span><span><span class="block font-medium text-slate-900">Business hours</span><span class="text-slate-600">{{ company.business_hours }}</span></span></li>{% endif %}
+          {% if company.address %}<li class="flex items-start gap-3"><span class="icon-tile h-9 w-9">{% icon "map-pin" class="h-4 w-4" %}</span><span><span class="block font-medium text-slate-900">Address</span><span class="text-slate-600">{{ company.address|linebreaksbr }}</span></span></li>{% endif %}
+        </ul>
+        {% if company.linkedin or company.facebook or company.x or company.youtube %}
+          <div class="mt-6 flex gap-2 border-t border-slate-100 pt-5">
+            {% if company.linkedin %}<a href="{{ company.linkedin }}" class="btn btn-secondary btn-icon" rel="noopener" target="_blank" aria-label="LinkedIn">{% brand_icon "linkedin" class="h-4 w-4" %}</a>{% endif %}
+            {% if company.x %}<a href="{{ company.x }}" class="btn btn-secondary btn-icon" rel="noopener" target="_blank" aria-label="X">{% brand_icon "x" class="h-4 w-4" %}</a>{% endif %}
+            {% if company.facebook %}<a href="{{ company.facebook }}" class="btn btn-secondary btn-icon" rel="noopener" target="_blank" aria-label="Facebook">{% brand_icon "facebook" class="h-4 w-4" %}</a>{% endif %}
+            {% if company.youtube %}<a href="{{ company.youtube }}" class="btn btn-secondary btn-icon" rel="noopener" target="_blank" aria-label="YouTube">{% brand_icon "youtube" class="h-4 w-4" %}</a>{% endif %}
+          </div>
+        {% endif %}
+      </div>
+      <a href="{% url 'website:quote' %}" class="group relative block overflow-hidden rounded-2xl bg-ink-900 p-6 text-slate-300 ring-1 ring-ink-800 sm:p-7">
+        <span class="absolute inset-0 grid-bg" aria-hidden="true"></span>
+        <span class="absolute -right-16 -bottom-16 h-48 w-48 rounded-full bg-brand-600/40 blur-3xl" aria-hidden="true"></span>
+        <span class="relative block text-base font-semibold text-white">Have a dataset ready?</span>
+        <span class="relative mt-2 block text-sm leading-6 text-slate-400">Use the quote form to share project type, annotation types, volume and samples.</span>
+        <span class="relative link-arrow-dark mt-4">Request a Quote {% icon "arrow-right" class="h-4 w-4" %}</span>
+      </a>
+      <a href="{% url 'website:careers' %}" class="block rounded-2xl bg-white p-6 ring-1 ring-slate-200 transition hover:ring-brand-200 sm:p-7">
+        <span class="block text-base font-semibold text-slate-900">Looking for work?</span>
+        <span class="mt-1.5 block text-sm leading-6 text-slate-600">Apply as an annotator, reviewer or QA member through our careers page.</span>
+      </a>
+    </aside>
+
+    <div class="form-card">
+      <h2 class="text-xl font-semibold tracking-tight">Send us a message</h2>
+      <p class="mt-1 text-sm text-slate-500">We usually reply within one business day.</p>
+      <form method="post" novalidate data-public-form class="mt-7 space-y-5">
+        {% csrf_token %}
+        {% include "components/honeypot.html" %}
+        {% include "components/form_errors.html" %}
+        <div class="grid gap-5 sm:grid-cols-2">
+          {% include "components/field.html" with field=form.name %}
+          {% include "components/field.html" with field=form.email %}
+          {% include "components/field.html" with field=form.company %}
+          {% include "components/field.html" with field=form.phone %}
+        </div>
+        {% include "components/field.html" with field=form.subject %}
+        {% include "components/field.html" with field=form.message %}
+        <div class="flex flex-col gap-4 border-t border-slate-100 pt-6 sm:flex-row sm:items-center sm:justify-between">
+          <p class="text-xs leading-5 text-slate-500">By sending, you agree to our <a href="{% url 'website:privacy' %}" class="underline hover:text-slate-700">privacy policy</a>.</p>
+          <button type="submit" class="btn btn-primary btn-lg shrink-0">Send message {% icon "send" class="h-4 w-4" %}</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  {% if company.show_map and company.map_embed_url %}
+    <div class="container-page mt-10">
+      <div class="overflow-hidden rounded-2xl ring-1 ring-slate-200">
+        <iframe src="{{ company.map_embed_url }}" title="Map showing the {{ brand.name }} office location" class="block h-[360px] w-full border-0" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe>
+      </div>
+    </div>
+  {% endif %}
+</section>
+{% endblock %}

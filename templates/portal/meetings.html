@@ -1,0 +1,66 @@
+{% extends "portal/base.html" %}
+{% block content %}
+<section aria-labelledby="upcoming-title">
+  <h2 id="upcoming-title" class="mb-3 text-sm font-semibold text-slate-900">Upcoming</h2>
+  {% if upcoming %}
+  <div class="grid gap-4 lg:grid-cols-2">
+    {% for m in upcoming %}
+    <article class="card flex flex-col {% if m.is_live %}ring-2 ring-emerald-400{% endif %}">
+      <div class="flex gap-4 p-5">
+        <div class="flex w-16 shrink-0 flex-col items-center justify-center rounded-xl bg-slate-50 py-2 ring-1 ring-slate-200">
+          <span class="text-[11px] font-semibold tracking-wide text-red-500 uppercase">{{ m.starts_at|date:"M" }}</span>
+          <span class="text-2xl leading-tight font-semibold text-slate-900">{{ m.starts_at|date:"j" }}</span>
+          <span class="text-[11px] text-slate-500">{{ m.starts_at|date:"D" }}</span>
+        </div>
+        <div class="min-w-0 flex-1">
+          <div class="flex flex-wrap items-center gap-2">
+            {% if m.is_live %}<span class="badge badge-success"><span class="dot animate-pulse-soft bg-emerald-500"></span> Live now</span>{% else %}<span class="badge badge-info">In {{ m.starts_at|timeuntil }}</span>{% endif %}
+            {% if m.project %}<span class="badge badge-neutral">{{ m.project.code }}</span>{% else %}<span class="badge badge-neutral">Company</span>{% endif %}
+          </div>
+          <h3 class="mt-2 text-base font-semibold text-slate-900">{{ m.title }}</h3>
+          <p class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-500">
+            <span class="inline-flex items-center gap-1.5">{% icon "clock" class="h-3.5 w-3.5" %} {{ m.starts_at|date:"H:i" }}–{{ m.ends_at|date:"H:i" }} <span class="text-xs">({{ m.starts_at|date:"T" }})</span></span>
+            <span class="inline-flex items-center gap-1.5">{% icon "timer" class="h-3.5 w-3.5" %} {{ m.duration_min }} min</span>
+          </p>
+        </div>
+      </div>
+      {% if m.agenda %}<div class="prose-content border-t border-slate-100 px-5 py-4 text-sm"><p class="kv-label mb-1">Agenda</p>{{ m.agenda|markdown }}</div>{% endif %}
+      <div class="mt-auto flex flex-wrap items-center gap-2 border-t border-slate-100 bg-slate-50/60 px-5 py-3">
+        {% if m.meeting_url %}
+          <a href="{{ m.meeting_url }}" target="_blank" rel="noopener noreferrer" class="btn {% if m.is_live %}btn-success{% else %}btn-primary{% endif %} btn-sm">{% icon "video" class="h-3.5 w-3.5" %} {% if m.is_live %}Join now{% else %}Join meeting{% endif %}</a>
+          <button type="button" class="btn btn-ghost btn-sm" data-copy="{{ m.meeting_url }}">Copy link</button>
+        {% else %}
+          <span class="text-xs text-slate-500">The meeting link will be shared before the call.</span>
+        {% endif %}
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}
+    <div class="card">{% include "portal/includes/empty.html" with icon="calendar-days" title="No upcoming meetings" text="Calibration calls and trainings you're invited to will appear here." %}</div>
+  {% endif %}
+</section>
+
+<section class="mt-8" aria-labelledby="past-title">
+  <h2 id="past-title" class="mb-3 text-sm font-semibold text-slate-900">Past meetings</h2>
+  <div class="card">
+    {% if page.object_list %}
+    <ul class="divide-y divide-slate-100">
+      {% for m in page.object_list %}
+      <li class="flex flex-wrap items-center gap-3 px-5 py-3.5">
+        <span class="icon-tile h-9 w-9 rounded-lg bg-slate-100 text-slate-500 ring-slate-200">{% icon "calendar-check" class="h-4 w-4" %}</span>
+        <span class="min-w-0 flex-1">
+          <span class="block truncate text-sm font-medium text-slate-800">{{ m.title }}</span>
+          <span class="text-xs text-slate-500">{{ m.starts_at|date:"D, M j, Y · H:i" }} · {{ m.duration_min }} min{% if m.project %} · {{ m.project.code }}{% endif %}</span>
+        </span>
+        {% if m.agenda %}<details class="w-full text-sm text-slate-600 sm:w-auto"><summary class="cursor-pointer text-xs font-medium text-brand-600">Agenda</summary><div class="prose-content mt-2 text-sm">{{ m.agenda|markdown }}</div></details>{% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+    {% include "components/pagination.html" with page=page %}
+    {% else %}
+      {% include "portal/includes/empty.html" with icon="history" title="No past meetings" compact=True %}
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,33 @@
+{% extends "backoffice/projects/_base.html" %}
+{% load backoffice_tags %}
+{% block project_actions %}{% if can_edit %}<a href="{% url 'backoffice:guideline_create' project.pk %}" class="btn btn-primary btn-sm">{% icon "plus" class="h-4 w-4" %} New guideline</a>{% endif %}{% endblock %}
+{% block content %}
+<section class="card">
+  {% if guidelines %}
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th class="num">#</th><th>Guideline</th><th>Version</th><th>Document</th><th>Acknowledged (current version)</th><th>Updated</th><th></th></tr></thead>
+      <tbody>
+      {% for g in guidelines %}
+        <tr>
+          <td class="num bo-num text-slate-500">{{ g.order }}</td>
+          <td class="min-w-56"><span class="font-medium text-slate-900">{{ g.title }}</span><span class="block max-w-md truncate text-xs text-slate-500">{{ g.content|striptags|truncatechars:90 }}</span></td>
+          <td><span class="bo-chip">v{{ g.version }}</span></td>
+          <td>{% if g.document %}<a href="{% url 'storage:preview' g.document.pk %}?download=1" class="bo-link inline-flex items-center gap-1 text-xs">{% icon "paperclip" class="h-3.5 w-3.5" %} {{ g.document.original_name|truncatechars:24 }}</a>{% else %}<span class="bo-muted">—</span>{% endif %}</td>
+          <td class="min-w-44">{% include "backoffice/components/meter.html" with value=g.ack_current|bar_width:member_count|floatformat:0|add:0 done=g.ack_current total=member_count unit="employees" %}{% if g.ack_total > g.ack_current %}<p class="text-[11px] text-amber-700">{{ g.ack_total|sub:g.ack_current }} on an older version</p>{% endif %}</td>
+          <td class="text-xs whitespace-nowrap text-slate-500">{{ g.updated_at|date:"j M Y" }}</td>
+          <td>{% if can_edit %}<div class="bo-row-actions">
+            <a href="{% url 'backoffice:guideline_edit' g.pk %}" class="bo-icon-btn" title="Edit">{% icon "pencil" class="h-4 w-4" %}</a>
+            <form method="post" action="{% url 'backoffice:guideline_delete' g.pk %}" data-confirm="Delete “{{ g.title }}”? Acknowledgements are deleted too.">{% csrf_token %}<button class="bo-icon-btn is-danger" title="Delete">{% icon "trash-2" class="h-4 w-4" %}</button></form>
+          </div>{% endif %}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+    {% if can_edit %}{% url 'backoffice:guideline_create' project.pk as new_url %}{% endif %}
+    {% include "components/empty_state.html" with icon="book-open" title="No guidelines yet" text="Write the project rules in Markdown; employees acknowledge each version." action_url=new_url action_label="New guideline" %}
+  {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,77 @@
+{% load website_tags %}{% website_nav as nav %}
+<footer class="relative overflow-hidden bg-ink-950 text-slate-400" id="site-footer">
+  <div class="hairline-top absolute inset-x-0 top-0 h-px"></div>
+  <div class="container-page grid gap-12 pt-16 pb-12 lg:grid-cols-[1.25fr_2.75fr] lg:gap-16">
+    <div>
+      <a href="{% url 'website:home' %}" aria-label="{{ brand.name }} — home">{% include "components/logo.html" with dark=True %}</a>
+      <p class="mt-5 max-w-sm text-sm leading-6">{{ brand.legal_name }} provides image, video, text and multimodal annotation services powered by skilled teams, structured workflows and dedicated quality control.</p>
+      <ul class="mt-6 space-y-2.5 text-sm">
+        {% if company.email %}<li><a href="mailto:{{ company.email }}" class="inline-flex items-center gap-2.5 transition hover:text-white">{% icon "mail" class="h-4 w-4 text-slate-500" %}{{ company.email }}</a></li>{% endif %}
+        {% if company.phone %}<li><a href="{{ company.phone|tel_href }}" class="inline-flex items-center gap-2.5 transition hover:text-white">{% icon "phone" class="h-4 w-4 text-slate-500" %}{{ company.phone }}</a></li>{% endif %}
+        {% if company.address %}<li class="flex items-start gap-2.5">{% icon "map-pin" class="mt-0.5 h-4 w-4 shrink-0 text-slate-500" %}<span>{{ company.address|linebreaksbr }}</span></li>{% endif %}
+        {% if company.business_hours %}<li class="flex items-start gap-2.5">{% icon "clock" class="mt-0.5 h-4 w-4 shrink-0 text-slate-500" %}<span>{{ company.business_hours }}</span></li>{% endif %}
+      </ul>
+      {% if company.linkedin or company.facebook or company.x or company.youtube or company.whatsapp %}
+        <div class="mt-6 flex gap-2">
+          {% if company.linkedin %}<a href="{{ company.linkedin }}" class="flex h-9 w-9 items-center justify-center rounded-lg bg-white/5 ring-1 ring-white/10 transition hover:bg-white/10 hover:text-white" rel="noopener" target="_blank" aria-label="LinkedIn">{% brand_icon "linkedin" class="h-4 w-4" %}</a>{% endif %}
+          {% if company.x %}<a href="{{ company.x }}" class="flex h-9 w-9 items-center justify-center rounded-lg bg-white/5 ring-1 ring-white/10 transition hover:bg-white/10 hover:text-white" rel="noopener" target="_blank" aria-label="X">{% brand_icon "x" class="h-4 w-4" %}</a>{% endif %}
+          {% if company.facebook %}<a href="{{ company.facebook }}" class="flex h-9 w-9 items-center justify-center rounded-lg bg-white/5 ring-1 ring-white/10 transition hover:bg-white/10 hover:text-white" rel="noopener" target="_blank" aria-label="Facebook">{% brand_icon "facebook" class="h-4 w-4" %}</a>{% endif %}
+          {% if company.youtube %}<a href="{{ company.youtube }}" class="flex h-9 w-9 items-center justify-center rounded-lg bg-white/5 ring-1 ring-white/10 transition hover:bg-white/10 hover:text-white" rel="noopener" target="_blank" aria-label="YouTube">{% brand_icon "youtube" class="h-4 w-4" %}</a>{% endif %}
+          {% if company.whatsapp %}<a href="{{ company.whatsapp|whatsapp_href }}" class="flex h-9 w-9 items-center justify-center rounded-lg bg-white/5 ring-1 ring-white/10 transition hover:bg-white/10 hover:text-white" rel="noopener" target="_blank" aria-label="WhatsApp">{% brand_icon "whatsapp" class="h-4 w-4" %}</a>{% endif %}
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="grid grid-cols-2 gap-x-8 gap-y-10 sm:grid-cols-4">
+      <div>
+        <h2 class="font-mono text-[11px] font-medium tracking-[0.16em] text-slate-500 uppercase">Services</h2>
+        <ul class="mt-4 space-y-2.5 text-sm">
+          {% for s in nav.services %}<li><a href="{% url 'website:service_detail' s.slug %}" class="transition hover:text-white">{{ s.name }}</a></li>{% endfor %}
+          <li><a href="{% url 'website:services' %}" class="text-accent-300 transition hover:text-white">All services</a></li>
+        </ul>
+      </div>
+      <div>
+        <h2 class="font-mono text-[11px] font-medium tracking-[0.16em] text-slate-500 uppercase">Solutions</h2>
+        <ul class="mt-4 space-y-2.5 text-sm">
+          <li><a href="{% url 'website:solutions' %}" class="transition hover:text-white">Annotation solutions</a></li>
+          {% for p in nav.solutions %}<li><a href="{% url 'website:solution_detail' p.slug %}" class="transition hover:text-white">{{ p.name }}</a></li>{% endfor %}
+        </ul>
+      </div>
+      <div>
+        <h2 class="font-mono text-[11px] font-medium tracking-[0.16em] text-slate-500 uppercase">Company</h2>
+        <ul class="mt-4 space-y-2.5 text-sm">
+          <li><a href="{% url 'website:about' %}" class="transition hover:text-white">About Us</a></li>
+          <li><a href="{% url 'website:industries' %}" class="transition hover:text-white">Industries</a></li>
+          <li><a href="{% url 'website:capability' %}" class="transition hover:text-white">Our Capability</a></li>
+          <li><a href="{% url 'website:quality' %}" class="transition hover:text-white">Quality Assurance</a></li>
+          <li><a href="{% url 'website:platforms' %}" class="transition hover:text-white">Platforms &amp; Workflow</a></li>
+          <li><a href="{% url 'website:security' %}" class="transition hover:text-white">Security</a></li>
+          <li><a href="{% url 'website:careers' %}" class="transition hover:text-white">Careers</a></li>
+          <li><a href="{% url 'website:contact' %}" class="transition hover:text-white">Contact</a></li>
+        </ul>
+      </div>
+      <div>
+        <h2 class="font-mono text-[11px] font-medium tracking-[0.16em] text-slate-500 uppercase">Portals</h2>
+        <ul class="mt-4 space-y-2.5 text-sm">
+          <li><a href="{% url 'accounts:login' %}" class="transition hover:text-white">Employee Login</a></li>
+          <li><a href="{% url 'accounts:client_login' %}" class="transition hover:text-white">Client Login</a></li>
+          <li><a href="{% url 'website:quote' %}" class="transition hover:text-white">Request a Quote</a></li>
+        </ul>
+        <div class="mt-8 rounded-xl bg-white/[0.03] p-4 ring-1 ring-white/10">
+          <p class="text-sm font-medium text-white">Have a dataset in mind?</p>
+          <a href="{% url 'website:quote' %}" class="link-arrow-dark mt-2">Start your project {% icon "arrow-right" class="h-3.5 w-3.5" %}</a>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="border-t border-white/5">
+    <div class="container-page flex flex-col gap-3 py-6 text-xs text-slate-500 sm:flex-row sm:items-center sm:justify-between">
+      <p>© {% now "Y" %} {{ brand.legal_name }}. All rights reserved.</p>
+      <div class="flex flex-wrap gap-x-5 gap-y-2">
+        <a href="{% url 'website:privacy' %}" class="transition hover:text-slate-300">Privacy Policy</a>
+        <a href="{% url 'website:terms' %}" class="transition hover:text-slate-300">Terms of Use</a>
+        <a href="{% url 'website:sitemap' %}" class="transition hover:text-slate-300">Sitemap</a>
+      </div>
+    </div>
+  </div>
+</footer>

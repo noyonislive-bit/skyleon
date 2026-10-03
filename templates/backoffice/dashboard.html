@@ -1,0 +1,182 @@
+{% extends "backoffice/base.html" %}
+{% load backoffice_tags %}
+{% block page_actions %}
+  {% if can_manage_employees %}<a href="{% url 'backoffice:employee_create' %}" class="btn btn-secondary btn-sm">{% icon "user-plus" class="h-4 w-4" %} Add employee</a>{% endif %}
+  {% if attention is not None %}<a href="{% url 'backoffice:tutorial_create' %}" class="btn btn-secondary btn-sm">{% icon "upload" class="h-4 w-4" %} Upload tutorial</a>{% endif %}
+{% endblock %}
+
+{% block content %}
+<section aria-label="Key figures" class="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
+  {% for t in tiles %}{% include "backoffice/components/stat.html" with t=t %}{% endfor %}
+</section>
+
+<div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
+  {# Project-wise team size #}
+  <section class="card lg:col-span-2">
+    <div class="card-header">
+      <div>
+        <h2 class="card-title">Team size by project</h2>
+        <p class="mt-0.5 text-xs text-slate-500">Members per project · hover or focus a bar for the team breakdown</p>
+      </div>
+      <a href="{% url 'backoffice:project_list' %}" class="btn btn-ghost btn-sm">All projects {% icon "arrow-right" class="h-3.5 w-3.5" %}</a>
+    </div>
+    <div class="card-body">
+      {% if chart_projects %}
+        <div class="space-y-0.5" role="list">
+          {% for p in chart_projects %}
+            <a href="{% url 'backoffice:project_members' p.pk %}" class="bo-bar-row group" role="listitem" aria-label="{{ p.name }}: {{ p.n }} member{{ p.n|pluralize }}">
+              <span class="flex min-w-0 items-center gap-2 text-sm">
+                <span class="dot" style="background: {{ p.color }}"></span>
+                <span class="truncate text-slate-700 group-hover:text-slate-900">{{ p.name }}</span>
+              </span>
+              <span class="bo-bar-track">
+                <span class="bo-bar" style="width: {{ p.n|bar_width:chart_max }}%"></span>
+                <span class="bo-bar-value">{{ p.n }}</span>
+              </span>
+              <span class="bo-tip" role="tooltip">
+                <span class="block text-sm font-semibold text-white">{{ p.n }} member{{ p.n|pluralize }}</span>
+                <span class="mb-1.5 block text-slate-400">{{ p.code }} · {{ p.teams_n }} team{{ p.teams_n|pluralize }}</span>
+                {% for name, n in p.breakdown %}<span class="flex justify-between gap-4"><span>{{ name }}</span><span class="font-mono text-white">{{ n }}</span></span>{% endfor %}
+              </span>
+            </a>
+          {% endfor %}
+        </div>
+        <div class="mt-3 grid grid-cols-[minmax(0,9rem)_minmax(0,1fr)] gap-3 sm:grid-cols-[minmax(0,13rem)_minmax(0,1fr)]" aria-hidden="true">
+          <span></span>
+          <div class="flex justify-between border-t border-slate-200 pt-1 font-mono text-[10px] text-slate-400"><span>0</span><span>{{ chart_max }}</span></div>
+        </div>
+      {% else %}
+        {% include "components/empty_state.html" with icon="folder-open" title="No projects yet" text="Create a project and add members to see team sizes here." %}
+      {% endif %}
+    </div>
+  </section>
+
+  {# Pending approvals #}
+  {% if pending_users is not None %}
+  <section class="card">
+    <div class="card-header">
+      <h2 class="card-title">Pending approvals</h2>
+      <a href="{% url 'backoffice:employee_list' %}?status=pending" class="text-xs font-medium text-brand-600 hover:text-brand-700">View all</a>
+    </div>
+    {% if pending_users %}
+      <ul class="bo-list">
+        {% for u in pending_users %}
+          <li class="flex items-center gap-3 px-5 py-3">
+            {% include "backoffice/components/person.html" with u=u link=True sub=u.email %}
+            <form method="post" action="{% url 'backoffice:employee_status' u.pk %}" class="ml-auto shrink-0">{% csrf_token %}
+              <input type="hidden" name="action" value="approve"><input type="hidden" name="next" value="{{ request.get_full_path }}">
+              <button class="btn btn-success btn-sm" type="submit">{% icon "check" class="h-3.5 w-3.5" %} Approve</button>
+            </form>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      {% include "components/empty_state.html" with icon="user-check" title="All caught up" text="No signups are waiting for approval." %}
+    {% endif %}
+  </section>
+  {% elif meetings is not None %}
+  {% include "backoffice/_dashboard_meetings.html" %}
+  {% endif %}
+</div>
+
+{% if attention is not None %}
+<div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+  <section class="card">
+    <div class="card-header">
+      <div>
+        <h2 class="card-title">Feedback needing attention</h2>
+        <p class="mt-0.5 text-xs text-slate-500">Published feedback with the lowest watch rate</p>
+      </div>
+      <a href="{% url 'backoffice:feedback_tracking' %}?state=not_watched" class="text-xs font-medium text-brand-600 hover:text-brand-700">Tracking</a>
+    </div>
+    {% if attention %}
+      <ul class="bo-list">
+        {% for fb in attention %}
+          <li>
+            <a href="{% url 'backoffice:feedback_detail' fb.pk %}" class="flex items-center gap-4 px-5 py-3 hover:bg-slate-50">
+              <span class="bo-code">{{ fb.display_number }}</span>
+              <span class="min-w-0 flex-1">
+                <span class="block truncate text-sm font-medium text-slate-900">{{ fb.topic }}</span>
+                <span class="block truncate text-xs text-slate-500">{{ fb.project.code }}{% if fb.team %} · {{ fb.team.name }}{% endif %} · {{ fb.watched }} of {{ fb.total }} watched</span>
+              </span>
+              <span class="w-28 shrink-0">{% include "backoffice/components/meter.html" with value=fb.rate|floatformat:0|add:0 %}</span>
+            </a>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      {% include "components/empty_state.html" with icon="scan-eye" title="Nothing to chase" text="Published feedback will show up here with its watch rate." %}
+    {% endif %}
+  </section>
+
+  <section class="card">
+    <div class="card-header">
+      <h2 class="card-title">Recent test results</h2>
+      <a href="{% url 'backoffice:test_list' %}" class="text-xs font-medium text-brand-600 hover:text-brand-700">All tests</a>
+    </div>
+    {% if recent_attempts %}
+      <div class="table-wrap">
+        <table class="table">
+          <tbody>
+            {% for a in recent_attempts %}
+              <tr>
+                <td>{% include "backoffice/components/person.html" with u=a.user link=True sub=a.test.title %}</td>
+                <td class="num"><a href="{% url 'backoffice:attempt_detail' a.pk %}" class="bo-num font-semibold text-slate-900 hover:text-brand-700">{{ a.score|floatformat:0 }}%</a></td>
+                <td>{% if a.passed %}{% status_badge "passed" "Passed" %}{% else %}{% status_badge "failed" "Failed" %}{% endif %}</td>
+                <td class="text-right text-xs whitespace-nowrap text-slate-500">{{ a.submitted_at|timesince }} ago</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      {% include "components/empty_state.html" with icon="clipboard-check" title="No attempts yet" text="Submitted tests will appear here." %}
+    {% endif %}
+  </section>
+</div>
+{% endif %}
+
+<div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
+  {% if applicants is not None %}
+  <section class="card">
+    <div class="card-header">
+      <h2 class="card-title">Latest applicants</h2>
+      <a href="{% url 'backoffice:applicant_list' %}" class="text-xs font-medium text-brand-600 hover:text-brand-700">View all</a>
+    </div>
+    {% if applicants %}
+      <ul class="bo-list">
+        {% for a in applicants %}
+          <li><a href="{% url 'backoffice:applicant_detail' a.pk %}" class="flex items-center gap-3 px-5 py-3 hover:bg-slate-50">
+            <span class="min-w-0 flex-1"><span class="block truncate text-sm font-medium text-slate-900">{{ a.full_name }}</span><span class="block truncate text-xs text-slate-500">{{ a.location }} · {{ a.created_at|timesince }} ago</span></span>
+            {% status_badge a.status a.get_status_display %}
+          </a></li>
+        {% endfor %}
+      </ul>
+    {% else %}{% include "components/empty_state.html" with icon="briefcase" title="No applications yet" %}{% endif %}
+  </section>
+  {% endif %}
+
+  {% if quotes is not None %}
+  <section class="card">
+    <div class="card-header">
+      <h2 class="card-title">Latest quote requests</h2>
+      <a href="{% url 'backoffice:lead_list' %}" class="text-xs font-medium text-brand-600 hover:text-brand-700">View all</a>
+    </div>
+    {% if quotes %}
+      <ul class="bo-list">
+        {% for q in quotes %}
+          <li><a href="{% url 'backoffice:lead_detail' q.pk %}" class="flex items-center gap-3 px-5 py-3 hover:bg-slate-50">
+            <span class="min-w-0 flex-1"><span class="block truncate text-sm font-medium text-slate-900">{{ q.company|default:q.name }}</span><span class="block truncate text-xs text-slate-500">{{ q.project_type }}{% if q.dataset_size %} · {{ q.dataset_size }}{% endif %}</span></span>
+            {% status_badge q.status q.get_status_display %}
+          </a></li>
+        {% endfor %}
+      </ul>
+    {% else %}{% include "components/empty_state.html" with icon="file-text" title="No quote requests yet" %}{% endif %}
+  </section>
+  {% endif %}
+
+  {% if meetings is not None and pending_users is not None %}
+    {% include "backoffice/_dashboard_meetings.html" %}
+  {% endif %}
+</div>
+{% endblock %}

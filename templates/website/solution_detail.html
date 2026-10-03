@@ -1,0 +1,119 @@
+{% extends "website/base_site.html" %}
+{% block content %}
+<section class="hero-dark">
+  <div class="absolute inset-0 grid-bg fade-grid" aria-hidden="true"></div>
+  <div class="glow-brand -top-48 left-[10%] h-[520px] w-[520px]" aria-hidden="true"></div>
+  <div class="glow-accent top-20 -right-24 h-[420px] w-[420px]" aria-hidden="true"></div>
+  <div class="container-page relative grid items-center gap-12 pt-28 pb-16 sm:pt-36 sm:pb-24 lg:grid-cols-[1fr_1.05fr] lg:gap-14">
+    <div>
+      {% include "website/partials/breadcrumbs.html" %}
+      <p class="eyebrow-dark mt-7"><span class="h-1.5 w-1.5 rounded-full bg-accent-300"></span>{{ sp.eyebrow }}</p>
+      <h1 class="mt-4 text-[2.3rem] leading-[1.08] font-semibold tracking-tight sm:text-5xl lg:text-[3.3rem]" style="letter-spacing:-0.035em">{{ sp.h1 }}</h1>
+      <p class="lead-dark mt-6 max-w-xl">{{ sp.lead }}</p>
+      <div class="mt-9 flex flex-wrap gap-3">
+        <a href="{% url 'website:quote' %}?type={{ sp.slug }}" class="btn btn-accent btn-lg">Request a Quote {% icon "arrow-right" class="h-4 w-4" %}</a>
+        <a href="#deliver" class="btn btn-light btn-lg">What we deliver</a>
+      </div>
+    </div>
+    <div class="min-w-0">{% include "website/partials/solution_visual.html" %}</div>
+  </div>
+</section>
+
+<section class="section bg-white">
+  <div class="container-page grid gap-12 lg:grid-cols-[1.5fr_1fr] lg:gap-16">
+    <div class="reveal">
+      <p class="eyebrow">Overview</p>
+      <h2 class="section-title mt-4">{{ sp.name }}, explained.</h2>
+      <div class="mt-6 space-y-5 text-[17px] leading-8 text-slate-600">{% for para in sp.intro %}<p>{{ para }}</p>{% endfor %}</div>
+    </div>
+    <aside class="reveal h-fit rounded-2xl bg-slate-50 p-6 ring-1 ring-slate-200 sm:p-7 lg:sticky lg:top-28" aria-label="At a glance">
+      <p class="font-mono text-[11px] tracking-[0.16em] text-slate-400 uppercase">At a glance</p>
+      <dl class="mt-5 space-y-5 text-sm">
+        <div><dt class="font-semibold text-slate-900">Related services</dt><dd class="mt-2 flex flex-col gap-1.5">{% for r in related %}<a href="{% url 'website:service_detail' r.slug %}" class="inline-flex items-center gap-2 text-slate-600 transition hover:text-brand-700">{% icon r.icon class="h-4 w-4 text-brand-600" %}{{ r.name }}</a>{% endfor %}</dd></div>
+        <div><dt class="font-semibold text-slate-900">Typical formats</dt><dd class="mt-2 flex flex-wrap gap-1.5">{% for f in sp.formats %}<span class="chip-mono bg-white">{{ f }}</span>{% endfor %}</dd><dd class="mt-2 text-xs text-slate-500">{{ statements.FORMATS_NOTE }}</dd></div>
+        <div><dt class="font-semibold text-slate-900">Tools</dt><dd class="mt-1.5 leading-6 text-slate-600">{{ statements.TOOLS_STATEMENT }}</dd></div>
+      </dl>
+      <a href="{% url 'website:quote' %}?type={{ sp.slug }}" class="btn btn-primary mt-6 w-full">Get a quote {% icon "arrow-right" class="h-4 w-4" %}</a>
+    </aside>
+  </div>
+</section>
+
+<section class="section bg-slate-50" id="deliver">
+  <div class="container-page">
+    <div class="reveal max-w-2xl">
+      <p class="eyebrow">What we deliver</p>
+      <h2 class="section-title mt-4">What you receive.</h2>
+    </div>
+    <div class="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {% for title, text in sp.deliver %}
+        <div class="reveal card p-6">
+          <span class="font-mono text-xs text-brand-600">{{ forloop.counter|stringformat:"02d" }}</span>
+          <h3 class="mt-3 text-base font-semibold">{{ title }}</h3>
+          <p class="mt-2 text-sm leading-6 text-slate-600">{{ text }}</p>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="relative isolate overflow-hidden bg-ink-950 section dark-surface">
+  <div class="absolute inset-0 grid-bg fade-grid" aria-hidden="true"></div>
+  <div class="container-page relative grid gap-12 lg:grid-cols-2 lg:gap-16">
+    <div class="reveal">
+      <p class="eyebrow-dark"><span class="h-1.5 w-1.5 rounded-full bg-accent-300"></span>Workflow</p>
+      <h2 class="section-title mt-4">How the project runs.</h2>
+      <ol class="mt-8 space-y-3">
+        {% for step in sp.process %}
+          <li class="flex gap-4 rounded-xl bg-white/[0.03] p-4 ring-1 ring-white/10">
+            <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-brand-500 to-accent-500 font-mono text-[11px] font-semibold text-white">{{ forloop.counter }}</span>
+            <span class="pt-0.5 text-[15px] leading-6 text-slate-200">{{ step }}</span>
+          </li>
+        {% endfor %}
+      </ol>
+    </div>
+    <div class="reveal">
+      <p class="eyebrow-dark"><span class="h-1.5 w-1.5 rounded-full bg-label-lime"></span>Quality checks</p>
+      <h2 class="section-title mt-4">What QA verifies.</h2>
+      <ul class="mt-8 grid gap-3">
+        {% for q in sp.qa %}
+          <li class="flex items-center gap-3 rounded-xl bg-white/[0.03] p-4 text-[15px] text-slate-200 ring-1 ring-white/10">{% icon "shield-check" class="h-4 w-4 shrink-0 text-label-lime" %}{{ q }}</li>
+        {% endfor %}
+      </ul>
+      <p class="mt-6 font-mono text-[11px] text-slate-500">Annotation → Review → QA → Correction → Final Delivery</p>
+    </div>
+  </div>
+</section>
+
+<section class="section-tight bg-white">
+  <div class="container-page">
+    <div class="reveal grid gap-10 lg:grid-cols-2">
+      <div>
+        <h2 class="text-2xl font-semibold tracking-tight">Related services</h2>
+        <div class="mt-6 grid gap-3">
+          {% for r in related %}
+            <a href="{% url 'website:service_detail' r.slug %}" class="card card-lift group flex items-start gap-4 p-5">
+              <span class="icon-tile">{% icon r.icon class="h-5 w-5" %}</span>
+              <span><span class="block font-semibold text-slate-900">{{ r.name }}</span><span class="mt-1 block text-sm leading-6 text-slate-600">{{ r.short }}</span></span>
+            </a>
+          {% endfor %}
+        </div>
+      </div>
+      <div>
+        <h2 class="text-2xl font-semibold tracking-tight">Related solutions</h2>
+        <div class="mt-6 grid gap-3">
+          {% for p in related_pages %}
+            <a href="{% url 'website:solution_detail' p.slug %}" class="card card-lift group flex items-start gap-4 p-5">
+              <span class="icon-tile">{% icon p.icon class="h-5 w-5" %}</span>
+              <span><span class="block font-semibold text-slate-900">{{ p.name }}</span><span class="mt-1 block text-sm leading-6 text-slate-600">{{ p.lead|truncatewords:16 }}</span></span>
+            </a>
+          {% endfor %}
+          <a href="{% url 'website:solutions' %}" class="link-arrow mt-2">All annotation solutions {% icon "arrow-right" class="h-4 w-4" %}</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+{% include "website/partials/faq.html" with faqs=sp.faqs bg="bg-slate-50" %}
+{% include "website/partials/cta_band.html" with title="Start your project" quote_type=sp.slug %}
+{% endblock %}

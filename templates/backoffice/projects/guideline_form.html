@@ -1,0 +1,25 @@
+{% extends "backoffice/projects/_base.html" %}
+{% load static backoffice_tags %}
+{% block content %}
+<form method="post" class="card" novalidate>{% csrf_token %}
+  <div class="card-body space-y-5">
+    {% include "components/form_errors.html" %}
+    <div class="grid gap-5 sm:grid-cols-6">
+      {% include "components/field.html" with field=form.title class="sm:col-span-4" %}
+      {% include "components/field.html" with field=form.version class="sm:col-span-1" %}
+      {% include "components/field.html" with field=form.order class="sm:col-span-1" %}
+    </div>
+    {% include "components/field.html" with field=form.content hint="Markdown: ## headings, **bold**, lists, tables. Raw HTML is not allowed." %}
+    <div>
+      <label class="label">{{ form.document.label }}</label>
+      {% uploader form.document kind="document" purpose="guideline" %}
+      <p class="help-text">PDF, Word or spreadsheet version of the guideline — employees can download it from the project page.</p>
+    </div>
+  </div>
+  <div class="flex justify-end gap-2 border-t border-slate-100 px-5 py-4">
+    <a href="{% url 'backoffice:project_guidelines' project.pk %}" class="btn btn-ghost">Cancel</a>
+    <button class="btn btn-primary">Save guideline</button>
+  </div>
+</form>
+{% endblock %}
+{% block page_scripts %}<script src="{% static 'js/uploader.js' %}" defer></script>{% endblock %}

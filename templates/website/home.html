@@ -1,2 +1,253 @@
-{% extends "base.html" %}
-{% block body %}<main class="container-page section"><h1 class="heading-xl">{{ brand.name }}</h1><p class="lead mt-4">{{ brand.description }}</p><a class="btn btn-primary mt-6" href="{% url 'accounts:login' %}">Employee login</a></main>{% endblock %}
+{% extends "website/base_site.html" %}
+{% block content %}
+
+{# ── Hero ─────────────────────────────────────────────────────────────── #}
+<section class="hero-dark">
+  <div class="absolute inset-0 grid-bg fade-grid" aria-hidden="true"></div>
+  <div class="glow-brand -top-56 left-[8%] h-[620px] w-[620px]" aria-hidden="true"></div>
+  <div class="glow-accent top-24 -right-32 h-[520px] w-[520px]" aria-hidden="true"></div>
+  <div class="container-page relative pt-28 sm:pt-40 lg:pt-44">
+    <div class="mx-auto max-w-4xl text-center">
+      <a href="{% url 'website:service_detail' 'action-activity-annotation' %}" class="animate-fade-up inline-flex max-w-full items-center gap-2 rounded-full bg-white/[0.06] py-1 pr-3 pl-1 text-[13px] text-slate-300 ring-1 ring-white/10 transition hover:bg-white/10">
+        <span class="rounded-full bg-gradient-to-r from-brand-500 to-accent-500 px-2.5 py-0.5 text-[11px] font-semibold text-white">Specialization</span>
+        <span class="truncate">Human action &amp; video annotation</span>{% icon "arrow-right" class="h-3.5 w-3.5 shrink-0 opacity-70" %}
+      </a>
+      <h1 class="animate-fade-up mt-7 text-[2.55rem] leading-[1.04] font-semibold text-white sm:text-6xl lg:text-[4.5rem]" style="letter-spacing:-0.045em; animation-delay:.06s">
+        High-Quality AI Data Annotation, <span class="text-gradient">Built for Scale.</span>
+      </h1>
+      <p class="animate-fade-up mx-auto mt-6 max-w-2xl text-lg leading-8 text-slate-400 sm:text-xl sm:leading-9" style="animation-delay:.12s">
+        Reliable image, video, text and multimodal annotation services powered by skilled teams, structured workflows and dedicated quality control.
+      </p>
+      <div class="animate-fade-up mt-10 flex flex-col justify-center gap-3 sm:flex-row" style="animation-delay:.18s">
+        <a href="{% url 'website:quote' %}" class="btn btn-accent btn-lg">Request a Quote {% icon "arrow-right" class="h-4 w-4" %}</a>
+        <a href="{% url 'website:services' %}" class="btn btn-light btn-lg">Explore Our Services</a>
+      </div>
+      <ul class="animate-fade-up mt-10 flex flex-wrap justify-center gap-x-6 gap-y-2.5 text-[13.5px] text-slate-400" style="animation-delay:.24s">
+        <li class="flex items-center gap-2">{% icon "circle-check" class="h-4 w-4 text-accent-300" %} Dedicated, trained teams</li>
+        <li class="flex items-center gap-2">{% icon "circle-check" class="h-4 w-4 text-accent-300" %} Multi-layer QA</li>
+        <li class="flex items-center gap-2">{% icon "circle-check" class="h-4 w-4 text-accent-300" %} Works in your platform</li>
+        <li class="flex items-center gap-2">{% icon "circle-check" class="h-4 w-4 text-accent-300" %} Confidential handling</li>
+      </ul>
+    </div>
+    <div class="animate-fade-up relative mx-auto mt-14 max-w-6xl sm:mt-20" style="animation-delay:.3s">
+      <div class="absolute inset-x-[10%] -top-10 -z-10 h-2/3 rounded-full bg-brand-600/30 blur-[100px]" aria-hidden="true"></div>
+      {% include "website/visuals/hero_workspace.html" %}
+    </div>
+  </div>
+
+  {# Capability strip: modalities + annotation types #}
+  <div class="container-page relative pt-16 pb-16 sm:pt-20 sm:pb-20">
+    <p class="text-center font-mono text-[11px] tracking-[0.18em] text-slate-500 uppercase">Modalities &amp; annotation types we deliver</p>
+    <div class="mt-6 grid grid-cols-2 gap-px overflow-hidden rounded-2xl bg-white/10 ring-1 ring-white/10 sm:grid-cols-3 lg:grid-cols-6">
+      {% for m in modalities %}
+        <div class="bg-ink-950 p-5 transition hover:bg-ink-900">
+          <span class="text-accent-300">{% icon m.icon class="h-5 w-5" %}</span>
+          <p class="mt-3 text-sm font-semibold text-white">{{ m.name }}</p>
+          <p class="mt-1 text-[12.5px] leading-5 text-slate-500">{{ m.items|join:" · " }}</p>
+        </div>
+      {% endfor %}
+    </div>
+    <div class="marquee mt-6" aria-label="Annotation types">
+      <div class="marquee-track">{% for t in annotation_types %}<span class="chip-dark">{{ t }}</span>{% endfor %}</div>
+      <div class="marquee-track" aria-hidden="true">{% for t in annotation_types %}<span class="chip-dark">{{ t }}</span>{% endfor %}</div>
+    </div>
+  </div>
+</section>
+
+{# ── Services ─────────────────────────────────────────────────────────── #}
+<section class="section bg-white" id="services">
+  <div class="container-page">
+    <div class="reveal flex flex-wrap items-end justify-between gap-6">
+      <div class="max-w-2xl">
+        <p class="eyebrow">Services</p>
+        <h2 class="section-title mt-4">Annotation services across image, video, text and documents.</h2>
+        <p class="lead mt-5">Six core services, one structured workflow: trained annotators, separate review and QA layers, and delivery in the format your pipeline expects.</p>
+      </div>
+      <a href="{% url 'website:services' %}" class="btn btn-secondary">All services {% icon "arrow-right" class="h-4 w-4" %}</a>
+    </div>
+    <div class="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+      {% for s in services %}
+        <a href="{% url 'website:service_detail' s.slug %}" class="reveal card card-lift group relative flex flex-col overflow-hidden p-6 sm:p-7" style="transition-delay: {{ forloop.counter0 }}0ms">
+          <span class="absolute inset-x-0 top-0 h-[3px] {{ s.tone.bg }} opacity-70" aria-hidden="true"></span>
+          <div class="flex items-start justify-between gap-4">
+            <span class="icon-tile">{% icon s.icon class="h-5 w-5" %}</span>
+            {% if s.badge %}<span class="badge badge-warning">{{ s.badge }}</span>{% endif %}
+          </div>
+          <h3 class="mt-6 text-lg font-semibold tracking-tight">{{ s.name }}</h3>
+          <p class="mt-2 text-[15px] leading-6 text-slate-600">{{ s.short }}</p>
+          <div class="mt-5 flex flex-wrap gap-1.5">{% for t in s.tags %}<span class="chip-mono">{{ t }}</span>{% endfor %}</div>
+          <span class="link-arrow mt-auto pt-6">Learn more {% icon "arrow-right" class="h-4 w-4" %}</span>
+        </a>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+{# ── Specialization ───────────────────────────────────────────────────── #}
+<section class="relative isolate overflow-hidden bg-ink-900 section dark-surface" id="specialization">
+  <div class="absolute inset-0 grid-bg" aria-hidden="true"></div>
+  <div class="glow-brand top-1/3 -left-40 h-[520px] w-[520px]" aria-hidden="true"></div>
+  <div class="glow-accent -right-32 bottom-0 h-[420px] w-[420px]" aria-hidden="true"></div>
+  <div class="container-page relative grid items-center gap-14 lg:grid-cols-[1fr_1.08fr] lg:gap-16">
+    <div class="reveal">
+      <p class="eyebrow-dark"><span class="h-1.5 w-1.5 rounded-full bg-label-amber"></span>Key strength</p>
+      <h2 class="section-title mt-4">Specialized in Human Action &amp; Video Understanding</h2>
+      <p class="lead-dark mt-5">Action annotation is one of our core areas and a current major project focus. Our teams are trained to make the precise, repeatable decisions action datasets depend on — when an action starts, which hand performs it and which object is involved.</p>
+      <ul class="mt-8 grid gap-x-6 gap-y-3 sm:grid-cols-2">
+        {% for name, text, icon_name in specialization %}
+          <li class="flex items-start gap-3">
+            <span class="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-white/[0.05] text-accent-300 ring-1 ring-white/10">{% icon icon_name class="h-3.5 w-3.5" %}</span>
+            <span><span class="block text-sm font-semibold text-white">{{ name }}</span><span class="block text-[13px] leading-5 text-slate-400">{{ text }}</span></span>
+          </li>
+        {% endfor %}
+      </ul>
+      <div class="mt-9 flex flex-wrap gap-3">
+        <a href="{% url 'website:service_detail' 'action-activity-annotation' %}" class="btn btn-white">Action &amp; activity annotation {% icon "arrow-right" class="h-4 w-4" %}</a>
+        <a href="{% url 'website:service_detail' 'action-description' %}" class="btn btn-light">Action descriptions</a>
+      </div>
+    </div>
+    <div class="reveal min-w-0">
+      {% include "website/visuals/action_timeline.html" %}
+      <div class="mt-4 flex flex-wrap items-center gap-2 rounded-xl bg-white/[0.03] p-3 font-mono text-[11px] ring-1 ring-white/10 sm:text-xs">
+        <span class="rounded-md bg-label-lime/10 px-2 py-1 text-label-lime ring-1 ring-label-lime/25">HAND · Right hand</span><span class="text-slate-500">+</span>
+        <span class="rounded-md bg-label-violet/10 px-2 py-1 text-label-violet ring-1 ring-label-violet/25">ACTION · picks up</span><span class="text-slate-500">+</span>
+        <span class="rounded-md bg-label-cyan/10 px-2 py-1 text-label-cyan ring-1 ring-label-cyan/25">OBJECT · a cup</span><span class="text-slate-500">=</span>
+        <span class="text-slate-100">“Right hand picks up a cup.”</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+{# ── Computer vision use cases ────────────────────────────────────────── #}
+<section class="section bg-slate-50" id="use-cases">
+  <div class="container-page">
+    <div class="reveal mx-auto max-w-3xl text-center">
+      <p class="eyebrow">Computer vision use cases</p>
+      <h2 class="section-title mt-4">Annotation matched to the model you're training.</h2>
+      <p class="lead mt-5">{{ statements.DATASET_STATEMENT }}</p>
+    </div>
+    <div class="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+      {% for s in cv_solutions %}
+        <a href="{% url 'website:solutions' %}#{{ s.slug }}" class="reveal card card-lift group flex flex-col overflow-hidden" style="transition-delay: {{ forloop.counter0 }}0ms">
+          <div class="overflow-hidden border-b border-slate-200/80 bg-ink-900">{% with "website/visuals/cv_"|add:s.visual|add:".html" as tpl %}{% include tpl %}{% endwith %}</div>
+          <div class="flex flex-1 flex-col p-6">
+            <h3 class="flex items-center gap-2 text-base font-semibold">{% icon s.icon class="h-4 w-4 text-brand-600" %}{{ s.name }}</h3>
+            <p class="mt-2 text-sm leading-6 text-slate-600">{{ s.summary }}</p>
+            <div class="mt-auto flex flex-wrap gap-1.5 pt-5">{% for m in s.models|slice:":4" %}<span class="chip-mono text-[11px]">{{ m }}</span>{% endfor %}</div>
+          </div>
+        </a>
+      {% endfor %}
+      <a href="{% url 'website:solutions' %}" class="reveal group relative flex flex-col justify-between overflow-hidden rounded-xl bg-ink-900 p-7 text-slate-300 ring-1 ring-ink-800">
+        <span class="absolute inset-0 grid-bg" aria-hidden="true"></span>
+        <span class="absolute -right-20 -bottom-20 h-64 w-64 rounded-full bg-brand-600/40 blur-3xl" aria-hidden="true"></span>
+        <span class="relative">
+          <span class="eyebrow-dark">Annotation solutions</span>
+          <span class="mt-4 block text-xl leading-snug font-semibold text-white">Not sure which annotation your model needs?</span>
+          <span class="mt-3 block text-sm leading-6 text-slate-400">Tell us the task and target output. We'll map it to an annotation schema, run a pilot and confirm the format before production.</span>
+        </span>
+        <span class="relative mt-8 flex flex-wrap gap-3">
+          <span class="btn btn-white">Explore solutions {% icon "arrow-right" class="h-4 w-4" %}</span>
+        </span>
+      </a>
+    </div>
+
+  </div>
+</section>
+
+{# ── Industries ───────────────────────────────────────────────────────── #}
+<section class="section bg-white" id="industries">
+  <div class="container-page">
+    <div class="reveal flex flex-wrap items-end justify-between gap-6">
+      <div class="max-w-2xl">
+        <p class="eyebrow">Industries</p>
+        <h2 class="section-title mt-4">Supporting computer vision teams across industries.</h2>
+        <p class="lead mt-5">From retail shelves to robot manipulation, we adapt guidelines, label taxonomies and QA to the realities of each domain.</p>
+      </div>
+      <a href="{% url 'website:industries' %}" class="btn btn-secondary">All industries {% icon "arrow-right" class="h-4 w-4" %}</a>
+    </div>
+    <div class="mt-14 grid gap-px overflow-hidden rounded-2xl bg-slate-200 ring-1 ring-slate-200 sm:grid-cols-2 lg:grid-cols-3">
+      {% for ind in industries %}
+        <a href="{% url 'website:industries' %}#{{ ind.slug }}" class="reveal group flex flex-col bg-white p-6 transition hover:bg-slate-50 sm:p-7">
+          <div class="flex items-center gap-3">
+            <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-ink-900 {{ ind.tone.text }}">{% icon ind.icon class="h-5 w-5" %}</span>
+            <h3 class="text-base font-semibold">{{ ind.name }}</h3>
+            <span class="ml-auto text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-brand-600">{% icon "arrow-up-right" class="h-4 w-4" %}</span>
+          </div>
+          <p class="mt-4 text-sm leading-6 text-slate-600">{{ ind.summary }}</p>
+          <p class="mt-3 font-mono text-[11.5px] leading-5 text-slate-400">{{ ind.items|slice:":3"|join:" · " }}</p>
+        </a>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+{# ── Scalability ──────────────────────────────────────────────────────── #}
+<section class="section bg-slate-50" id="scale">
+  <div class="container-page grid items-center gap-14 lg:grid-cols-2 lg:gap-20">
+    <div class="reveal">
+      <p class="eyebrow">Capability</p>
+      <h2 class="section-title mt-4">Built to Scale With Your Dataset.</h2>
+      <p class="lead mt-5">{{ statements.SCALE_STATEMENT }} Every project gets its own trained team with clear roles — so quality holds as volume grows.</p>
+      <dl class="mt-9 grid gap-6 sm:grid-cols-2">
+        <div><dt class="flex items-center gap-2 font-semibold text-slate-900">{% icon "users" class="h-4 w-4 text-brand-600" %} Dedicated project teams</dt><dd class="mt-1.5 text-sm leading-6 text-slate-600">Annotators who stay on your project and build up domain knowledge.</dd></div>
+        <div><dt class="flex items-center gap-2 font-semibold text-slate-900">{% icon "graduation-cap" class="h-4 w-4 text-brand-600" %} Structured training</dt><dd class="mt-1.5 text-sm leading-6 text-slate-600">Tutorials, tests and daily feedback on our internal training portal.</dd></div>
+        <div><dt class="flex items-center gap-2 font-semibold text-slate-900">{% icon "scaling" class="h-4 w-4 text-brand-600" %} Flexible capacity</dt><dd class="mt-1.5 text-sm leading-6 text-slate-600">Teams sized to your volume, timeline and quality requirements.</dd></div>
+        <div><dt class="flex items-center gap-2 font-semibold text-slate-900">{% icon "layers" class="h-4 w-4 text-brand-600" %} Large-volume projects</dt><dd class="mt-1.5 text-sm leading-6 text-slate-600">Batch-based production with review and QA at every stage.</dd></div>
+      </dl>
+      <a href="{% url 'website:capability' %}" class="link-arrow mt-9">Our capability {% icon "arrow-right" class="h-4 w-4" %}</a>
+    </div>
+    <div class="reveal">
+      {% include "website/partials/team_card.html" %}
+    </div>
+  </div>
+</section>
+
+{# ── QA workflow ──────────────────────────────────────────────────────── #}
+<section class="relative isolate overflow-hidden bg-ink-950 section dark-surface" id="quality">
+  <div class="absolute inset-0 grid-bg fade-grid" aria-hidden="true"></div>
+  <div class="glow-brand -top-40 left-1/3 h-[480px] w-[480px]" aria-hidden="true"></div>
+  <div class="container-page relative">
+    <div class="reveal mx-auto max-w-3xl text-center">
+      <p class="eyebrow-dark justify-center"><span class="h-1.5 w-1.5 rounded-full bg-label-lime"></span>Quality assurance</p>
+      <h2 class="section-title mt-4">Every label passes through multiple quality layers.</h2>
+      <p class="lead-dark mt-5">Annotation, review and QA are separate roles. Errors are corrected and re-checked before delivery — and recurring issues go straight into daily feedback and retraining.</p>
+    </div>
+    <div class="mt-16">{% include "website/partials/qa_flow.html" %}</div>
+    <div class="reveal mt-12 text-center"><a href="{% url 'website:quality' %}" class="btn btn-light">See our QA checks {% icon "arrow-right" class="h-4 w-4" %}</a></div>
+  </div>
+</section>
+
+{# ── Platforms & formats ──────────────────────────────────────────────── #}
+<section class="section bg-slate-50" id="platforms">
+  <div class="container-page">
+    <div class="reveal grid gap-6 lg:grid-cols-[1fr_auto] lg:items-end">
+      <div class="max-w-2xl">
+        <p class="eyebrow">Platforms &amp; formats</p>
+        <h2 class="section-title mt-4">Already have your own annotation server? No problem.</h2>
+        <p class="lead mt-5">Our team can adapt to your existing workflow — your servers, your tools and your output format.</p>
+      </div>
+      <a href="{% url 'website:platforms' %}" class="btn btn-secondary">Platforms &amp; workflow {% icon "arrow-right" class="h-4 w-4" %}</a>
+    </div>
+    <div class="mt-12">{% include "website/partials/formats_strip.html" %}</div>
+  </div>
+</section>
+
+{# ── Client workflow ──────────────────────────────────────────────────── #}
+<section class="section bg-white" id="how-we-work">
+  <div class="container-page">
+    <div class="reveal mx-auto max-w-3xl text-center">
+      <p class="eyebrow">How we work</p>
+      <h2 class="section-title mt-4">From requirements to a validated dataset in five steps.</h2>
+      <p class="lead mt-5">A pilot first, so you can judge quality before production — then a trained team, layered QA and delivery to your specification.</p>
+    </div>
+    <div class="mt-16">{% include "website/partials/workflow_steps.html" %}</div>
+    <div class="reveal mt-14 flex justify-center"><a href="{% url 'website:quote' %}" class="btn btn-primary btn-lg">Start Your Project {% icon "arrow-right" class="h-4 w-4" %}</a></div>
+  </div>
+</section>
+
+{% include "website/partials/security_strip.html" %}
+
+{% include "website/partials/faq.html" with faqs=faqs %}
+
+{% include "website/partials/cta_band.html" with title="Start Your Project" eyebrow="Ready when you are" section_class="pt-0 sm:pt-0" %}
+{% endblock %}

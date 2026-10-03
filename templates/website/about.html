@@ -1,0 +1,75 @@
+{% extends "website/base_site.html" %}
+{% block content %}
+{% url 'website:services' as services_url %}{% url 'website:careers' as careers_url %}
+{% include "website/partials/page_hero.html" with eyebrow="About us" title="An AI data annotation company built on structure and quality." lead=about_lead primary_url=services_url primary_label="Our services" secondary_url=careers_url secondary_label="Join our team" %}
+
+<section class="section bg-white">
+  <div class="container-page grid gap-12 lg:grid-cols-[0.8fr_1.2fr] lg:gap-20">
+    <div class="reveal">
+      <p class="eyebrow">Our story</p>
+      <h2 class="section-title mt-4">Consistency is the hard part. So we built around it.</h2>
+    </div>
+    <div class="reveal space-y-5 text-[17px] leading-8 text-slate-600">
+      <p>Most problems in AI training data come from inconsistency, not from a lack of effort. Labels drift when guidelines are vague, when teams change and when nobody checks the work systematically.</p>
+      <p>{{ brand.name }} is organised around preventing that. Every project has a dedicated team with clear roles. Every annotator is trained and tested on the project guideline before production. Every batch passes through review and QA — and what QA finds goes back to the team as feedback the next day.</p>
+      <p>Our skilled, remote annotation workforce works across image, video and text annotation, with a particular focus on human action and video understanding. We support projects from short pilots to large, long-running datasets.</p>
+      <p>We aim for long-term collaboration: the longer a team works on your data, the better it understands your edge cases — and the more consistent your dataset becomes.</p>
+    </div>
+  </div>
+</section>
+
+<section class="section bg-slate-50">
+  <div class="container-page">
+    <div class="reveal max-w-2xl"><p class="eyebrow">What defines us</p><h2 class="section-title mt-4">Focused on one job: reliable training data.</h2></div>
+    <div class="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {% for icon_name, title, text in focus %}
+        <div class="reveal rounded-2xl bg-white p-6 ring-1 ring-slate-200">
+          <span class="icon-tile">{% icon icon_name class="h-5 w-5" %}</span>
+          <h3 class="mt-5 text-base font-semibold">{{ title }}</h3>
+          <p class="mt-2 text-sm leading-6 text-slate-600">{{ text }}</p>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="relative isolate overflow-hidden bg-ink-900 section dark-surface">
+  <div class="absolute inset-0 grid-bg" aria-hidden="true"></div>
+  <div class="glow-brand -top-40 right-0 h-[480px] w-[480px]" aria-hidden="true"></div>
+  <div class="container-page relative grid gap-12 lg:grid-cols-2 lg:gap-16">
+    <div class="reveal">
+      <p class="eyebrow-dark"><span class="h-1.5 w-1.5 rounded-full bg-accent-300"></span>What we do</p>
+      <h2 class="section-title mt-4">Clear about our role.</h2>
+      <p class="lead-dark mt-5">{{ statements.DATASET_STATEMENT }}</p>
+      <ul class="mt-8 space-y-3 text-[15px] text-slate-200">
+        <li class="flex items-start gap-3">{% icon "circle-check" class="mt-0.5 h-5 w-5 shrink-0 text-label-lime" %}We annotate, review and quality-check the data you provide.</li>
+        <li class="flex items-start gap-3">{% icon "circle-check" class="mt-0.5 h-5 w-5 shrink-0 text-label-lime" %}{{ statements.TOOLS_STATEMENT }}</li>
+        <li class="flex items-start gap-3">{% icon "circle-check" class="mt-0.5 h-5 w-5 shrink-0 text-label-lime" %}{{ statements.SCALE_STATEMENT }}</li>
+        <li class="flex items-start gap-3">{% icon "circle-x" class="mt-0.5 h-5 w-5 shrink-0 text-slate-500" %}We don't build or sell AI models, and we never reuse or share client data.</li>
+      </ul>
+    </div>
+    <div class="reveal grid gap-4 sm:grid-cols-2">
+      {% for icon_name, title, text in principles %}
+        <div class="feature-dark">
+          <span class="icon-tile-dark">{% icon icon_name class="h-5 w-5" %}</span>
+          <h3 class="mt-5 text-base font-semibold text-white">{{ title }}</h3>
+          <p class="mt-2 text-sm leading-6 text-slate-400">{{ text }}</p>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="section-tight bg-white">
+  <div class="container-page">
+    <div class="reveal flex flex-wrap items-end justify-between gap-4"><h2 class="text-2xl font-semibold tracking-tight">What we annotate</h2><a href="{% url 'website:services' %}" class="link-arrow">All services {% icon "arrow-right" class="h-4 w-4" %}</a></div>
+    <div class="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      {% for s in services %}
+        <a href="{% url 'website:service_detail' s.slug %}" class="reveal card card-lift flex items-center gap-4 p-5"><span class="icon-tile">{% icon s.icon class="h-5 w-5" %}</span><span class="font-semibold text-slate-900">{{ s.name }}</span></a>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+{% include "website/partials/cta_band.html" with title="Let's talk about your data" text="Share your use case and requirements. We'll review them with you and suggest a pilot." %}
+{% endblock %}

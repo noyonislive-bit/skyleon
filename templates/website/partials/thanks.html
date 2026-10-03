@@ -1,0 +1,12 @@
+{% comment %} Thank-you hero. Variables: eyebrow, title, text {% endcomment %}
+<section class="hero-dark">
+  <div class="absolute inset-0 grid-bg fade-grid" aria-hidden="true"></div>
+  <div class="glow-brand -top-48 left-1/4 h-[520px] w-[520px]" aria-hidden="true"></div>
+  <div class="glow-accent top-20 -right-24 h-[380px] w-[380px]" aria-hidden="true"></div>
+  <div class="container-page relative pt-32 pb-20 text-center sm:pt-40 sm:pb-28">
+    <span class="animate-fade-up mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-500 to-accent-500 text-white shadow-glow">{% icon "check" class="h-8 w-8" stroke_width="2.5" %}</span>
+    <p class="eyebrow-dark mt-8 justify-center">{{ eyebrow }}</p>
+    <h1 class="animate-fade-up mx-auto mt-4 max-w-3xl text-4xl font-semibold tracking-tight sm:text-5xl" style="letter-spacing:-0.035em">{{ title }}</h1>
+    <p class="animate-fade-up lead-dark mx-auto mt-6 max-w-2xl">{{ text }}</p>
+  </div>
+</section>

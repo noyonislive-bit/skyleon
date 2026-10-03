@@ -1,0 +1,23 @@
+{% comment %} Rows from views.feedback.tracking_rows + decorate(). show_feedback: include project/date columns. {% endcomment %}
+<div class="table-wrap">
+  <table class="table">
+    <thead><tr><th>Employee</th><th>Feedback</th><th>Watched</th><th>Test</th><th class="num">Score</th><th>Status</th>{% if show_feedback %}<th>Published</th>{% endif %}</tr></thead>
+    <tbody>
+    {% for r in rows %}
+      <tr>
+        <td class="min-w-48">{% include "backoffice/components/person.html" with u=r.user link=True %}</td>
+        <td class="{% if show_feedback %}min-w-52{% endif %}"><a href="{% url 'backoffice:feedback_detail' r.feedback.pk %}" class="inline-flex items-center gap-2 hover:text-brand-700"><span class="bo-code">{{ r.feedback.display_number }}</span>{% if show_feedback %}<span class="min-w-0"><span class="block max-w-48 truncate text-sm font-medium text-slate-900">{{ r.feedback.topic }}</span><span class="block text-xs text-slate-500">{{ r.feedback.project.code }}{% if r.feedback.team %} · {{ r.feedback.team.name }}{% endif %}</span></span>{% endif %}</a></td>
+        <td class="whitespace-nowrap">
+          {% if r.watched_at %}<span class="inline-flex items-center gap-1 text-sm font-medium text-emerald-700">{% icon "check" class="h-3.5 w-3.5" %} Yes</span><span class="block text-[11px] text-slate-500">{{ r.watched_at|date:"j M, H:i" }}</span>
+          {% elif r.first_viewed_at %}<span class="text-sm font-medium text-amber-700">Opened</span><span class="block text-[11px] text-slate-500">{{ r.percent|floatformat:0 }}% of video</span>
+          {% else %}<span class="text-sm font-medium text-red-600">No</span><span class="block text-[11px] text-slate-500">never opened</span>{% endif %}
+        </td>
+        <td class="text-sm whitespace-nowrap">{% if r.test_label == "No test" %}<span class="bo-muted">No test</span>{% else %}{{ r.test_label }}{% if r.attempt_count %}<span class="block text-[11px] text-slate-500">{{ r.attempt_count }} attempt{{ r.attempt_count|pluralize }}</span>{% endif %}{% endif %}</td>
+        <td class="num bo-num font-semibold text-slate-900">{% if r.best_score is not None %}{{ r.best_score|floatformat:0 }}%{% else %}<span class="font-normal text-slate-400">—</span>{% endif %}</td>
+        <td>{% status_badge r.result r.result_label %}</td>
+        {% if show_feedback %}<td class="text-xs whitespace-nowrap text-slate-500">{{ r.feedback.published_at|date:"j M Y" }}</td>{% endif %}
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>

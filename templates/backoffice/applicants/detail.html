@@ -1,0 +1,76 @@
+{% extends "backoffice/base.html" %}
+{% load backoffice_tags %}
+{% block page_header %}
+<div class="bo-header">
+  <div class="min-w-0">
+    <p class="eyebrow mb-2">Careers application #{{ app.pk }}</p>
+    <div class="flex flex-wrap items-center gap-2"><h1 class="page-title">{{ app.full_name }}</h1>{% status_badge app.status app.get_status_display %}</div>
+    <p class="page-subtitle">Received {{ app.created_at|date:"j M Y, H:i" }} · {{ app.created_at|timesince }} ago</p>
+  </div>
+  <div class="flex flex-wrap gap-2">
+    <a href="mailto:{{ app.email }}?subject={{ 'Your application at '|add:brand.name|urlencode }}" class="btn btn-secondary btn-sm">{% icon "mail" class="h-4 w-4" %} Email</a>
+    {% if app.user_id %}
+      <a href="{% url 'backoffice:employee_detail' app.user_id %}" class="btn btn-primary btn-sm">{% icon "user" class="h-4 w-4" %} Open employee</a>
+    {% elif app.status != "rejected" %}
+      <form method="post" action="{% url 'backoffice:applicant_convert' app.pk %}" data-confirm="Create an employee account for {{ app.full_name }} and email them a password-setup link?">{% csrf_token %}
+        <button class="btn btn-success btn-sm">{% icon "user-plus" class="h-4 w-4" %} Approve &amp; create employee account</button>
+      </form>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+{% block content %}
+<div class="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
+  <div class="min-w-0 space-y-6">
+    <section class="card">
+      <div class="card-header"><h2 class="card-title">Application</h2></div>
+      <dl class="bo-kv card-body">
+        <div><dt>Email</dt><dd><a href="mailto:{{ app.email }}" class="bo-link">{{ app.email }}</a></dd></div>
+        <div><dt>Phone</dt><dd><a href="tel:{{ app.phone }}" class="bo-link">{{ app.phone }}</a></dd></div>
+        <div><dt>Location</dt><dd>{{ app.location }}</dd></div>
+        <div><dt>Experience</dt><dd>{{ app.experience|default:"—" }}</dd></div>
+        <div><dt>Preferred work type</dt><dd>{{ app.preferred_work_type|default:"—" }}</dd></div>
+        <div><dt>Availability</dt><dd>{{ app.availability|default:"—" }}</dd></div>
+        <div class="sm:col-span-2"><dt>Skills</dt><dd class="flex flex-wrap gap-1">{% for s in app.skills %}<span class="bo-chip">{{ s }}</span>{% empty %}—{% endfor %}</dd></div>
+        <div class="sm:col-span-2"><dt>Annotation experience</dt><dd class="whitespace-pre-line text-slate-700">{{ app.annotation_experience|default:"—" }}</dd></div>
+        {% if app.portfolio_url %}<div class="sm:col-span-2"><dt>Portfolio</dt><dd><a href="{{ app.portfolio_url }}" target="_blank" rel="noopener noreferrer nofollow" class="bo-link break-all">{{ app.portfolio_url }}</a></dd></div>{% endif %}
+      </dl>
+    </section>
+    <section class="card">
+      <div class="card-header"><h2 class="card-title">Files</h2></div>
+      <div class="card-body grid gap-3 sm:grid-cols-2">
+        {% with f=app.cv %}
+          <div class="flex items-center gap-3 rounded-lg p-3 ring-1 ring-slate-200">
+            <span class="bo-stat-icon">{% icon "file-text" class="h-4 w-4" %}</span>
+            <div class="min-w-0 flex-1"><p class="text-xs font-medium tracking-wide text-slate-500 uppercase">CV / résumé</p><p class="truncate text-sm text-slate-900">{% if f %}{{ f.original_name }}{% else %}Not provided{% endif %}</p></div>
+            {% if f %}<a href="{% url 'storage:preview' f.pk %}?download=1" class="btn btn-secondary btn-sm">{% icon "download" class="h-3.5 w-3.5" %} Download</a>{% endif %}
+          </div>
+        {% endwith %}
+        {% with f=app.sample %}
+          <div class="flex items-center gap-3 rounded-lg p-3 ring-1 ring-slate-200">
+            <span class="bo-stat-icon">{% icon "paperclip" class="h-4 w-4" %}</span>
+            <div class="min-w-0 flex-1"><p class="text-xs font-medium tracking-wide text-slate-500 uppercase">Work sample</p><p class="truncate text-sm text-slate-900">{% if f %}{{ f.original_name }}{% else %}Not provided{% endif %}</p></div>
+            {% if f %}<a href="{% url 'storage:preview' f.pk %}?download=1" class="btn btn-secondary btn-sm">{% icon "download" class="h-3.5 w-3.5" %} Download</a>{% endif %}
+          </div>
+        {% endwith %}
+      </div>
+    </section>
+  </div>
+  <aside class="min-w-0 space-y-6">
+    <form method="post" class="card card-body space-y-4">{% csrf_token %}
+      <h2 class="bo-section">Review</h2>
+      {% include "components/form_errors.html" %}
+      {% include "components/field.html" with field=form.status %}
+      {% include "components/field.html" with field=form.notes label="Internal notes" %}
+      <button class="btn btn-primary w-full">Save</button>
+    </form>
+    {% if app.user_id %}
+    <div class="alert alert-success">{% icon "check-circle-2" class="mt-0.5 h-4 w-4 shrink-0" %}<p>An employee account was created from this application: <a class="font-semibold underline" href="{% url 'backoffice:employee_detail' app.user_id %}">{{ app.user.employee_id|default:app.user.email }}</a>.</p></div>
+    {% else %}
+    <div class="rounded-xl bg-slate-50 p-4 text-xs leading-5 text-slate-600 ring-1 ring-slate-200">
+      <strong class="text-slate-800">Approve &amp; create employee account</strong> creates an active account with the next employee ID, copies phone, location and skills, marks the application approved and emails a secure password-setup link.
+    </div>
+    {% endif %}
+  </aside>
+</div>
+{% endblock %}

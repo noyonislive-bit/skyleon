@@ -1,0 +1,44 @@
+{% extends "backoffice/projects/_base.html" %}
+{% load backoffice_tags %}
+{% block content %}
+<div class="grid grid-cols-1 gap-6 {% if form %}lg:grid-cols-[minmax(0,1fr)_20rem]{% endif %}">
+  <section class="card min-w-0">
+    <div class="card-header"><h2 class="card-title">Teams</h2><span class="text-xs text-slate-500">{{ unassigned }} member{{ unassigned|pluralize }} without a team</span></div>
+    {% if teams %}
+    <ul class="bo-list">
+      {% for t in teams %}
+        <li class="px-5 py-4">
+          {% if form %}
+          <div class="flex flex-col gap-3 sm:flex-row sm:items-end">
+            <form method="post" action="{% url 'backoffice:team_update' t.pk %}" class="flex flex-1 flex-col gap-2 sm:flex-row sm:items-end">{% csrf_token %}
+              <div class="flex-1">{% include "components/field.html" with field=t.form.name label="Team name" %}</div>
+              <div class="flex-1">{% include "components/field.html" with field=t.form.lead label="Team lead" %}</div>
+              <button class="btn btn-secondary">Save</button>
+            </form>
+            <div class="flex items-center gap-2">
+              <a href="{% url 'backoffice:project_members' project.pk %}?team={{ t.pk }}" class="btn btn-ghost btn-sm">{% icon "users" class="h-4 w-4" %} {{ t.n }}</a>
+              <form method="post" action="{% url 'backoffice:team_delete' t.pk %}" data-confirm="Delete team “{{ t.name }}”? Members stay on the project without a team; team feedback stays visible to its recipients.">{% csrf_token %}<button class="bo-icon-btn is-danger" title="Delete team">{% icon "trash-2" class="h-4 w-4" %}</button></form>
+            </div>
+          </div>
+          {% else %}
+          <div class="flex items-center justify-between"><span class="font-medium text-slate-900">{{ t.name }}{% if t.lead %}<span class="block text-xs font-normal text-slate-500">Lead: {{ t.lead.name }}</span>{% endif %}</span><span class="text-xs text-slate-500">{{ t.n }} member{{ t.n|pluralize }}</span></div>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+      {% include "components/empty_state.html" with icon="users-round" title="No teams" text="Teams let you send feedback to part of a project (e.g. Team A)." %}
+    {% endif %}
+  </section>
+  {% if form %}
+  <form method="post" class="card card-body h-fit space-y-4">{% csrf_token %}
+    <h2 class="bo-section">New team</h2>
+    {% include "components/form_errors.html" %}
+    {% include "components/field.html" with field=form.name %}
+    {% include "components/field.html" with field=form.lead %}
+    <button class="btn btn-primary w-full">{% icon "plus" class="h-4 w-4" %} Create team</button>
+    <p class="text-xs text-slate-500">Assign members to teams on the Members tab.</p>
+  </form>
+  {% endif %}
+</div>
+{% endblock %}

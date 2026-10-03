@@ -1,0 +1,34 @@
+{% extends "backoffice/base.html" %}
+{% load backoffice_tags %}
+{% block page_actions %}<a href="{% querystring format='csv' page=None %}" class="btn btn-secondary btn-sm">{% icon "download" class="h-4 w-4" %} Export CSV</a>{% endblock %}
+{% block content %}
+<div class="mb-4 bo-segment flex-wrap">
+  <a href="?" class="{% if not filters.status %}is-active{% endif %}">All <span class="bo-num text-slate-400">{{ total }}</span></a>
+  {% for v, l in statuses %}{% if counts|get_item:v or v == "new" %}<a href="?status={{ v }}" class="{% if filters.status == v %}is-active{% endif %}">{{ l }} <span class="bo-num text-slate-400">{{ counts|get_item:v|default:0 }}</span></a>{% endif %}{% endfor %}
+</div>
+<div class="card">
+  <form method="get" class="bo-filters">
+    {% if filters.status %}<input type="hidden" name="status" value="{{ filters.status }}">{% endif %}
+    {% include "backoffice/components/search.html" with value=filters.q placeholder="Name, email, subject or text" %}
+    <button class="btn btn-secondary btn-sm sm:!w-auto">Search</button>
+  </form>
+  {% if page.object_list %}
+  <ul class="bo-list">
+    {% for m in page %}
+      <li><a href="{% url 'backoffice:message_detail' m.pk %}" class="flex items-start gap-4 px-5 py-4 hover:bg-slate-50">
+        <span class="mt-1.5 dot {% if m.status == 'new' %}bg-brand-500{% else %}bg-slate-200{% endif %}"></span>
+        <span class="min-w-0 flex-1">
+          <span class="flex flex-wrap items-center gap-x-2"><span class="font-medium text-slate-900">{{ m.name }}</span><span class="text-xs text-slate-500">{{ m.email }}{% if m.company %} · {{ m.company }}{% endif %}</span></span>
+          <span class="block truncate text-sm text-slate-800">{{ m.subject|default:"(no subject)" }}</span>
+          <span class="block truncate text-sm text-slate-500">{{ m.message|truncatechars:160 }}</span>
+        </span>
+        <span class="flex shrink-0 flex-col items-end gap-1">{% status_badge m.status m.get_status_display %}<span class="text-xs text-slate-500">{{ m.created_at|date:"j M" }}</span></span>
+      </a></li>
+    {% endfor %}
+  </ul>
+  {% include "components/pagination.html" with page=page %}
+  {% else %}
+    {% include "components/empty_state.html" with icon="message-square" title="No messages" %}
+  {% endif %}
+</div>
+{% endblock %}

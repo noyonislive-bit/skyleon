@@ -1,0 +1,69 @@
+{% extends "portal/base.html" %}
+{% block content %}
+{% include "portal/includes/profile_tabs.html" %}
+<div class="grid gap-6 xl:grid-cols-2">
+  <section class="card" aria-labelledby="h-training">
+    <div class="card-header"><h2 id="h-training" class="card-title flex items-center gap-2">{% icon "graduation-cap" class="h-4 w-4 text-slate-400" %} Training history</h2><span class="badge badge-neutral">{{ training|length }} completed</span></div>
+    {% if training %}
+    <ul class="divide-y divide-slate-100">
+      {% for p in training %}
+      <li><a href="{% url 'portal:tutorial_detail' p.tutorial_id %}" class="list-row">
+        <span class="icon-tile h-9 w-9 rounded-lg bg-emerald-50 text-emerald-600 ring-emerald-100">{% icon "circle-check-big" class="h-4 w-4" %}</span>
+        <span class="min-w-0 flex-1">
+          <span class="block truncate text-sm font-medium text-slate-900">{{ p.tutorial.title }}</span>
+          <span class="meta-row mt-0.5"><span>{% if p.tutorial.project %}{{ p.tutorial.project.code }}{% else %}Company-wide{% endif %}</span><span>{{ p.tutorial.get_cadence_display }}</span><span>{{ p.percent|floatformat:0 }}% watched</span></span>
+        </span>
+        <span class="shrink-0 text-right text-xs text-slate-500">{{ p.completed_at|date:"M j, Y" }}<br><span class="text-slate-400">{{ p.completed_at|date:"H:i" }}</span></span>
+      </a></li>
+      {% endfor %}
+    </ul>
+    {% else %}
+      {% include "portal/includes/empty.html" with icon="graduation-cap" title="No completed training yet" text="Videos you finish are recorded here with the date." compact=True %}
+    {% endif %}
+  </section>
+
+  <section class="card" aria-labelledby="h-tests">
+    <div class="card-header"><h2 id="h-tests" class="card-title flex items-center gap-2">{% icon "clipboard-check" class="h-4 w-4 text-slate-400" %} Test history</h2><a href="{% url 'portal:results' %}" class="text-xs font-semibold text-brand-600 hover:text-brand-700">All results →</a></div>
+    {% if attempts %}
+    <ul class="divide-y divide-slate-100">
+      {% for a in attempts %}
+      <li><a href="{% url 'portal:result_detail' a.pk %}" class="list-row">
+        <span class="w-12 shrink-0 text-right font-mono text-sm font-semibold {% if a.passed %}text-emerald-700{% else %}text-red-600{% endif %}">{{ a.score|floatformat:0 }}%</span>
+        <span class="min-w-0 flex-1">
+          <span class="block truncate text-sm font-medium text-slate-900">{{ a.test.title }}</span>
+          <span class="meta-row mt-0.5"><span>Attempt {{ a.attempt_number }}</span><span>{{ a.submitted_at|date:"M j, Y · H:i" }}</span></span>
+        </span>
+        {% if a.passed %}<span class="badge badge-success">Passed</span>{% else %}<span class="badge badge-danger">Failed</span>{% endif %}
+      </a></li>
+      {% endfor %}
+    </ul>
+    {% else %}
+      {% include "portal/includes/empty.html" with icon="trophy" title="No tests taken yet" compact=True %}
+    {% endif %}
+  </section>
+
+  <section class="card xl:col-span-2" aria-labelledby="h-feedback">
+    <div class="card-header"><h2 id="h-feedback" class="card-title flex items-center gap-2">{% icon "message-square-warning" class="h-4 w-4 text-slate-400" %} Feedback history</h2></div>
+    {% if feedback %}
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>Feedback</th><th class="hidden sm:table-cell">Opened</th><th>Video</th><th class="hidden md:table-cell">Acknowledged</th><th>Test</th></tr></thead>
+        <tbody>
+          {% for r in feedback %}
+          <tr>
+            <td><a href="{% url 'portal:feedback_detail' r.feedback.number %}" class="font-medium text-slate-900 hover:text-brand-700"><span class="font-mono text-slate-500">{{ r.feedback.display_number }}</span> {{ r.feedback.topic }}</a><p class="text-xs text-slate-500">{{ r.feedback.project.code }}</p></td>
+            <td class="hidden whitespace-nowrap sm:table-cell">{{ r.first_viewed_at|date:"M j, Y" }}</td>
+            <td>{% if not r.feedback.video_id %}<span class="text-xs text-slate-400">No video</span>{% elif r.watched_at %}<span class="badge badge-success">Watched {{ r.watched_at|date:"M j" }}</span>{% else %}<span class="badge badge-warning">{{ r.percent|floatformat:0 }}%</span>{% endif %}</td>
+            <td class="hidden md:table-cell">{% if r.acknowledged_at %}<span class="inline-flex items-center gap-1 text-emerald-700">{% icon "check" class="h-3.5 w-3.5" %} {{ r.acknowledged_at|date:"M j" }}</span>{% else %}<span class="text-slate-400">—</span>{% endif %}</td>
+            <td>{% if not r.feedback.test_id %}<span class="text-xs text-slate-400">—</span>{% elif r.test_passed %}<span class="badge badge-success">{{ r.best_score|floatformat:0 }}% passed</span>{% elif r.test_taken %}<span class="badge badge-danger">{{ r.best_score|floatformat:0 }}%</span>{% else %}<span class="badge badge-neutral">Not taken</span>{% endif %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+      {% include "portal/includes/empty.html" with icon="message-square-warning" title="No feedback opened yet" compact=True %}
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

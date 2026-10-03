@@ -1,0 +1,66 @@
+{% extends "website/base_site.html" %}
+{% block content %}
+{% url 'website:quote' as quote_url %}{% url 'website:quality' as quality_url %}
+{% include "website/partials/page_hero.html" with eyebrow="Services" title="AI data annotation services, built around quality." lead="Image, video, action, text and document annotation — delivered by trained, dedicated teams with separate review and QA layers, in the format your pipeline expects." primary_url=quote_url primary_label="Request a Quote" secondary_url=quality_url secondary_label="Our QA process" %}
+
+<nav class="sticky top-16 z-30 border-b border-slate-200 bg-white/90 backdrop-blur xl:top-[72px]" aria-label="Services on this page">
+  <div class="container-page flex gap-1 overflow-x-auto py-2.5 text-sm [scrollbar-width:none]">
+    {% for s in services %}<a href="#{{ s.slug }}" class="flex shrink-0 items-center gap-2 rounded-lg px-3 py-1.5 font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-900">{% icon s.icon class="h-4 w-4 text-brand-600" %}{{ s.name }}</a>{% endfor %}
+  </div>
+</nav>
+
+<div class="bg-white">
+  {% for svc in services %}
+    <section id="{{ svc.slug }}" class="scroll-mt-32 border-b border-slate-100 py-20 sm:py-24 {% cycle '' 'bg-slate-50/70' %}">
+      <div class="container-page grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
+        <div class="reveal {% if forloop.counter|divisibleby:2 %}lg:order-2{% endif %}">
+          <div class="flex items-center gap-3">
+            <span class="icon-tile">{% icon svc.icon class="h-5 w-5" %}</span>
+            <span class="font-mono text-xs tracking-[0.16em] text-slate-400">{{ forloop.counter|stringformat:"02d" }} / 06</span>
+            {% if svc.badge %}<span class="badge badge-warning">{{ svc.badge }}</span>{% endif %}
+          </div>
+          <h2 class="section-title mt-6">{{ svc.name }}</h2>
+          <p class="lead mt-4">{{ svc.lead }}</p>
+          <ul class="mt-7 grid gap-x-6 gap-y-2.5 sm:grid-cols-2">
+            {% for name, desc, icon_name in svc.includes|slice:":8" %}
+              <li class="flex items-center gap-2.5 text-[15px] text-slate-700">{% icon "check" class="h-4 w-4 shrink-0 text-brand-600" stroke_width="2.25" %}{{ name }}</li>
+            {% endfor %}
+          </ul>
+          <div class="mt-9 flex flex-wrap gap-3">
+            <a href="{% url 'website:service_detail' svc.slug %}" class="btn btn-primary">Explore {{ svc.name_lc }} {% icon "arrow-right" class="h-4 w-4" %}</a>
+            <a href="{% url 'website:quote' %}?type={{ svc.slug }}" class="btn btn-secondary">Request a quote</a>
+          </div>
+        </div>
+        <div class="reveal min-w-0 {% if forloop.counter|divisibleby:2 %}lg:order-1{% endif %}">
+          {% include "website/partials/service_visual.html" %}
+        </div>
+      </div>
+    </section>
+  {% endfor %}
+</div>
+
+<section class="relative isolate overflow-hidden bg-ink-950 section dark-surface">
+  <div class="absolute inset-0 grid-bg fade-grid" aria-hidden="true"></div>
+  <div class="container-page relative">
+    <div class="reveal mx-auto max-w-3xl text-center">
+      <p class="eyebrow-dark justify-center"><span class="h-1.5 w-1.5 rounded-full bg-label-lime"></span>One workflow for every service</p>
+      <h2 class="section-title mt-4">Every service runs through the same quality layers.</h2>
+      <p class="lead-dark mt-5">{{ statements.TOOLS_STATEMENT }} {{ statements.FORMATS_NOTE }}</p>
+    </div>
+    <div class="mt-16">{% include "website/partials/qa_flow.html" %}</div>
+  </div>
+</section>
+
+<section class="section bg-white">
+  <div class="container-page">
+    <div class="reveal mx-auto max-w-3xl text-center">
+      <p class="eyebrow">How projects start</p>
+      <h2 class="section-title mt-4">Pilot first. Then scale.</h2>
+      <p class="lead mt-5">{{ statements.SCALE_STATEMENT }}</p>
+    </div>
+    <div class="mt-16">{% include "website/partials/workflow_steps.html" %}</div>
+  </div>
+</section>
+
+{% include "website/partials/cta_band.html" with title="Tell us about your dataset" section_class="pt-0 sm:pt-0" %}
+{% endblock %}

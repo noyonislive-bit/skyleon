@@ -1,0 +1,36 @@
+{% comment %} Mock of the internal training & feedback portal (illustration). {% endcomment %}
+<div class="ws-window">
+  <div class="flex items-center gap-2 border-b border-white/10 bg-ink-950/50 px-4 py-2.5">
+    <div class="flex gap-1.5" aria-hidden="true"><span class="h-2 w-2 rounded-full bg-white/15"></span><span class="h-2 w-2 rounded-full bg-white/15"></span><span class="h-2 w-2 rounded-full bg-white/15"></span></div>
+    <p class="truncate font-mono text-[11px] text-slate-400">training portal · kitchen_tasks_v2</p>
+    <span class="ml-auto hidden rounded-md bg-white/5 px-2 py-1 font-mono text-[10px] text-slate-400 ring-1 ring-white/10 sm:inline">annotator view</span>
+  </div>
+  <div class="grid gap-3 p-4 sm:grid-cols-2 sm:p-5">
+    <div class="rounded-xl bg-white/[0.03] p-4 ring-1 ring-white/10">
+      <p class="flex items-center gap-2 text-[12.5px] font-semibold text-white">{% icon "circle-play" class="h-4 w-4 text-accent-300" %} Project tutorials</p>
+      <ul class="mt-3 space-y-2.5 text-[12px] text-slate-300">
+        <li><div class="flex justify-between"><span>01 · Guideline overview</span><span class="font-mono text-[10px] text-emerald-300">watched</span></div><div class="mt-1 h-1 rounded-full bg-white/10"><div class="h-full w-full rounded-full bg-emerald-400"></div></div></li>
+        <li><div class="flex justify-between"><span>02 · Action boundaries</span><span class="font-mono text-[10px] text-emerald-300">watched</span></div><div class="mt-1 h-1 rounded-full bg-white/10"><div class="h-full w-full rounded-full bg-emerald-400"></div></div></li>
+        <li><div class="flex justify-between"><span>03 · Hand attribution</span><span class="font-mono text-[10px] text-slate-400">in progress</span></div><div class="mt-1 h-1 rounded-full bg-white/10"><div class="h-full w-3/5 rounded-full bg-accent-400"></div></div></li>
+      </ul>
+    </div>
+    <div class="rounded-xl bg-white/[0.03] p-4 ring-1 ring-white/10">
+      <p class="flex items-center gap-2 text-[12.5px] font-semibold text-white">{% icon "clipboard-check" class="h-4 w-4 text-label-lime" %} Tests</p>
+      <ul class="mt-3 space-y-2 text-[12px]">
+        <li class="flex items-center justify-between rounded-lg bg-white/[0.03] px-2.5 py-2 text-slate-300"><span>Guideline test</span><span class="rounded bg-emerald-400/15 px-1.5 py-0.5 font-mono text-[10px] text-emerald-300">passed</span></li>
+        <li class="flex items-center justify-between rounded-lg bg-white/[0.03] px-2.5 py-2 text-slate-300"><span>Boundary test</span><span class="rounded bg-emerald-400/15 px-1.5 py-0.5 font-mono text-[10px] text-emerald-300">passed</span></li>
+        <li class="flex items-center justify-between rounded-lg bg-white/[0.03] px-2.5 py-2 text-slate-300"><span>Re-test after feedback</span><span class="rounded bg-label-amber/15 px-1.5 py-0.5 font-mono text-[10px] text-label-amber">assigned</span></li>
+      </ul>
+    </div>
+    <div class="rounded-xl bg-white/[0.03] p-4 ring-1 ring-white/10 sm:col-span-2">
+      <div class="flex items-center justify-between">
+        <p class="flex items-center gap-2 text-[12.5px] font-semibold text-white">{% icon "message-square" class="h-4 w-4 text-label-violet" %} Daily feedback</p>
+        <span class="font-mono text-[10px] text-slate-500">from QA · today</span>
+      </div>
+      <div class="mt-3 grid gap-2 sm:grid-cols-2">
+        <p class="rounded-lg bg-white/[0.03] p-3 text-[12px] leading-5 text-slate-300 ring-1 ring-white/5"><span class="font-mono text-[10px] text-label-amber">#014 · boundary</span><br>“Grasp” should start when the fingers close on the object, not on approach.</p>
+        <p class="rounded-lg bg-white/[0.03] p-3 text-[12px] leading-5 text-slate-300 ring-1 ring-white/5"><span class="font-mono text-[10px] text-label-cyan">#015 · vocabulary</span><br>Use “places” instead of “puts” when the target location is specified.</p>
+      </div>
+    </div>
+  </div>
+</div>

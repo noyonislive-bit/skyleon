@@ -1,0 +1,49 @@
+{% extends "backoffice/base.html" %}
+{% load static backoffice_tags %}
+{% block content %}
+<form method="post" class="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_21rem]" novalidate>{% csrf_token %}
+  <div class="card min-w-0">
+    <div class="card-body space-y-5">
+      {% include "components/form_errors.html" %}
+      {% include "components/field.html" with field=form.topic hint="Short, e.g. “Hand visibility” — it is numbered automatically (#001, #002 …)." %}
+      {% include "components/field.html" with field=form.summary hint="One line: what went wrong." %}
+      {% include "components/field.html" with field=form.explanation hint="Markdown: explain the mistake, then the correct way. Use **Correct:** / **Incorrect:** examples." %}
+      <div>
+        <label class="label">{{ form.video.label }}</label>
+        {% uploader form.video kind="video" purpose="feedback" %}
+      </div>
+    </div>
+  </div>
+  <aside class="min-w-0 space-y-6">
+    <div class="card card-body space-y-4">
+      <h2 class="bo-section">Audience &amp; priority</h2>
+      {% include "components/field.html" with field=form.project %}
+      {% include "components/field.html" with field=form.team hint="Leave “Whole project” to send it to every member." %}
+      <div class="grid grid-cols-2 gap-3">
+        {% include "components/field.html" with field=form.severity %}
+        {% include "components/field.html" with field=form.cadence %}
+      </div>
+      {% include "components/field.html" with field=form.due_at %}
+    </div>
+    <div class="card card-body space-y-3">
+      <h2 class="bo-section">Test</h2>
+      {% if feedback.test %}
+        <p class="text-sm text-slate-600">Linked: <a href="{% url 'backoffice:test_builder' feedback.test.pk %}" class="bo-link">{{ feedback.test.title }}</a></p>
+      {% else %}
+        <p class="text-xs leading-5 text-slate-500">Add a short test employees take after watching. It is assigned automatically to everyone who receives this feedback.</p>
+        <button class="btn btn-secondary w-full" name="then" value="test">{% icon "clipboard-check" class="h-4 w-4" %} Save &amp; create test</button>
+      {% endif %}
+    </div>
+    <div class="card card-body space-y-2">
+      {% if feedback and feedback.is_published %}
+        <button class="btn btn-primary w-full" name="then" value="save">Save changes</button>
+      {% else %}
+        <button class="btn btn-primary w-full" name="then" value="publish" data-confirm-click="Publish now? Everyone in the selected project/team is notified by email and in the portal.">{% icon "send" class="h-4 w-4" %} Save &amp; publish</button>
+        <button class="btn btn-secondary w-full" name="then" value="save">Save as draft</button>
+      {% endif %}
+      <a href="{% if feedback %}{% url 'backoffice:feedback_detail' feedback.pk %}{% else %}{% url 'backoffice:feedback_list' %}{% endif %}" class="btn btn-ghost w-full">Cancel</a>
+    </div>
+  </aside>
+</form>
+{% endblock %}
+{% block page_scripts %}<script src="{% static 'js/uploader.js' %}" defer></script>{% endblock %}

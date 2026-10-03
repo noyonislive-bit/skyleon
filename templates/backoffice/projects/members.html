@@ -1,0 +1,78 @@
+{% extends "backoffice/projects/_base.html" %}
+{% load backoffice_tags %}
+{% block project_actions %}{% if form %}<button type="button" class="btn btn-primary btn-sm" data-toggle="#add-members">{% icon "user-plus" class="h-4 w-4" %} Add members</button>{% endif %}{% endblock %}
+{% block content %}
+{% if form %}
+<form method="post" class="card mb-6" id="add-members"{% if members and not form.errors %} hidden{% endif %}>{% csrf_token %}
+  <div class="card-header"><div><h2 class="card-title">Add members</h2><p class="mt-0.5 text-xs text-slate-500">Active employees{% if request.user.is_super_admin %}, project managers and trainers{% endif %} who aren't on {{ project.code }} yet. Their project training, published feedback and tests are assigned immediately.</p></div></div>
+  <div class="card-body grid grid-cols-1 gap-5 md:grid-cols-[minmax(0,1fr)_16rem]">
+    <div class="min-w-0">{% include "backoffice/components/picker.html" with field=form.users empty="Everyone available is already a member." %}</div>
+    <div class="space-y-4">
+      {% include "components/field.html" with field=form.role label="Project role" %}
+      {% include "components/field.html" with field=form.team %}
+      <button class="btn btn-primary w-full">{% icon "user-plus" class="h-4 w-4" %} Add selected</button>
+    </div>
+  </div>
+</form>
+{% endif %}
+<div>
+  <section class="card min-w-0">
+    <div class="card-header flex-wrap">
+      <h2 class="card-title">Members</h2>
+      {% if teams %}
+      <div class="bo-segment flex-wrap">
+        <a href="?" class="{% if not team_filter %}is-active{% endif %}">All</a>
+        {% for t in teams %}<a href="?team={{ t.pk }}" class="{% if team_filter == t.pk|stringformat:'s' %}is-active{% endif %}">{{ t.name }}</a>{% endfor %}
+        <a href="?team=none" class="{% if team_filter == 'none' %}is-active{% endif %}">No team</a>
+      </div>
+      {% endif %}
+    </div>
+    {% if members %}
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>Member</th><th>Role · team</th><th>Onboarding</th><th>Training</th><th>Qualified</th><th><span class="sr-only">Actions</span></th></tr></thead>
+        <tbody>
+        {% for m in members %}
+          <tr>
+            <td class="min-w-48">{% include "backoffice/components/person.html" with u=m.user link=True %}</td>
+            <td>
+              {% if m.can_manage %}
+                <form method="post" action="{% url 'backoffice:member_update' m.pk %}" class="flex gap-1.5" data-autosubmit>{% csrf_token %}
+                  <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                  {{ m.form.role|add_class:"!py-1.5 !text-[13px] min-w-32" }} {{ m.form.team|add_class:"!py-1.5 !text-[13px] min-w-28" }}
+                  <noscript><button class="btn btn-secondary btn-sm">Save</button></noscript>
+                </form>
+              {% else %}<span class="text-sm">{{ m.get_role_display }}</span>{% if m.team %}<span class="block text-xs text-slate-500">{{ m.team.name }}</span>{% endif %}{% endif %}
+            </td>
+            <td class="min-w-44">
+              {% if m.user.role == "employee" and m.onboarding.total %}
+                {% include "backoffice/components/meter.html" with value=m.onboarding.done|bar_width:m.onboarding.total|floatformat:0|add:0 %}
+                <p class="mt-0.5 max-w-48 truncate text-[11px] text-slate-500">{% if m.onboarding.next %}Next: {{ m.onboarding.next }}{% else %}All {{ m.onboarding.total }} steps done{% endif %}</p>
+              {% else %}<span class="bo-muted">—</span>{% endif %}
+            </td>
+            <td class="min-w-36">{% if m.training %}{% include "backoffice/components/meter.html" with value=m.training.percent done=m.training.done total=m.training.total unit="videos" %}{% else %}<span class="bo-muted">—</span>{% endif %}</td>
+            <td>
+              {% if m.qualified_at %}<span class="badge badge-success" title="Qualified by {{ m.qualified_by.name|default:'—' }}">{% icon "badge-check" class="h-3.5 w-3.5" %} {{ m.qualified_at|date:"j M" }}</span>
+              {% elif m.can_manage and m.user.role == "employee" %}<form method="post" action="{% url 'backoffice:member_qualify' m.pk %}" data-confirm="Qualify {{ m.user.name }} for production work on {{ project.code }}?">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="btn btn-secondary btn-sm">{% icon "award" class="h-3.5 w-3.5" %} Qualify</button></form>
+              {% else %}<span class="bo-muted">—</span>{% endif %}
+            </td>
+            <td>
+              {% if m.can_manage %}
+              <div class="bo-row-actions">
+                {% if m.qualified_at %}<form method="post" action="{% url 'backoffice:member_qualify' m.pk %}" data-confirm="Revoke {{ m.user.name }}'s qualification?">{% csrf_token %}<input type="hidden" name="action" value="revoke"><input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="bo-icon-btn" title="Revoke qualification">{% icon "x-circle" class="h-4 w-4" %}</button></form>{% endif %}
+                <form method="post" action="{% url 'backoffice:member_remove' m.pk %}" data-confirm="Remove {{ m.user.name }} from {{ project.name }}? Their progress history is kept.">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="bo-icon-btn is-danger" title="Remove from project">{% icon "trash-2" class="h-4 w-4" %}</button></form>
+              </div>
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+      {% include "components/empty_state.html" with icon="users" title="No members yet" text="Add employees to give them this project's onboarding, training and feedback." %}
+    {% endif %}
+  </section>
+
+</div>
+{% endblock %}

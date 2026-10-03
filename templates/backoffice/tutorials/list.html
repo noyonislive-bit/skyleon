@@ -1,0 +1,64 @@
+{% extends "backoffice/base.html" %}
+{% load backoffice_tags %}
+{% block page_actions %}
+  <a href="{% url 'backoffice:category_list' %}" class="btn btn-secondary btn-sm">{% icon "tag" class="h-4 w-4" %} Categories</a>
+  <a href="{% url 'backoffice:tutorial_create' %}" class="btn btn-primary btn-sm">{% icon "upload" class="h-4 w-4" %} New tutorial</a>
+{% endblock %}
+{% block content %}
+<div class="card">
+  <form method="get" class="bo-filters" data-autosubmit>
+    {% include "backoffice/components/search.html" with value=filters.q placeholder="Search tutorials" %}
+    <select name="project" class="select" aria-label="Audience">
+      <option value="">All audiences</option>
+      <option value="global"{% if filters.project == "global" %} selected{% endif %}>Company-wide</option>
+      {% for p in projects %}<option value="{{ p.pk }}"{% if filters.project == p.pk|stringformat:"s" %} selected{% endif %}>{{ p.code }} · {{ p.name }}</option>{% endfor %}
+    </select>
+    <select name="category" class="select" aria-label="Category">
+      <option value="">All categories</option>
+      {% for c in categories %}<option value="{{ c.pk }}"{% if filters.category == c.pk|stringformat:"s" %} selected{% endif %}>{{ c.name }}</option>{% endfor %}
+    </select>
+    <select name="cadence" class="select" aria-label="Cadence">
+      <option value="">Any cadence</option>
+      {% for v, l in cadences %}<option value="{{ v }}"{% if filters.cadence == v %} selected{% endif %}>{{ l }}</option>{% endfor %}
+    </select>
+    <select name="status" class="select" aria-label="Status">
+      <option value="">Any status</option>
+      {% for v, l in statuses %}<option value="{{ v }}"{% if filters.status == v %} selected{% endif %}>{{ l }}</option>{% endfor %}
+    </select>
+    {% if filters.q or filters.project or filters.category or filters.cadence or filters.status %}<a href="{% url 'backoffice:tutorial_list' %}" class="btn btn-ghost btn-sm sm:!w-auto">Reset</a>{% endif %}
+  </form>
+  {% if page.object_list %}
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>Tutorial</th><th>Audience</th><th>Status</th><th class="num">Length</th><th>Tracking</th><th class="num">Viewers</th><th>Published</th><th></th></tr></thead>
+      <tbody>
+      {% for t in page %}
+        <tr>
+          <td class="min-w-72">
+            <a href="{% url 'backoffice:tutorial_detail' t.pk %}" class="group flex items-center gap-3">
+              <span class="relative flex h-10 w-16 shrink-0 items-center justify-center overflow-hidden rounded-md bg-ink-800 text-slate-500">
+                {% if t.video.thumbnail %}<img src="{% asset_url t.video.thumbnail %}" alt="" class="h-full w-full object-cover" loading="lazy">{% else %}{% icon "file-video" class="h-4 w-4" %}{% endif %}
+              </span>
+              <span class="min-w-0"><span class="block truncate font-medium text-slate-900 group-hover:text-brand-700">{{ t.title }}</span>
+              <span class="block truncate text-xs text-slate-500">{{ t.category.name|default:"Uncategorised" }} · {{ t.get_cadence_display }}{% if not t.is_required %} · optional{% endif %}</span></span>
+            </a>
+          </td>
+          <td>{% if t.project %}<span class="bo-chip"><span class="dot h-1.5 w-1.5" style="background: {{ t.project.color }}"></span>{{ t.project.code }}</span>{% else %}<span class="bo-chip">{% icon "globe" class="h-3 w-3" %} Company-wide</span>{% endif %}</td>
+          <td>{% status_badge t.status t.get_status_display %}</td>
+          <td class="num bo-num text-xs">{% if t.video %}{{ t.video.duration_sec|duration }}{% else %}<span class="text-amber-700">No video</span>{% endif %}</td>
+          <td class="w-44">{% if t.assigned %}{% include "backoffice/components/meter.html" with value=t.completion done=t.completed total=t.assigned unit="completed" %}{% else %}<span class="text-xs text-slate-400">Not assigned</span>{% endif %}</td>
+          <td class="num bo-num text-xs">{{ t.viewers }}</td>
+          <td class="text-xs whitespace-nowrap text-slate-500">{{ t.published_at|date:"j M Y"|default:"—" }}</td>
+          <td><div class="bo-row-actions">{% if t.can_edit %}<a href="{% url 'backoffice:tutorial_edit' t.pk %}" class="bo-icon-btn" title="Edit">{% icon "pencil" class="h-4 w-4" %}</a>{% endif %}<a href="{% url 'backoffice:tutorial_detail' t.pk %}" class="bo-icon-btn" title="Tracking">{% icon "chevron-right" class="h-4 w-4" %}</a></div></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% include "components/pagination.html" with page=page %}
+  {% else %}
+    {% url 'backoffice:tutorial_create' as new_url %}
+    {% include "components/empty_state.html" with icon="circle-play" title="No tutorials found" text="Upload a training video and publish it to assign it automatically." action_url=new_url action_label="New tutorial" %}
+  {% endif %}
+</div>
+{% endblock %}

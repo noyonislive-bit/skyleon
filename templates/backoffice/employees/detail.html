@@ -1,0 +1,329 @@
+{% extends "backoffice/base.html" %}
+{% load backoffice_tags %}
+{% block page_header %}
+<div class="bo-header">
+  <div class="flex min-w-0 items-center gap-4">
+    <span class="bo-avatar-lg">{{ employee.name|initials }}</span>
+    <div class="min-w-0">
+      <div class="flex flex-wrap items-center gap-2">
+        <h1 class="page-title truncate">{{ employee.name }}</h1>
+        {% status_badge employee.status employee.get_status_display %}
+        {% if employee.role != "employee" %}<span class="badge badge-brand">{{ employee.get_role_display }}</span>{% endif %}
+      </div>
+      <p class="page-subtitle flex flex-wrap items-center gap-x-3 gap-y-1">
+        <span class="bo-num">{{ employee.employee_id|default:"No ID yet" }}</span>
+        <a href="mailto:{{ employee.email }}" class="hover:text-slate-900">{{ employee.email }}</a>
+        <span>Joined {{ employee.date_joined|date:"j M Y" }}</span>
+      </p>
+    </div>
+  </div>
+  {% if can_manage %}
+  <div class="flex flex-wrap items-center gap-2">
+    {% if employee.status == "pending" %}
+      <form method="post" action="{% url 'backoffice:employee_status' employee.pk %}">{% csrf_token %}<input type="hidden" name="action" value="approve"><button class="btn btn-success btn-sm">{% icon "check" class="h-4 w-4" %} Approve</button></form>
+    {% elif employee.status == "active" %}
+      <form method="post" action="{% url 'backoffice:employee_status' employee.pk %}" data-confirm="Suspend {{ employee.name }}? They are signed out immediately and can't log in until reactivated.">{% csrf_token %}<input type="hidden" name="action" value="suspend"><button class="btn btn-danger-soft btn-sm">{% icon "user-x" class="h-4 w-4" %} Suspend</button></form>
+    {% else %}
+      <form method="post" action="{% url 'backoffice:employee_status' employee.pk %}">{% csrf_token %}<input type="hidden" name="action" value="reactivate"><button class="btn btn-success btn-sm">{% icon "user-check" class="h-4 w-4" %} Reactivate</button></form>
+    {% endif %}
+    {% if employee.status != "suspended" %}
+      <form method="post" action="{% url 'backoffice:employee_invite' employee.pk %}" data-confirm="Email a password-setup link to {{ employee.email }}?">{% csrf_token %}<button class="btn btn-secondary btn-sm">{% icon "send" class="h-4 w-4" %} Send password link</button></form>
+    {% endif %}
+    <a href="{% url 'backoffice:employee_edit' employee.pk %}" class="btn btn-secondary btn-sm">{% icon "pencil" class="h-4 w-4" %} Edit</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
+  <div class="min-w-0 space-y-6">
+    <nav class="tabs" aria-label="Employee sections">
+      {% for key, label in tabs %}<a href="?tab={{ key }}" class="tab{% if tab == key %} is-active{% endif %}"{% if tab == key %} aria-current="page"{% endif %}>{{ label }}</a>{% endfor %}
+    </nav>
+
+    {% if tab == "overview" %}
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div class="stat">
+          <p class="stat-label">Required training</p>
+          <p class="stat-value !text-2xl">{% if training %}{{ training.percent }}%{% else %}—{% endif %}</p>
+          {% if training %}<div class="bo-meter mt-2{% if training.percent >= 100 %} is-good{% endif %}"><span style="width: {{ training.percent }}%"></span></div>{% endif %}
+          <p class="stat-meta">{% if training %}{{ training.done }} of {{ training.total }} videos watched{% else %}Nothing assigned yet{% endif %}</p>
+        </div>
+        <div class="stat">
+          <p class="stat-label">Feedback watched</p>
+          <p class="stat-value !text-2xl">{{ feedback_summary.watched }}<span class="text-base font-medium text-slate-400"> / {{ feedback_summary.total }}</span></p>
+          <p class="stat-meta">{{ feedback_summary.seen }} opened · {{ feedback_summary.total|sub:feedback_summary.seen }} never opened</p>
+        </div>
+        <div class="stat">
+          <p class="stat-label">Last login</p>
+          <p class="stat-value !text-2xl">{% if employee.last_login %}{{ employee.last_login|date:"j M" }}{% else %}—{% endif %}</p>
+          <p class="stat-meta">{% if employee.last_login %}{{ employee.last_login|timesince }} ago{% else %}Has not signed in yet{% endif %}</p>
+        </div>
+      </div>
+
+      <section class="card">
+        <div class="card-header"><h2 class="card-title">Projects</h2><span class="text-xs text-slate-500">{{ memberships|length }} assignment{{ memberships|length|pluralize }}</span></div>
+        {% if memberships %}
+        <div class="table-wrap">
+          <table class="table">
+            <thead><tr><th>Project</th><th>Role</th><th>Team</th><th>Qualification</th><th><span class="sr-only">Actions</span></th></tr></thead>
+            <tbody>
+            {% for m in memberships %}
+              <tr>
+                <td><a href="{% url 'backoffice:project_members' m.project.pk %}" class="flex items-center gap-2 font-medium text-slate-900 hover:text-brand-700"><span class="dot" style="background: {{ m.project.color }}"></span>{{ m.project.name }}</a><span class="text-xs text-slate-500">{{ m.project.code }} · since {{ m.assigned_at|date:"j M Y" }}</span></td>
+                {% if m.can_manage %}
+                  <td colspan="2">
+                    <form method="post" action="{% url 'backoffice:member_update' m.pk %}" class="flex gap-2" data-autosubmit>{% csrf_token %}
+                      <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                      {{ m.form.role|add_class:"!py-1.5 !text-[13px] min-w-32" }} {{ m.form.team|add_class:"!py-1.5 !text-[13px] min-w-28" }}
+                      <noscript><button class="btn btn-secondary btn-sm">Save</button></noscript>
+                    </form>
+                  </td>
+                {% else %}
+                  <td class="text-sm">{{ m.get_role_display }}</td><td class="text-sm">{{ m.team.name|default:"—" }}</td>
+                {% endif %}
+                <td>
+                  {% if m.qualified_at %}<span class="badge badge-success" title="by {{ m.qualified_by.name|default:'—' }}">{% icon "badge-check" class="h-3.5 w-3.5" %} Qualified {{ m.qualified_at|date:"j M" }}</span>
+                  {% elif m.can_manage %}<form method="post" action="{% url 'backoffice:member_qualify' m.pk %}" data-confirm="Mark {{ employee.name }} as qualified for production on {{ m.project.code }}?">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="btn btn-secondary btn-sm">{% icon "award" class="h-3.5 w-3.5" %} Qualify</button></form>
+                  {% else %}<span class="badge badge-neutral">In onboarding</span>{% endif %}
+                </td>
+                <td>
+                  {% if m.can_manage %}
+                  <div class="bo-row-actions">
+                    {% if m.qualified_at %}<form method="post" action="{% url 'backoffice:member_qualify' m.pk %}" data-confirm="Revoke the qualification?">{% csrf_token %}<input type="hidden" name="action" value="revoke"><input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="bo-icon-btn" title="Revoke qualification">{% icon "x-circle" class="h-4 w-4" %}</button></form>{% endif %}
+                    <form method="post" action="{% url 'backoffice:member_remove' m.pk %}" data-confirm="Remove {{ employee.name }} from {{ m.project.name }}?">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="bo-icon-btn is-danger" title="Remove from project">{% icon "trash-2" class="h-4 w-4" %}</button></form>
+                  </div>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+          {% include "components/empty_state.html" with icon="folder-open" title="Not on a project yet" text="Assign a project to give this person its onboarding, training and feedback." %}
+        {% endif %}
+      </section>
+
+      {% if onboarding %}
+      <section class="card">
+        <div class="card-header"><h2 class="card-title">Onboarding</h2><a href="?tab=onboarding" class="text-xs font-medium text-brand-600 hover:text-brand-700">Step details</a></div>
+        <div class="card-body space-y-4">
+          {% for sec in onboarding %}
+            <div>
+              <div class="mb-1.5 flex items-center justify-between text-sm"><span class="font-medium text-slate-800">{% if sec.project %}{{ sec.project.name }}{% else %}Company onboarding{% endif %}</span><span class="bo-num text-xs text-slate-500">{{ sec.done }}/{{ sec.total }} steps</span></div>
+              <div class="bo-meter{% if sec.completed %} is-good{% endif %}"><span style="width: {{ sec.percent }}%"></span></div>
+            </div>
+          {% endfor %}
+        </div>
+      </section>
+      {% endif %}
+
+      <section class="card">
+        <div class="card-header"><h2 class="card-title">Recent test results</h2><a href="?tab=tests" class="text-xs font-medium text-brand-600 hover:text-brand-700">All attempts</a></div>
+        {% if recent_attempts %}
+          <div class="table-wrap"><table class="table"><tbody>
+            {% for a in recent_attempts %}
+              <tr><td class="font-medium text-slate-900">{{ a.test.title }}</td><td class="text-xs text-slate-500">Attempt {{ a.attempt_number }}</td><td class="num bo-num">{{ a.score|floatformat:0 }}%</td><td>{% if a.passed %}{% status_badge "passed" "Passed" %}{% else %}{% status_badge "failed" "Failed" %}{% endif %}</td><td class="text-right text-xs text-slate-500">{{ a.submitted_at|date:"j M Y, H:i" }}</td><td><a href="{% url 'backoffice:attempt_detail' a.pk %}" class="bo-icon-btn">{% icon "chevron-right" class="h-4 w-4" %}</a></td></tr>
+            {% endfor %}
+          </tbody></table></div>
+        {% else %}<p class="px-5 py-6 text-sm text-slate-500">No tests submitted yet.</p>{% endif %}
+      </section>
+    {% endif %}
+
+    {% if tab == "onboarding" %}
+      {% for sec in onboarding %}
+        <section class="card">
+          <div class="card-header">
+            <div><h2 class="card-title">{% if sec.project %}{{ sec.project.name }}{% else %}Company onboarding{% endif %}</h2><p class="mt-0.5 text-xs text-slate-500">{{ sec.done }} of {{ sec.total }} steps complete</p></div>
+            {% if sec.completed %}{% status_badge "completed" "Completed" %}{% else %}<span class="bo-num text-sm text-slate-600">{{ sec.percent }}%</span>{% endif %}
+          </div>
+          <ol class="bo-list">
+            {% for item in sec.steps %}
+              <li class="flex items-center gap-3 px-5 py-3">
+                <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold {% if item.done_at %}bg-emerald-100 text-emerald-700{% elif item.locked %}bg-slate-100 text-slate-400{% else %}bg-brand-100 text-brand-700{% endif %}">{% if item.done_at %}{% icon "check" class="h-3.5 w-3.5" %}{% else %}{{ forloop.counter }}{% endif %}</span>
+                <div class="min-w-0 flex-1">
+                  <p class="truncate text-sm font-medium {% if item.locked %}text-slate-500{% else %}text-slate-900{% endif %}">{{ item.step.title }}</p>
+                  <p class="truncate text-xs text-slate-500">{% if item.rule == "tutorial" %}Watch: {{ item.step.tutorial.title }}{% elif item.rule == "test" %}Pass: {{ item.step.test.title }}{% elif item.rule == "qualification" %}Qualified by a manager{% else %}Confirmed by the employee{% endif %}</p>
+                </div>
+                <span class="shrink-0 text-xs">{% if item.done_at %}<span class="text-emerald-700">{{ item.done_at|date:"j M Y" }}</span>{% elif item.locked %}<span class="text-slate-400">Locked</span>{% else %}<span class="badge badge-info">Current</span>{% endif %}</span>
+              </li>
+            {% endfor %}
+          </ol>
+        </section>
+      {% empty %}
+        <div class="card">{% include "components/empty_state.html" with icon="route" title="No onboarding" text="Onboarding appears once the employee is on a project with onboarding steps." %}</div>
+      {% endfor %}
+    {% endif %}
+
+    {% if tab == "tutorials" %}
+      <section class="card">
+        <div class="card-header"><h2 class="card-title">Tutorial progress</h2><span class="text-xs text-slate-500">Measured from real playback</span></div>
+        {% if progress_rows %}
+        <div class="table-wrap">
+          <table class="table">
+            <thead><tr><th>Tutorial</th><th>Status</th><th>Watched</th><th class="num">Watched time</th><th>Assigned</th><th>Completed</th></tr></thead>
+            <tbody>
+            {% for p in progress_rows %}
+              <tr>
+                <td class="min-w-56"><a href="{% url 'backoffice:tutorial_detail' p.tutorial.pk %}" class="font-medium text-slate-900 hover:text-brand-700">{{ p.tutorial.title }}</a><span class="block text-xs text-slate-500">{{ p.tutorial.project.code|default:"Company-wide" }} · {{ p.tutorial.get_cadence_display }}{% if not p.tutorial.is_required %} · optional{% endif %}{% if not p.assigned %} · self-started{% endif %}</span></td>
+                <td>{% status_badge p.status p.get_status_display %}</td>
+                <td class="w-40">{% include "backoffice/components/meter.html" with value=p.percent|floatformat:0|add:0 %}</td>
+                <td class="num bo-num text-xs">{{ p.watched_seconds|duration }}{% if p.tutorial.video.duration_sec %} <span class="text-slate-400">/ {{ p.tutorial.video.duration_sec|duration }}</span>{% endif %}</td>
+                <td class="text-xs whitespace-nowrap text-slate-500">{{ p.assigned_at|date:"j M Y" }}{% if p.due_at %}<span class="block {% if not p.completed_at and p.due_at < now %}text-red-600{% endif %}">due {{ p.due_at|date:"j M" }}</span>{% endif %}</td>
+                <td class="text-xs whitespace-nowrap">{% if p.completed_at %}{{ p.completed_at|date:"j M Y, H:i" }}{% else %}<span class="bo-muted">—</span>{% endif %}</td>
+              </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}{% include "components/empty_state.html" with icon="circle-play" title="No tutorials yet" %}{% endif %}
+      </section>
+    {% endif %}
+
+    {% if tab == "feedback" %}
+      <section class="card">
+        <div class="card-header"><h2 class="card-title">Feedback received</h2></div>
+        {% if feedback_rows %}
+        <div class="table-wrap">
+          <table class="table">
+            <thead><tr><th>Feedback</th><th>Seen</th><th>Watched</th><th>Acknowledged</th><th>Test</th><th class="num">Score</th><th>Status</th></tr></thead>
+            <tbody>
+            {% for r in feedback_rows %}
+              <tr>
+                <td class="min-w-48"><a href="{% url 'backoffice:feedback_detail' r.feedback.pk %}" class="flex items-center gap-2 font-medium text-slate-900 hover:text-brand-700"><span class="bo-code">{{ r.feedback.display_number }}</span><span class="truncate">{{ r.feedback.topic }}</span></a></td>
+                <td class="text-xs whitespace-nowrap">{% if r.first_viewed_at %}{{ r.first_viewed_at|date:"j M, H:i" }}{% else %}<span class="text-amber-700">Not opened</span>{% endif %}</td>
+                <td class="text-xs whitespace-nowrap">{% if r.watched_at %}<span class="font-medium text-emerald-700">Yes</span>{% else %}<span class="text-slate-500">No{% if r.percent %} · {{ r.percent|floatformat:0 }}%{% endif %}</span>{% endif %}</td>
+                <td class="text-xs whitespace-nowrap">{% if r.acknowledged_at %}{{ r.acknowledged_at|date:"j M" }}{% else %}<span class="bo-muted">—</span>{% endif %}</td>
+                <td class="text-xs">{% if r.state %}{% if r.state.attempts_used %}Completed <span class="text-slate-400">({{ r.state.attempts_used }}×)</span>{% elif r.state.status == "in_progress" %}In progress{% else %}Not started{% endif %}{% else %}<span class="bo-muted">No test</span>{% endif %}</td>
+                <td class="num bo-num">{% if r.state.best_score is not None %}{{ r.state.best_score|floatformat:0 }}%{% else %}—{% endif %}</td>
+                <td>{% if r.state %}{% if r.state.status == "passed" %}{% status_badge "passed" "Passed" %}{% elif r.state.attempts_used %}{% status_badge "review" "Review" %}{% else %}{% status_badge "pending" "Pending" %}{% endif %}{% else %}{% if r.watched_at %}{% status_badge "completed" "Completed" %}{% else %}{% status_badge "pending" "Pending" %}{% endif %}{% endif %}</td>
+              </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}{% include "components/empty_state.html" with icon="message-square-text" title="No feedback yet" %}{% endif %}
+      </section>
+    {% endif %}
+
+    {% if tab == "tests" %}
+      <section class="card">
+        <div class="card-header"><h2 class="card-title">Assigned tests</h2></div>
+        {% if assignments %}
+        <div class="table-wrap">
+          <table class="table">
+            <thead><tr><th>Test</th><th>Status</th><th class="num">Best score</th><th class="num">Attempts</th><th>Assigned</th></tr></thead>
+            <tbody>
+            {% for a in assignments %}
+              <tr>
+                <td><a href="{% url 'backoffice:test_results' a.test.pk %}" class="font-medium text-slate-900 hover:text-brand-700">{{ a.test.title }}</a><span class="block text-xs text-slate-500">{{ a.test.get_kind_display }} · pass ≥ {{ a.test.passing_score }}%</span></td>
+                <td>{% status_badge a.state.status %}</td>
+                <td class="num bo-num">{% if a.state.best_score is not None %}{{ a.state.best_score|floatformat:0 }}%{% else %}—{% endif %}</td>
+                <td class="num bo-num text-xs">{{ a.state.attempts_used }}{% if a.test.attempt_limit %} / {{ a.test.attempt_limit }}{% endif %}</td>
+                <td class="text-xs whitespace-nowrap text-slate-500">{{ a.assigned_at|date:"j M Y" }}{% if a.assigned_by %} · {{ a.assigned_by.name }}{% endif %}</td>
+              </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}<p class="px-5 py-6 text-sm text-slate-500">No tests assigned.</p>{% endif %}
+      </section>
+      <section class="card">
+        <div class="card-header"><h2 class="card-title">All attempts</h2></div>
+        {% if attempts %}
+        <div class="table-wrap">
+          <table class="table">
+            <thead><tr><th>Test</th><th class="num">Attempt</th><th class="num">Score</th><th>Result</th><th>Started</th><th>Submitted</th><th></th></tr></thead>
+            <tbody>
+            {% for a in attempts %}
+              <tr>
+                <td class="font-medium text-slate-900">{{ a.test.title }}</td>
+                <td class="num bo-num">#{{ a.attempt_number }}</td>
+                <td class="num bo-num">{% if a.score is not None %}{{ a.score|floatformat:0 }}%{% else %}—{% endif %}</td>
+                <td>{% if not a.submitted_at %}{% status_badge "in_progress" "In progress" %}{% elif a.passed %}{% status_badge "passed" "Passed" %}{% else %}{% status_badge "failed" "Failed" %}{% endif %}</td>
+                <td class="text-xs whitespace-nowrap text-slate-500">{{ a.started_at|date:"j M Y, H:i" }}</td>
+                <td class="text-xs whitespace-nowrap">{{ a.submitted_at|date:"j M Y, H:i"|default:"—" }}</td>
+                <td>{% if a.submitted_at %}<a href="{% url 'backoffice:attempt_detail' a.pk %}" class="bo-icon-btn" title="Answers">{% icon "chevron-right" class="h-4 w-4" %}</a>{% endif %}</td>
+              </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}<p class="px-5 py-6 text-sm text-slate-500">No attempts yet.</p>{% endif %}
+      </section>
+    {% endif %}
+  </div>
+
+  {# Sidebar #}
+  <aside class="min-w-0 space-y-6">
+    <section class="card">
+      <div class="card-header"><h2 class="card-title">Profile</h2></div>
+      <dl class="bo-kv card-body !grid-cols-1 sm:!grid-cols-2 xl:!grid-cols-1">
+        <div><dt>Job title</dt><dd>{{ employee.title|default:"—" }}</dd></div>
+        <div><dt>Phone</dt><dd>{% if employee.phone %}<a href="tel:{{ employee.phone }}" class="bo-link">{{ employee.phone }}</a>{% else %}—{% endif %}</dd></div>
+        <div><dt>Location</dt><dd>{{ employee.location|default:"—" }}</dd></div>
+        <div><dt>Approved</dt><dd>{% if employee.approved_at %}{{ employee.approved_at|date:"j M Y" }}{% if employee.approved_by %} by {{ employee.approved_by.name }}{% endif %}{% else %}—{% endif %}</dd></div>
+        {% if employee.skills %}<div class="sm:col-span-2 xl:col-span-1"><dt>Skills</dt><dd class="flex flex-wrap gap-1">{% for s in employee.skills %}<span class="bo-chip">{{ s }}</span>{% endfor %}</dd></div>{% endif %}
+        {% if employee.bio %}<div class="sm:col-span-2 xl:col-span-1"><dt>Bio</dt><dd class="text-slate-700">{{ employee.bio|linebreaksbr }}</dd></div>{% endif %}
+        {% if application %}<div><dt>Application</dt><dd><a href="{% url 'backoffice:applicant_detail' application.pk %}" class="bo-link">View careers application</a></dd></div>{% endif %}
+      </dl>
+    </section>
+
+    {% if can_change_role %}
+    <section class="card card-body">
+      <h2 class="bo-section">Role</h2>
+      <p class="mt-1 text-xs text-slate-500">Staff roles open the admin panel. Project managers and trainers only see their own projects.</p>
+      <form method="post" action="{% url 'backoffice:employee_role' employee.pk %}" class="mt-3 flex gap-2" data-confirm="Change the role of {{ employee.name }}?">{% csrf_token %}
+        {{ role_form.role }}<button class="btn btn-secondary shrink-0">Change</button>
+      </form>
+    </section>
+    {% endif %}
+
+    {% if membership_form %}
+    <section class="card card-body">
+      <h2 class="bo-section">Assign to a project</h2>
+      <p class="mt-1 text-xs text-slate-500">Assigns the project's required training, published feedback and tests.</p>
+      {% if membership_form.fields.project.queryset.exists %}
+      <form method="post" action="{% url 'backoffice:employee_add_project' employee.pk %}" class="mt-3 space-y-3">{% csrf_token %}
+        {% include "components/field.html" with field=membership_form.project %}
+        <div class="grid grid-cols-2 gap-3">
+          {% include "components/field.html" with field=membership_form.role %}
+          {% include "components/field.html" with field=membership_form.team %}
+        </div>
+        <button class="btn btn-primary w-full">{% icon "plus" class="h-4 w-4" %} Add to project</button>
+      </form>
+      {% else %}<p class="mt-3 text-sm text-slate-500">Already on every project you manage.</p>{% endif %}
+    </section>
+    {% endif %}
+
+    {% if tutorial_form %}
+    <section class="card card-body space-y-5">
+      <div>
+        <h2 class="bo-section">Assign training</h2>
+        <form method="post" action="{% url 'backoffice:employee_assign_tutorial' employee.pk %}" class="mt-2 space-y-2">{% csrf_token %}
+          {{ tutorial_form.tutorial }}
+          <div class="flex gap-2">{{ tutorial_form.due_date }}<button class="btn btn-secondary shrink-0">Assign</button></div>
+        </form>
+      </div>
+      <div class="divider"></div>
+      <div>
+        <h2 class="bo-section">Send feedback</h2>
+        <form method="post" action="{% url 'backoffice:employee_assign_feedback' employee.pk %}" class="mt-2 flex gap-2">{% csrf_token %}
+          {{ feedback_form.feedback }}<button class="btn btn-secondary shrink-0">Send</button>
+        </form>
+      </div>
+      <div class="divider"></div>
+      <div>
+        <h2 class="bo-section">Assign a test</h2>
+        <form method="post" action="{% url 'backoffice:employee_assign_test' employee.pk %}" class="mt-2 space-y-2">{% csrf_token %}
+          {{ test_form.test }}
+          <div class="flex gap-2">{{ test_form.due_date }}<button class="btn btn-secondary shrink-0">Assign</button></div>
+        </form>
+      </div>
+    </section>
+    {% endif %}
+  </aside>
+</div>
+{% endblock %}

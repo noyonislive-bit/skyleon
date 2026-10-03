@@ -1,0 +1,55 @@
+{% extends "backoffice/base.html" %}
+{% load backoffice_tags %}
+{% block page_header %}
+<div class="bo-header">
+  <div class="min-w-0">
+    <p class="eyebrow mb-2">Quote request #{{ lead.pk }}</p>
+    <div class="flex flex-wrap items-center gap-2"><h1 class="page-title">{{ lead.company|default:lead.name }}</h1>{% status_badge lead.status lead.get_status_display %}</div>
+    <p class="page-subtitle">{{ lead.name }} · received {{ lead.created_at|date:"j M Y, H:i" }}{% if lead.source %} · via {{ lead.source }}{% endif %}</p>
+  </div>
+  <div class="flex flex-wrap gap-2">
+    <a href="mailto:{{ lead.email }}?subject={{ 'Re: your '|add:lead.project_type|add:' project'|urlencode }}" class="btn btn-primary btn-sm">{% icon "mail" class="h-4 w-4" %} Reply by email</a>
+    {% if lead.phone %}<a href="tel:{{ lead.phone }}" class="btn btn-secondary btn-sm">{% icon "phone" class="h-4 w-4" %} Call</a>{% endif %}
+  </div>
+</div>
+{% endblock %}
+{% block content %}
+<section class="card mb-6 card-body">
+  <p class="mb-3 text-xs font-medium tracking-wide text-slate-500 uppercase">Pipeline</p>
+  <div class="bo-pipeline">
+    {% for v, l in pipeline %}
+      <span class="bo-stage {% if lead.status == v %}is-current{% elif forloop.counter0 < stage_index %}is-done{% else %}is-todo{% endif %}">{% if forloop.counter0 < stage_index and lead.status != v %}{% icon "check" class="h-3 w-3" %}{% endif %}{{ l }}</span>
+      {% if not forloop.last %}<span class="text-slate-300">{% icon "chevron-right" class="h-3.5 w-3.5" %}</span>{% endif %}
+    {% endfor %}
+    <span class="mx-1 h-5 w-px bg-slate-200"></span>
+    {% for v, l in outcomes %}<span class="bo-stage {% if lead.status == v %}is-current{% else %}is-todo{% endif %}">{{ l }}</span>{% endfor %}
+  </div>
+</section>
+<div class="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
+  <section class="card min-w-0">
+    <div class="card-header"><h2 class="card-title">Request details</h2></div>
+    <dl class="bo-kv card-body">
+      <div><dt>Name</dt><dd>{{ lead.name }}</dd></div>
+      <div><dt>Company</dt><dd>{{ lead.company|default:"—" }}</dd></div>
+      <div><dt>Email</dt><dd><a href="mailto:{{ lead.email }}" class="bo-link">{{ lead.email }}</a></dd></div>
+      <div><dt>Phone</dt><dd>{{ lead.phone|default:"—" }}</dd></div>
+      <div><dt>Project type</dt><dd>{{ lead.project_type }}</dd></div>
+      <div><dt>Annotation types</dt><dd class="flex flex-wrap gap-1">{% for t in lead.annotation_types %}<span class="bo-chip">{{ t }}</span>{% empty %}—{% endfor %}</dd></div>
+      <div><dt>Dataset size</dt><dd>{{ lead.dataset_size|default:"—" }}</dd></div>
+      <div><dt>Timeline</dt><dd>{{ lead.timeline|default:"—" }}</dd></div>
+      <div><dt>Platform / tool</dt><dd>{{ lead.platform|default:"—" }}</dd></div>
+      <div><dt>Attachment</dt><dd>{% if lead.attachment %}<a href="{% url 'storage:preview' lead.attachment.pk %}?download=1" class="bo-link inline-flex items-center gap-1">{% icon "download" class="h-3.5 w-3.5" %} {{ lead.attachment.original_name }}</a> <span class="text-xs text-slate-500">{{ lead.attachment.size_bytes|filesize_h }}</span>{% else %}—{% endif %}</dd></div>
+      <div class="sm:col-span-2"><dt>Requirements</dt><dd class="whitespace-pre-line text-slate-700">{{ lead.requirements|default:"—" }}</dd></div>
+      {% if lead.ip_address %}<div><dt>IP address</dt><dd class="bo-num text-xs">{{ lead.ip_address }}</dd></div>{% endif %}
+    </dl>
+  </section>
+  <form method="post" class="card card-body h-fit min-w-0 space-y-4">{% csrf_token %}
+    <h2 class="bo-section">Status &amp; notes</h2>
+    {% include "components/form_errors.html" %}
+    {% include "components/field.html" with field=form.status %}
+    {% include "components/field.html" with field=form.notes label="Internal notes" %}
+    <button class="btn btn-primary w-full">Save</button>
+    <p class="text-xs text-slate-500">Last updated {{ lead.updated_at|timesince }} ago.</p>
+  </form>
+</div>
+{% endblock %}

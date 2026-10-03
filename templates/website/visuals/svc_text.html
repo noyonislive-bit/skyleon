@@ -1,0 +1,33 @@
+<div class="ws-window">
+  <div class="flex items-center gap-2 border-b border-white/10 bg-ink-950/50 px-4 py-2.5">
+    <span class="text-label-pink">{% icon "text-select" class="h-4 w-4" %}</span>
+    <p class="truncate font-mono text-[11px] text-slate-400">support_tickets / t_88213.json</p>
+    <span class="ml-auto rounded-md bg-white/5 px-2 py-1 font-mono text-[10px] text-slate-400 ring-1 ring-white/10">intent · NER · sentiment</span>
+  </div>
+  <div class="grid gap-0 md:grid-cols-[1.5fr_1fr]">
+    <div class="p-4 sm:p-5">
+      <p class="font-mono text-[10px] tracking-wider text-slate-500 uppercase">Message</p>
+      <p class="mt-3 text-[14px] leading-8 text-slate-200">
+        Hi, I ordered the
+        <mark class="rounded bg-label-cyan/15 px-1 py-0.5 text-white ring-1 ring-label-cyan/40">Model X2 headphones<sup class="ml-1 font-mono text-[9px] text-label-cyan">PRODUCT</sup></mark>
+        on <mark class="rounded bg-label-lime/15 px-1 py-0.5 text-white ring-1 ring-label-lime/40">12 March<sup class="ml-1 font-mono text-[9px] text-label-lime">DATE</sup></mark>
+        but they arrived <mark class="rounded bg-label-amber/15 px-1 py-0.5 text-white ring-1 ring-label-amber/40">damaged<sup class="ml-1 font-mono text-[9px] text-label-amber">ISSUE</sup></mark>.
+        Can I get a <mark class="rounded bg-label-violet/15 px-1 py-0.5 text-white ring-1 ring-label-violet/40">refund<sup class="ml-1 font-mono text-[9px] text-label-violet">REQUEST</sup></mark>
+        to my original <mark class="rounded bg-label-pink/15 px-1 py-0.5 text-white ring-1 ring-label-pink/40">card<sup class="ml-1 font-mono text-[9px] text-label-pink">PAYMENT</sup></mark>?
+      </p>
+    </div>
+    <div class="space-y-4 border-t border-white/10 p-4 sm:p-5 md:border-t-0 md:border-l">
+      <div><p class="font-mono text-[10px] tracking-wider text-slate-500 uppercase">Intent</p><p class="mt-2"><span class="rounded-md bg-brand-500/15 px-2 py-1 font-mono text-[11px] text-brand-200 ring-1 ring-brand-400/30">refund_request</span></p></div>
+      <div><p class="font-mono text-[10px] tracking-wider text-slate-500 uppercase">Category</p><p class="mt-2 text-[12.5px] text-slate-300">Orders › Returns › Damaged item</p></div>
+      <div>
+        <p class="font-mono text-[10px] tracking-wider text-slate-500 uppercase">Sentiment</p>
+        <div class="mt-2 grid grid-cols-3 gap-1 font-mono text-[10px]">
+          <span class="rounded bg-red-400/20 px-1.5 py-1 text-center text-red-300 ring-1 ring-red-400/40">negative</span>
+          <span class="rounded bg-white/5 px-1.5 py-1 text-center text-slate-500">neutral</span>
+          <span class="rounded bg-white/5 px-1.5 py-1 text-center text-slate-500">positive</span>
+        </div>
+      </div>
+      <p class="flex items-center gap-1.5 text-[12px] text-slate-300">{% icon "circle-check" class="h-3.5 w-3.5 text-emerald-400" %} Spans &amp; taxonomy reviewed</p>
+    </div>
+  </div>
+</div>

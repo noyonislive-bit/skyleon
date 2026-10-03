@@ -1,0 +1,52 @@
+{% extends "backoffice/projects/_base.html" %}
+{% load backoffice_tags %}
+{% block content %}
+<div class="space-y-6">
+  <section class="card">
+    <div class="card-header"><h2 class="card-title">Tutorials</h2>{% if can_content %}<a href="{% url 'backoffice:tutorial_create' %}?project={{ project.pk }}" class="btn btn-secondary btn-sm">{% icon "plus" class="h-3.5 w-3.5" %} New tutorial</a>{% endif %}</div>
+    {% if tutorials %}
+    <div class="table-wrap"><table class="table">
+      <thead><tr><th>Title</th><th>Status</th><th>Cadence</th><th>Video</th><th>Completion</th></tr></thead>
+      <tbody>{% for t in tutorials %}<tr>
+        <td class="min-w-56"><a href="{% url 'backoffice:tutorial_detail' t.pk %}" class="font-medium text-slate-900 hover:text-brand-700">{{ t.title }}</a><span class="block text-xs text-slate-500">{{ t.category.name|default:"Uncategorised" }}{% if not t.is_required %} · optional{% endif %}</span></td>
+        <td>{% status_badge t.status t.get_status_display %}</td>
+        <td class="text-sm whitespace-nowrap">{{ t.get_cadence_display }}</td>
+        <td class="bo-num text-xs">{% if t.video %}{{ t.video.duration_sec|duration }}{% else %}<span class="text-amber-700">No video</span>{% endif %}</td>
+        <td class="w-44">{% include "backoffice/components/meter.html" with value=t.completed|bar_width:t.assigned|floatformat:0|add:0 done=t.completed total=t.assigned unit="completed" %}</td>
+      </tr>{% endfor %}</tbody>
+    </table></div>
+    {% else %}<p class="px-5 py-4 text-sm text-slate-500">No tutorials for this project yet.</p>{% endif %}
+  </section>
+  <section class="card">
+    <div class="card-header"><h2 class="card-title">Feedback</h2>{% if can_content %}<a href="{% url 'backoffice:feedback_create' %}?project={{ project.pk }}" class="btn btn-secondary btn-sm">{% icon "plus" class="h-3.5 w-3.5" %} New feedback</a>{% endif %}</div>
+    {% if feedback %}
+    <div class="table-wrap"><table class="table">
+      <thead><tr><th>Feedback</th><th>Audience</th><th>Status</th><th>Test</th><th>Watched</th></tr></thead>
+      <tbody>{% for fb in feedback %}<tr>
+        <td class="min-w-56"><a href="{% url 'backoffice:feedback_detail' fb.pk %}" class="flex items-center gap-2 font-medium text-slate-900 hover:text-brand-700"><span class="bo-code">{{ fb.display_number }}</span>{{ fb.topic }}</a></td>
+        <td class="text-sm">{{ fb.team.name|default:"Whole project" }}</td>
+        <td>{% status_badge fb.status fb.get_status_display %}</td>
+        <td class="text-xs">{% if fb.test %}<a class="bo-link" href="{% url 'backoffice:test_builder' fb.test.pk %}">{{ fb.test.title|truncatechars:30 }}</a>{% else %}<span class="bo-muted">—</span>{% endif %}</td>
+        <td class="w-44">{% include "backoffice/components/meter.html" with value=fb.watched|bar_width:fb.total|floatformat:0|add:0 done=fb.watched total=fb.total unit="watched" %}</td>
+      </tr>{% endfor %}</tbody>
+    </table></div>
+    {% else %}<p class="px-5 py-4 text-sm text-slate-500">No feedback for this project yet.</p>{% endif %}
+  </section>
+  <section class="card">
+    <div class="card-header"><h2 class="card-title">Tests</h2>{% if can_content %}<a href="{% url 'backoffice:test_create' %}?project={{ project.pk }}" class="btn btn-secondary btn-sm">{% icon "plus" class="h-3.5 w-3.5" %} New test</a>{% endif %}</div>
+    {% if tests %}
+    <div class="table-wrap"><table class="table">
+      <thead><tr><th>Test</th><th>Kind</th><th>Status</th><th class="num">Questions</th><th class="num">Assigned</th><th></th></tr></thead>
+      <tbody>{% for t in tests %}<tr>
+        <td class="min-w-56"><a href="{% url 'backoffice:test_builder' t.pk %}" class="font-medium text-slate-900 hover:text-brand-700">{{ t.title }}</a></td>
+        <td class="text-sm whitespace-nowrap">{{ t.get_kind_display }}</td>
+        <td>{% status_badge t.status t.get_status_display %}</td>
+        <td class="num bo-num">{{ t.question_count }}</td>
+        <td class="num bo-num">{{ t.assigned }}</td>
+        <td><a href="{% url 'backoffice:test_results' t.pk %}" class="bo-link text-xs">Results</a></td>
+      </tr>{% endfor %}</tbody>
+    </table></div>
+    {% else %}<p class="px-5 py-4 text-sm text-slate-500">No tests for this project yet.</p>{% endif %}
+  </section>
+</div>
+{% endblock %}

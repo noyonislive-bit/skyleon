@@ -1,0 +1,4 @@
+<nav class="tabs mb-6" aria-label="Profile sections">
+  <a href="{% url 'portal:profile' %}" class="tab {% if active_tab == 'profile' %}is-active{% endif %}" {% if active_tab == 'profile' %}aria-current="page"{% endif %}>{% icon "user-round" class="h-4 w-4" %} Profile &amp; security</a>
+  <a href="{% url 'portal:history' %}" class="tab {% if active_tab == 'history' %}is-active{% endif %}" {% if active_tab == 'history' %}aria-current="page"{% endif %}>{% icon "history" class="h-4 w-4" %} My history</a>
+</nav>

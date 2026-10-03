@@ -1,0 +1,242 @@
+from django.contrib import messages
+from django.db.models import Avg, Count, Q, Sum
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
+from django.utils import timezone
+from django.views.decorators.http import require_POST
+
+from apps.assessments.models import QuestionType, TestAttempt
+from apps.assessments.services import (
+    AttemptError,
+    attempt_deadline,
+    attempt_questions,
+    start_attempt,
+    submit_attempt,
+    test_state,
+)
+from apps.storage.models import MediaAsset, MediaKind
+from apps.storage.services import media_url
+
+from ..helpers import crumbs, feedback_gate, paginate, state_badge, tests_with_state
+from ..scope import attempts_by_test, portal_view
+
+TABS = [("pending", "Pending"), ("completed", "Completed"), ("all", "All")]
+DEADLINE_GRACE_SECONDS = 120  # matches the "late" tolerance in assessments.services.submit_attempt
+
+
+@portal_view
+def test_list(request):
+    scope = request.portal
+    rows = tests_with_state(scope)
+    now = timezone.now()
+    groups = {
+        "pending": [r for r in rows if r["is_open"]],
+        "completed": [r for r in rows if not r["is_open"]],
+        "all": rows,
+    }
+    tab = request.GET.get("tab")
+    if tab not in groups:
+        tab = "pending" if groups["pending"] else "all"
+    items = sorted(
+        groups[tab],
+        key=lambda r: (not r["is_open"], r["due_at"] is None, r["due_at"] or now, r["test"].title.lower()),
+    )
+    return render(request, "portal/test_list.html", {
+        "tab": tab,
+        "tabs": [{"key": k, "label": label, "count": len(groups[k])} for k, label in TABS],
+        "items": items,
+        "now": now,
+        "page_title": "Tests & quizzes",
+        "page_subtitle": "Training, onboarding and feedback tests assigned to you.",
+        "crumbs": crumbs(("Tests", None)),
+    })
+
+
+def _visible_test_or_404(scope, pk):
+    return get_object_or_404(
+        scope.tests().select_related("project", "feedback").annotate(
+            question_count=Count("questions", distinct=True), total_points=Sum("questions__points")
+        ),
+        pk=pk,
+    )
+
+
+@portal_view
+def test_detail(request, pk):
+    scope, user = request.portal, request.user
+    test = _visible_test_or_404(scope, pk)
+    attempts = attempts_by_test(user, [test.pk]).get(test.pk, [])
+    state = test_state(user, test, attempts=attempts)
+    recipient, gate = feedback_gate(scope, test)
+    return render(request, "portal/test_detail.html", {
+        "test": test,
+        "state": state,
+        "badge": state_badge(state),
+        "attempts": [a for a in attempts if a.submitted_at],
+        "gate": gate,
+        "recipient": recipient,
+        "feedback": getattr(test, "feedback", None),
+        "crumbs": crumbs(("Tests", reverse("portal:tests")), (test.title, None)),
+    })
+
+
+@require_POST
+@portal_view
+def test_start(request, pk):
+    scope = request.portal
+    test = get_object_or_404(scope.tests().select_related("feedback"), pk=pk)
+    _, gate = feedback_gate(scope, test)
+    if gate:
+        messages.warning(request, gate)
+        return redirect("portal:test_detail", pk=test.pk)
+    try:
+        attempt = start_attempt(request.user, test)
+    except AttemptError as exc:
+        messages.error(request, str(exc))
+        return redirect("portal:test_detail", pk=test.pk)
+    return redirect("portal:test_take", attempt_id=attempt.pk)
+
+
+def _asset_map(ids):
+    ids = [i for i in ids if i]
+    return {a.pk: a for a in MediaAsset.objects.filter(pk__in=ids)} if ids else {}
+
+
+def _media(asset, user):
+    if asset is None:
+        return None
+    url = media_url(asset, user)
+    if not url:
+        return None
+    return {"url": url, "kind": asset.kind, "is_video": asset.kind == MediaKind.VIDEO, "name": asset.original_name}
+
+
+def build_questions(attempt, user, *, reveal=False):
+    """
+    View-model for the test-taker / result review. Correct answers are only included when
+    `reveal` is True (result page) — never while the attempt is open.
+    """
+    questions = attempt_questions(attempt)
+    option_media = _asset_map([o.media_id for q in questions for o in q.options.all()])
+    answers = {a["question"]: a for a in (attempt.data or {}).get("answers", [])}
+    out = []
+    for index, q in enumerate(questions, start=1):
+        answer = answers.get(q.pk, {})
+        selected = set(answer.get("selected", []))
+        options = []
+        for o in q.options.all():
+            opt = {
+                "id": o.pk,
+                "text": o.text,
+                "media": _media(option_media.get(o.media_id), user) if o.media_id else None,
+                "selected": o.pk in selected,
+            }
+            if reveal:
+                opt["is_correct"] = o.is_correct
+            options.append(opt)
+        out.append({
+            "id": q.pk,
+            "index": index,
+            "prompt": q.prompt,
+            "qtype": q.qtype,
+            "qtype_label": q.get_qtype_display(),
+            "multi": q.qtype == QuestionType.MULTI_SELECT,
+            "points": q.points,
+            "media": _media(q.media, user) if q.media_id else None,
+            "image_options": any(opt["media"] for opt in options),
+            "options": options,
+            "answered": bool(selected),
+            "correct": answer.get("correct"),
+            "earned": answer.get("points", 0),
+            "explanation": q.explanation if reveal else "",
+        })
+    return out
+
+
+def _owned_attempt(request, attempt_id):
+    return get_object_or_404(TestAttempt.objects.select_related("test", "test__project"), pk=attempt_id, user=request.user)
+
+
+@portal_view
+def test_take(request, attempt_id):
+    attempt = _owned_attempt(request, attempt_id)
+    if attempt.is_submitted:
+        return redirect("portal:result_detail", attempt_id=attempt.pk)
+    test = attempt.test
+    deadline = attempt_deadline(attempt)
+    now = timezone.now()
+
+    if request.method == "POST":
+        selections = {}
+        for q in attempt_questions(attempt):
+            values = request.POST.getlist(f"q_{q.pk}")
+            if values:
+                selections[str(q.pk)] = values
+        submit_attempt(attempt, selections)
+        if request.POST.get("auto") == "1":
+            messages.info(request, "Time is up — your answers were submitted automatically.")
+        return redirect("portal:result_detail", attempt_id=attempt.pk)
+
+    if deadline and now > deadline + timezone.timedelta(seconds=DEADLINE_GRACE_SECONDS):
+        submit_attempt(attempt, {})
+        messages.warning(request, "The time limit for this attempt has passed, so it was submitted without answers.")
+        return redirect("portal:result_detail", attempt_id=attempt.pk)
+
+    questions = build_questions(attempt, request.user, reveal=False)
+    remaining = max(0, int((deadline - now).total_seconds())) if deadline else None
+    return render(request, "portal/test_take.html", {
+        "attempt": attempt,
+        "test": test,
+        "questions": questions,
+        "deadline": deadline,
+        "remaining": remaining,
+        "crumbs": crumbs(("Tests", reverse("portal:tests")), (test.title, reverse("portal:test_detail", args=[test.pk])),
+                         (f"Attempt {attempt.attempt_number}", None)),
+    })
+
+
+@portal_view
+def result_detail(request, attempt_id):
+    scope, user = request.portal, request.user
+    attempt = _owned_attempt(request, attempt_id)
+    if not attempt.is_submitted:
+        return redirect("portal:test_take", attempt_id=attempt.pk)
+    test = attempt.test
+    reveal = test.reveal_answers
+    questions = build_questions(attempt, user, reveal=reveal)
+    all_attempts = list(TestAttempt.objects.filter(test=test, user=user).order_by("-attempt_number"))
+    state = test_state(user, test, attempts=all_attempts)
+    visible = scope.tests().filter(pk=test.pk).exists()
+    _, gate = feedback_gate(scope, test) if visible else (None, None)
+    fb = getattr(test, "feedback", None)
+    return render(request, "portal/result_detail.html", {
+        "attempt": attempt,
+        "test": test,
+        "questions": questions,
+        "reveal": reveal,
+        "state": state,
+        "badge": state_badge(state),
+        "can_retake": visible and test.is_published and state.can_attempt and not gate,
+        "correct_count": sum(1 for q in questions if q["correct"]),
+        "feedback": fb,
+        "history": [a for a in all_attempts if a.submitted_at],
+        "crumbs": crumbs(("Results", reverse("portal:results")), (f"{test.title} · attempt {attempt.attempt_number}", None)),
+    })
+
+
+@portal_view
+def results(request):
+    qs = (
+        TestAttempt.objects.filter(user=request.user, submitted_at__isnull=False)
+        .select_related("test", "test__project")
+        .order_by("-submitted_at")
+    )
+    page = paginate(request, qs, 25)
+    summary = qs.aggregate(taken=Count("pk"), passed=Count("pk", filter=Q(passed=True)), avg=Avg("score"))
+    return render(request, "portal/results.html", {
+        "page": page,
+        "summary": summary,
+        "page_title": "Results history",
+        "page_subtitle": "Every test attempt you've submitted, with your score.",
+        "crumbs": crumbs(("Results", None)),
+    })

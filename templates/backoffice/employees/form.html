@@ -1,0 +1,54 @@
+{% extends "backoffice/base.html" %}
+{% load backoffice_tags %}
+{% block content %}
+<form method="post" class="grid grid-cols-1 gap-6 lg:grid-cols-3" novalidate>{% csrf_token %}
+  <div class="card lg:col-span-2">
+    <div class="card-body space-y-5">
+      {% include "components/form_errors.html" %}
+      <div class="grid gap-5 sm:grid-cols-2">
+        {% include "components/field.html" with field=form.name %}
+        {% include "components/field.html" with field=form.email %}
+        {% if creating %}
+          {% if form.role.field.widget.input_type == "hidden" %}{{ form.role }}{% else %}{% include "components/field.html" with field=form.role hint="Staff roles get access to this admin panel." %}{% endif %}
+          {% include "components/field.html" with field=form.title %}
+          {% include "components/field.html" with field=form.phone %}
+          {% include "components/field.html" with field=form.location %}
+          {% if form.project %}{% include "components/field.html" with field=form.project class="sm:col-span-2" %}{% endif %}
+        {% else %}
+          {% include "components/field.html" with field=form.title %}
+          {% include "components/field.html" with field=form.phone %}
+          {% include "components/field.html" with field=form.location %}
+          {% include "components/field.html" with field=form.skills_text %}
+          {% include "components/field.html" with field=form.bio class="sm:col-span-2" %}
+        {% endif %}
+      </div>
+      {% if creating %}{% include "components/field.html" with field=form.send_invite %}{% endif %}
+    </div>
+    <div class="flex flex-wrap justify-end gap-2 border-t border-slate-100 px-5 py-4">
+      <a href="{% if employee %}{% url 'backoffice:employee_detail' employee.pk %}{% else %}{% url 'backoffice:employee_list' %}{% endif %}" class="btn btn-ghost">Cancel</a>
+      <button type="submit" class="btn btn-primary">{% if creating %}{% icon "user-plus" class="h-4 w-4" %} Create account{% else %}Save changes{% endif %}</button>
+    </div>
+  </div>
+  <aside class="space-y-4">
+    {% if creating %}
+    <div class="card card-body text-sm text-slate-600">
+      <h2 class="bo-section mb-3">What happens next</h2>
+      <ol class="space-y-3">
+        <li class="flex gap-3"><span class="bo-step-num !h-6 !w-6 !text-[11px]">1</span><span>The account is created as <strong>active</strong> and receives the next employee ID.</span></li>
+        <li class="flex gap-3"><span class="bo-step-num !h-6 !w-6 !text-[11px]">2</span><span>They get an email with a secure link to choose a password (valid 24 h).</span></li>
+        <li class="flex gap-3"><span class="bo-step-num !h-6 !w-6 !text-[11px]">3</span><span>If you pick a project, its required training, feedback and tests are assigned right away.</span></li>
+      </ol>
+    </div>
+    {% else %}
+    <div class="card card-body text-sm text-slate-600">
+      <h2 class="bo-section mb-2">Account</h2>
+      <dl class="bo-kv !grid-cols-1">
+        <div><dt>Employee ID</dt><dd class="bo-num">{{ employee.employee_id|default:"—" }}</dd></div>
+        <div><dt>Role</dt><dd>{{ employee.get_role_display }}</dd></div>
+        <div><dt>Status</dt><dd>{% status_badge employee.status employee.get_status_display %}</dd></div>
+      </dl>
+    </div>
+    {% endif %}
+  </aside>
+</form>
+{% endblock %}

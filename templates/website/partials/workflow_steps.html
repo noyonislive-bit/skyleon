@@ -1,0 +1,16 @@
+{% comment %} 5-step client workflow (light surface). Requires workflow. {% endcomment %}
+<ol class="relative grid gap-4 sm:grid-cols-2 lg:grid-cols-5 lg:gap-0">
+  <span class="absolute top-[38px] right-[10%] left-[10%] hidden h-px bg-gradient-to-r from-brand-200 via-accent-300 to-brand-200 lg:block" aria-hidden="true"></span>
+  {% for step in workflow %}
+    <li class="reveal relative lg:px-3" style="transition-delay: {{ forloop.counter0 }}00ms">
+      <div class="flex h-full flex-col rounded-2xl bg-white p-5 ring-1 ring-slate-200 lg:items-center lg:bg-transparent lg:p-0 lg:text-center lg:ring-0">
+        <span class="relative flex h-[76px] w-[76px] shrink-0 items-center justify-center rounded-2xl bg-white shadow-card ring-1 ring-slate-200">
+          <span class="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-brand-600 to-accent-500 text-white shadow-glow">{% icon step.icon class="h-5 w-5" %}</span>
+          <span class="absolute -top-2 -right-2 rounded-full bg-ink-900 px-1.5 py-0.5 font-mono text-[10px] text-white">{{ forloop.counter|stringformat:"02d" }}</span>
+        </span>
+        <h3 class="mt-5 text-base font-semibold text-slate-900">{{ step.name }}</h3>
+        <p class="mt-1.5 text-sm leading-6 text-slate-600">{{ step.text }}</p>
+      </div>
+    </li>
+  {% endfor %}
+</ol>

@@ -1,0 +1,17 @@
+{% comment %} Platforms & formats (light). Requires environments, formats, statements. {% endcomment %}
+<div class="grid gap-6 lg:grid-cols-2">
+  <div class="reveal rounded-2xl bg-white p-6 ring-1 ring-slate-200 sm:p-8">
+    <div class="flex items-center gap-3"><span class="icon-tile">{% icon "server-cog" class="h-5 w-5" %}</span><h3 class="text-lg font-semibold">Annotation environments</h3></div>
+    <p class="mt-3 text-sm leading-6 text-slate-600">{{ statements.TOOLS_STATEMENT }}</p>
+    <div class="mt-5 flex flex-wrap gap-2">
+      {% for name, icon_name in environments %}<span class="chip-mono py-1.5">{% icon icon_name class="h-3.5 w-3.5 text-slate-400" %}{{ name }}</span>{% endfor %}
+    </div>
+  </div>
+  <div class="reveal rounded-2xl bg-white p-6 ring-1 ring-slate-200 sm:p-8">
+    <div class="flex items-center gap-3"><span class="icon-tile">{% icon "file-json" class="h-5 w-5" %}</span><h3 class="text-lg font-semibold">Data formats</h3></div>
+    <p class="mt-3 text-sm leading-6 text-slate-600">We deliver annotations in the structure your training pipeline expects. {{ statements.FORMATS_NOTE }}</p>
+    <div class="mt-5 flex flex-wrap gap-2">
+      {% for f in formats %}<span class="chip-mono py-1.5">{{ f }}</span>{% endfor %}
+    </div>
+  </div>
+</div>

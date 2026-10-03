@@ -1,0 +1,63 @@
+{% extends "website/base_site.html" %}
+{% block content %}
+{% url 'website:quote' as quote_url %}{% url 'website:security' as sec_url %}
+{% include "website/partials/page_hero.html" with eyebrow="Platforms & workflow" title="Already have your own annotation server? No problem." lead="Our team can adapt to your existing workflow — your servers, your annotation tool, your guidelines and your output format." primary_url=quote_url primary_label="Start Your Project" secondary_url=sec_url secondary_label="Security & access" %}
+
+<section class="section bg-white" id="environments">
+  <div class="container-page">
+    <div class="reveal grid gap-6 lg:grid-cols-[1fr_1.2fr] lg:items-end">
+      <div><p class="eyebrow">Environments</p><h2 class="section-title mt-4">Work where your data already lives.</h2></div>
+      <p class="lead">{{ statements.TOOLS_STATEMENT }} The environment is agreed per project — we don't move your data unless you want us to.</p>
+    </div>
+    <div class="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {% for name, icon_name in environments %}
+        <div class="reveal card flex items-center gap-4 p-5 {% if forloop.last %}sm:col-span-2 lg:col-span-1{% endif %}">
+          <span class="icon-tile">{% icon icon_name class="h-5 w-5" %}</span>
+          <span class="font-semibold text-slate-900">{{ name }}</span>
+        </div>
+      {% endfor %}
+      <div class="reveal flex items-center gap-3 rounded-xl border border-dashed border-slate-300 p-5 text-sm text-slate-500">{% icon "info" class="h-5 w-5 shrink-0 text-slate-400" %}Platform names are listed for compatibility only — the setup used depends on each project.</div>
+    </div>
+  </div>
+</section>
+
+<section class="relative isolate overflow-hidden bg-ink-900 section dark-surface" id="formats">
+  <div class="absolute inset-0 grid-bg" aria-hidden="true"></div>
+  <div class="container-page relative grid items-center gap-14 lg:grid-cols-2 lg:gap-16">
+    <div class="reveal">
+      <p class="eyebrow-dark"><span class="h-1.5 w-1.5 rounded-full bg-accent-300"></span>Data formats</p>
+      <h2 class="section-title mt-4">Delivered in the format your pipeline reads.</h2>
+      <p class="lead-dark mt-5">We export annotations to common computer vision and data formats, or to your own schema. {{ statements.FORMATS_NOTE }}</p>
+      <div class="mt-8 flex flex-wrap gap-2">{% for f in formats %}<span class="chip-dark px-3 py-2 text-xs">{{ f }}</span>{% endfor %}</div>
+    </div>
+    <div class="reveal min-w-0">
+      <div class="ws-window">
+        <div class="flex items-center gap-2 border-b border-white/10 bg-ink-950/50 px-4 py-2.5"><span class="text-accent-300">{% icon "file-json" class="h-4 w-4" %}</span><p class="font-mono text-[11px] text-slate-400">export / annotations.json</p><span class="ml-auto rounded-md bg-white/5 px-2 py-1 font-mono text-[10px] text-slate-400 ring-1 ring-white/10">COCO-style</span></div>
+<pre class="overflow-x-auto p-5 font-mono text-[12px] leading-6 text-slate-300"><code>{
+  <span class="text-label-cyan">"image_id"</span>: <span class="text-label-amber">4187</span>,
+  <span class="text-label-cyan">"category"</span>: <span class="text-label-lime">"cup"</span>,
+  <span class="text-label-cyan">"bbox"</span>: [<span class="text-label-amber">392</span>, <span class="text-label-amber">160</span>, <span class="text-label-amber">62</span>, <span class="text-label-amber">82</span>],
+  <span class="text-label-cyan">"segmentation"</span>: [[ <span class="text-slate-500">…</span> ]],
+  <span class="text-label-cyan">"attributes"</span>: { <span class="text-label-cyan">"occluded"</span>: <span class="text-label-pink">false</span> },
+  <span class="text-label-cyan">"review"</span>: { <span class="text-label-cyan">"status"</span>: <span class="text-label-lime">"qa_passed"</span> }
+}</code></pre>
+        <div class="flex flex-wrap gap-1.5 border-t border-white/10 px-5 py-3 font-mono text-[10.5px] text-slate-500"><span>also:</span><span class="text-slate-300">yolo/*.txt</span><span>·</span><span class="text-slate-300">voc/*.xml</span><span>·</span><span class="text-slate-300">masks/*.png</span><span>·</span><span class="text-slate-300">segments.csv</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section bg-white" id="workflow">
+  <div class="container-page">
+    <div class="reveal mx-auto max-w-3xl text-center">
+      <p class="eyebrow">Client workflow</p>
+      <h2 class="section-title mt-4">Five steps from guideline to validated dataset.</h2>
+      <p class="lead mt-5">A clear, repeatable process — with a pilot before production so you can judge quality on your own data.</p>
+    </div>
+    <div class="mt-16">{% include "website/partials/workflow_steps.html" %}</div>
+    <div class="reveal mt-14 flex justify-center"><a href="{% url 'website:quote' %}" class="btn btn-primary btn-lg">Start Your Project {% icon "arrow-right" class="h-4 w-4" %}</a></div>
+  </div>
+</section>
+
+{% include "website/partials/cta_band.html" with title="Start Your Project" text="Share your guideline, a few samples and your target format. We'll confirm the environment and propose a pilot." section_class="pt-0 sm:pt-0" %}
+{% endblock %}

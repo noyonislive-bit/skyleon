@@ -1,0 +1,24 @@
+<section class="card">
+  <div class="card-header">
+    <h2 class="card-title">Upcoming meetings</h2>
+    <a href="{% url 'backoffice:meeting_create' %}" class="text-xs font-medium text-brand-600 hover:text-brand-700">Schedule</a>
+  </div>
+  {% if meetings %}
+    <ul class="bo-list">
+      {% for m in meetings %}
+        <li><a href="{% url 'backoffice:meeting_detail' m.pk %}" class="flex items-center gap-4 px-5 py-3 hover:bg-slate-50">
+          <span class="flex w-11 shrink-0 flex-col items-center rounded-lg bg-slate-50 py-1 ring-1 ring-slate-200">
+            <span class="font-mono text-[10px] text-slate-500 uppercase">{{ m.starts_at|date:"M" }}</span>
+            <span class="text-base leading-5 font-semibold text-slate-900">{{ m.starts_at|date:"j" }}</span>
+          </span>
+          <span class="min-w-0 flex-1">
+            <span class="block truncate text-sm font-medium text-slate-900">{{ m.title }}</span>
+            <span class="block truncate text-xs text-slate-500">{{ m.starts_at|date:"D H:i" }} · {{ m.duration_min }} min · {{ m.invitee_count }} invited{% if m.project %} · {{ m.project.code }}{% endif %}</span>
+          </span>
+        </a></li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    {% include "components/empty_state.html" with icon="calendar-clock" title="No upcoming meetings" %}
+  {% endif %}
+</section>

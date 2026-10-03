@@ -1,0 +1,32 @@
+<div class="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3">
+  <p class="text-sm font-semibold text-slate-900">Notifications</p>
+  {% if items %}
+  <form method="post" action="{% url 'portal:notifications_read_all' %}">{% csrf_token %}<input type="hidden" name="next" value="" data-next-here>
+    <button type="submit" class="text-xs font-medium text-brand-600 hover:text-brand-700">Mark all as read</button>
+  </form>
+  {% endif %}
+</div>
+{% if items %}
+<ul class="max-h-[22rem] divide-y divide-slate-100 overflow-y-auto">
+  {% for n in items %}
+  <li>
+    <a href="{% url 'portal:notification_open' n.pk %}" class="flex items-start gap-3 px-4 py-3 transition hover:bg-slate-50 {% if not n.read_at %}is-unread{% endif %}">
+      <span class="icon-tile h-8 w-8 rounded-lg {{ n.icon_class }}">{% icon n.icon_name class="h-4 w-4" %}</span>
+      <span class="min-w-0 flex-1">
+        <span class="block truncate text-sm {% if not n.read_at %}font-semibold text-slate-900{% else %}text-slate-700{% endif %}">{{ n.title }}</span>
+        {% if n.body %}<span class="mt-0.5 block truncate text-xs text-slate-500">{{ n.body }}</span>{% endif %}
+        <span class="mt-0.5 block text-[11px] text-slate-400">{{ n.created_at|timesince }} ago</span>
+      </span>
+      {% if not n.read_at %}<span class="unread-dot mt-1.5" aria-label="Unread"></span>{% endif %}
+    </a>
+  </li>
+  {% endfor %}
+</ul>
+{% else %}
+<div class="px-6 py-10 text-center">
+  <div class="mx-auto flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-500">{% icon "bell-off" class="h-5 w-5" %}</div>
+  <p class="mt-3 text-sm font-medium text-slate-900">You're all caught up</p>
+  <p class="mt-1 text-xs text-slate-500">New training, feedback and tests will show up here.</p>
+</div>
+{% endif %}
+<a href="{% url 'portal:notifications' %}" class="block border-t border-slate-100 bg-slate-50/70 px-4 py-2.5 text-center text-xs font-semibold text-slate-700 hover:bg-slate-100">View all notifications</a>

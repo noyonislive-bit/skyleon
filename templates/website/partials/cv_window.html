@@ -1,0 +1,9 @@
+{% comment %} A CV mini visual inside a workspace window. Variables: kind, title {% endcomment %}
+<div class="ws-window">
+  <div class="flex items-center gap-2 border-b border-white/10 bg-ink-950/50 px-4 py-2.5">
+    <div class="flex gap-1.5" aria-hidden="true"><span class="h-2 w-2 rounded-full bg-white/15"></span><span class="h-2 w-2 rounded-full bg-white/15"></span><span class="h-2 w-2 rounded-full bg-white/15"></span></div>
+    <p class="truncate font-mono text-[11px] text-slate-400">{{ title|default:"annotation preview" }}</p>
+    <span class="ml-auto inline-flex items-center gap-1.5 rounded-md bg-emerald-400/10 px-2 py-1 font-mono text-[10px] text-emerald-300 ring-1 ring-emerald-400/20"><span class="dot animate-pulse-soft bg-emerald-400"></span>QA</span>
+  </div>
+  <div class="relative">{% with "website/visuals/cv_"|add:kind|add:".html" as tpl %}{% include tpl %}{% endwith %}<div class="ws-scanline" aria-hidden="true"></div></div>
+</div>

@@ -1,0 +1,44 @@
+{% extends "portal/base.html" %}
+{% load portal_tags %}
+{% block page_actions %}
+{% portal_counts as c %}
+{% if c.notifications %}
+<form method="post" action="{% url 'portal:notifications_read_all' %}">{% csrf_token %}<button type="submit" class="btn btn-secondary btn-sm">{% icon "check-check" class="h-3.5 w-3.5" %} Mark all as read</button></form>
+{% endif %}
+{% endblock %}
+{% block content %}
+{% portal_counts as c %}
+<div class="card">
+  <nav class="tabs px-3" aria-label="Notification filters">
+    <a href="?" class="tab {% if show != 'unread' %}is-active{% endif %}" {% if show != 'unread' %}aria-current="page"{% endif %}>All</a>
+    <a href="?show=unread" class="tab {% if show == 'unread' %}is-active{% endif %}" {% if show == 'unread' %}aria-current="page"{% endif %}>Unread <span class="count">{{ c.notifications }}</span></a>
+  </nav>
+  {% if page.object_list %}
+  <ul class="divide-y divide-slate-100">
+    {% for n in page.object_list %}
+    <li>
+      <a href="{% url 'portal:notification_open' n.pk %}" class="list-row {% if not n.read_at %}is-unread{% endif %}">
+        <span class="icon-tile {{ n.icon_class }}">{% icon n.icon_name class="h-5 w-5" %}</span>
+        <span class="min-w-0 flex-1">
+          <span class="flex items-start justify-between gap-3">
+            <span class="text-sm {% if not n.read_at %}font-semibold text-slate-900{% else %}font-medium text-slate-700{% endif %}">{{ n.title }}</span>
+            <span class="shrink-0 text-xs text-slate-400" title="{{ n.created_at|date:'M j, Y H:i' }}">{{ n.created_at|timesince }} ago</span>
+          </span>
+          {% if n.body %}<span class="mt-0.5 block text-sm text-slate-500">{{ n.body }}</span>{% endif %}
+          <span class="meta-row mt-1"><span class="badge badge-neutral">{{ n.get_ntype_display }}</span>{% if not n.read_at %}<span class="inline-flex items-center gap-1.5 font-medium text-brand-600"><span class="unread-dot"></span> Unread</span>{% endif %}</span>
+        </span>
+        {% icon "chevron-right" class="mt-2 h-4 w-4 shrink-0 text-slate-300" %}
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+  {% include "components/pagination.html" with page=page %}
+  {% else %}
+    {% if show == "unread" %}
+      {% include "portal/includes/empty.html" with icon="bell-off" title="No unread notifications" text="You're all caught up." action_url="?" action_label="Show all" %}
+    {% else %}
+      {% include "portal/includes/empty.html" with icon="bell" title="No notifications yet" text="We'll let you know about new training, feedback, tests and meetings." %}
+    {% endif %}
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,161 @@
+{% extends "portal/base.html" %}
+{% load portal_tags %}
+{% block content %}
+{% if sections %}
+  <!-- Overall -->
+  <section class="card card-body flex flex-col gap-5 sm:flex-row sm:items-center" aria-label="Overall onboarding progress">
+    <div class="ring-progress h-20 w-20 {% if overall_percent >= 100 %}is-complete{% endif %}" style="--p: {{ overall_percent }}; --thickness: 7px"><span class="text-lg font-semibold text-slate-900 tabular-nums">{{ overall_percent }}%</span></div>
+    <div class="min-w-0 flex-1">
+      <p class="text-sm font-semibold text-slate-900">{% if overall_percent >= 100 %}All onboarding complete{% else %}Your onboarding journey{% endif %}</p>
+      <p class="mt-0.5 text-sm text-slate-500">{{ overall_done }} of {{ overall_total }} steps complete across {{ sections|length }} track{{ sections|length|pluralize }}. Steps unlock one after another; videos and tests complete automatically.</p>
+      <div class="mt-3 flex flex-wrap gap-2">
+        {% for sec in sections %}
+          <a href="#track-{{ sec.project.pk|default:'company' }}" class="inline-flex items-center gap-2 rounded-full bg-slate-50 px-3 py-1 text-xs font-medium text-slate-700 ring-1 ring-slate-200 hover:bg-slate-100">
+            {% if sec.project %}<span class="dot" style="background: {{ sec.project.color }}"></span>{{ sec.project.code }}{% else %}{% icon "building-2" class="h-3.5 w-3.5 text-slate-400" %} Company{% endif %}
+            <span class="font-mono text-slate-500">{{ sec.percent }}%</span>
+          </a>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+
+  {% for sec in sections %}
+  <section id="track-{{ sec.project.pk|default:'company' }}" class="card mt-6 scroll-mt-24" aria-labelledby="track-title-{{ forloop.counter }}">
+    <div class="flex flex-wrap items-center gap-4 border-b border-slate-100 px-5 py-4">
+      {% if sec.project %}
+        <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl font-mono text-[11px] font-semibold text-white" style="background: {{ sec.project.color }}">{{ sec.project.code|slice:":3" }}</span>
+      {% else %}
+        <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-ink-800 text-white">{% icon "building-2" class="h-5 w-5" %}</span>
+      {% endif %}
+      <div class="min-w-0 flex-1">
+        <h2 id="track-title-{{ forloop.counter }}" class="text-base font-semibold text-slate-900">{% if sec.project %}{{ sec.project.name }}{% else %}Company onboarding{% endif %}</h2>
+        <p class="text-xs text-slate-500">{% if sec.project %}{{ sec.project.code }}{% if sec.member %} · {{ sec.member.get_role_display }}{% if sec.member.team %} · {{ sec.member.team.name }}{% endif %}{% endif %} · {% endif %}{{ sec.done }} of {{ sec.total }} steps</p>
+      </div>
+      <div class="flex w-full items-center gap-3 sm:w-56">
+        <div class="progress flex-1" role="progressbar" aria-label="Track progress" aria-valuenow="{{ sec.percent }}" aria-valuemin="0" aria-valuemax="100"><div class="progress-bar{% if sec.completed %} is-complete{% endif %}" style="width: {{ sec.percent }}%"></div></div>
+        <span class="font-mono text-sm font-semibold text-slate-900 tabular-nums">{{ sec.percent }}%</span>
+      </div>
+    </div>
+
+    {% if sec.completed %}
+    <div class="relative overflow-hidden border-b border-emerald-100 bg-gradient-to-r from-emerald-50 via-teal-50 to-cyan-50 px-5 py-5">
+      <div class="flex items-start gap-4">
+        <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-500 text-white shadow-lg shadow-emerald-500/30">{% icon "party-popper" class="h-6 w-6" %}</span>
+        <div>
+          <p class="text-base font-semibold text-emerald-950">Onboarding complete — congratulations!</p>
+          <p class="mt-1 text-sm text-emerald-800">{% if sec.member.qualified_at %}You were qualified for production work on {{ sec.member.qualified_at|date:"F j, Y" }}.{% else %}Every step is done.{% endif %} Keep an eye on daily training and QA feedback to stay sharp.</p>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <ol class="relative px-5 py-6" role="list">
+      {% for item in sec.steps %}{% with step=item.step %}
+      <li id="step-{{ step.pk }}" class="relative flex scroll-mt-24 gap-4 {% if not forloop.last %}pb-6{% endif %}">
+        {% if not forloop.last %}<span class="absolute top-9 bottom-0 left-[17px] w-0.5 {% if item.done %}bg-emerald-200{% else %}bg-slate-200{% endif %}" aria-hidden="true"></span>{% endif %}
+        <span class="step-marker {% if item.done %}is-done{% elif item.current %}is-current{% elif item.blocked %}is-locked{% else %}is-open{% endif %}" aria-hidden="true">
+          {% if item.done %}{% icon "check" class="h-4 w-4" stroke_width="2.75" %}{% elif item.blocked %}{% icon "lock" class="h-3.5 w-3.5" %}{% else %}{{ step.order }}{% endif %}
+        </span>
+        <div class="min-w-0 flex-1 {% if item.current %}rounded-xl bg-brand-50/40 p-4 ring-1 ring-brand-200 -mt-1{% endif %}">
+          <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span class="font-mono text-[11px] tracking-wider text-slate-400 uppercase">Step {{ step.order }} · {{ step.get_step_type_display }}</span>
+            {% if item.done %}
+              <span class="badge badge-success">{% icon "check" class="h-3 w-3" %} Done {{ item.done_at|date:"M j" }}</span>
+            {% elif item.blocked %}
+              <span class="badge badge-neutral">{% icon "lock" class="h-3 w-3" %} Locked</span>
+            {% elif item.rule == "qualification" %}
+              <span class="badge badge-warning">{% icon "hourglass" class="h-3 w-3" %} Awaiting manager review</span>
+            {% elif item.current %}
+              <span class="badge badge-brand">Current step</span>
+            {% endif %}
+          </div>
+          <h3 class="mt-1 text-[15px] font-semibold {% if item.blocked %}text-slate-500{% else %}text-slate-900{% endif %}">{{ step.title }}<span class="sr-only"> — {% if item.done %}done{% elif item.blocked %}locked{% else %}to do{% endif %}</span></h3>
+          {% if step.description %}<p class="mt-0.5 text-sm text-slate-500">{{ step.description }}</p>{% endif %}
+
+          {% if item.blocked %}
+            <p class="mt-2 text-xs text-slate-400">Complete the previous step to unlock.</p>
+          {% else %}
+            {% if step.content %}<div class="prose-content mt-3 text-sm">{{ step.content|markdown }}</div>{% endif %}
+
+            <div class="mt-3 space-y-2">
+              {% if step.tutorial_id %}
+              <div class="flex flex-wrap items-center gap-3 rounded-lg bg-white p-3 ring-1 ring-slate-200">
+                <span class="icon-tile h-9 w-9 rounded-lg bg-brand-50 text-brand-600 ring-brand-100">{% icon "circle-play" class="h-4 w-4" %}</span>
+                <div class="min-w-0 flex-1 basis-44">
+                  <p class="text-sm font-medium text-slate-900">{{ step.tutorial.title }}</p>
+                  {% with p=item.tutorial_progress %}
+                  <div class="mt-1 flex items-center gap-2">
+                    <div class="progress h-1.5 max-w-48"><div class="progress-bar{% if p.is_completed %} is-complete{% endif %}" style="width: {{ p.percent|pct }}%"></div></div>
+                    <span class="font-mono text-[11px] text-slate-500">{% if p.is_completed %}Watched{% elif p %}{{ p.percent|floatformat:0 }}%{% else %}Not started{% endif %}</span>
+                  </div>
+                  {% endwith %}
+                </div>
+                {% if item.tutorial_available %}
+                  <a href="{% url 'portal:tutorial_detail' step.tutorial_id %}" class="btn {% if item.done %}btn-secondary{% else %}btn-primary{% endif %} btn-sm">{% icon "play" class="h-3.5 w-3.5" %} {% if item.done %}Rewatch{% elif item.tutorial_progress.percent %}Resume{% else %}Watch{% endif %}</a>
+                {% else %}
+                  <span class="badge badge-neutral">Not available yet</span>
+                {% endif %}
+              </div>
+              {% endif %}
+
+              {% if step.guideline_id %}
+              <div class="flex flex-wrap items-center gap-3 rounded-lg bg-white p-3 ring-1 ring-slate-200">
+                <span class="icon-tile h-9 w-9 rounded-lg bg-sky-50 text-sky-600 ring-sky-100">{% icon "file-text" class="h-4 w-4" %}</span>
+                <div class="min-w-0 flex-1 basis-44">
+                  <p class="text-sm font-medium text-slate-900">{{ step.guideline.title }} <span class="font-mono text-xs font-normal text-slate-400">v{{ step.guideline.version }}</span></p>
+                  <p class="mt-0.5 text-xs {% if item.guideline_current %}text-emerald-700{% elif item.guideline_ack %}text-amber-700{% else %}text-slate-500{% endif %}">
+                    {% if item.guideline_current %}{% icon "check" class="inline h-3 w-3" %} You confirmed reading this version{% elif item.guideline_ack %}Updated since you read v{{ item.guideline_ack.version }} — please re-read{% else %}Not yet confirmed{% endif %}
+                  </p>
+                </div>
+                {% if step.guideline.project_id %}<a href="{% url 'portal:guideline_detail' step.guideline.project.slug step.guideline_id %}" class="btn btn-secondary btn-sm">{% icon "book-open" class="h-3.5 w-3.5" %} Read guideline</a>{% endif %}
+              </div>
+              {% endif %}
+
+              {% if step.test_id %}
+              <div class="flex flex-wrap items-center gap-3 rounded-lg bg-white p-3 ring-1 ring-slate-200">
+                <span class="icon-tile h-9 w-9 rounded-lg bg-violet-50 text-violet-600 ring-violet-100">{% icon "clipboard-check" class="h-4 w-4" %}</span>
+                <div class="min-w-0 flex-1 basis-44">
+                  <p class="text-sm font-medium text-slate-900">{{ step.test.title }}</p>
+                  <p class="meta-row mt-1">{% tone_badge item.test_badge.tone item.test_badge.label %}<span>Pass mark {{ step.test.passing_score }}%</span>{% if item.test_state.best_score is not None %}<span>Best {{ item.test_state.best_score|floatformat:0 }}%</span>{% endif %}{% if item.test_state.attempts_left is not None %}<span>{{ item.test_state.attempts_left }} attempt{{ item.test_state.attempts_left|pluralize }} left</span>{% endif %}</p>
+                </div>
+                {% if item.test_available %}
+                  <a href="{% url 'portal:test_detail' step.test_id %}" class="btn {% if item.done or not item.test_state.can_attempt %}btn-secondary{% else %}btn-primary{% endif %} btn-sm">
+                    {% if item.test_state.status == "passed" %}View result{% elif item.test_state.status == "in_progress" %}Resume test{% elif item.test_state.status == "review" %}Retake test{% elif item.test_state.status == "locked" %}View attempts{% else %}Start test{% endif %} {% icon "arrow-right" class="h-3.5 w-3.5" %}
+                  </a>
+                {% else %}
+                  <span class="badge badge-neutral">Not available yet</span>
+                {% endif %}
+              </div>
+              {% endif %}
+
+              {% if item.rule == "qualification" %}
+              <div class="flex items-start gap-3 rounded-lg p-3 ring-1 {% if item.done %}bg-emerald-50 ring-emerald-200{% else %}bg-amber-50 ring-amber-200{% endif %}">
+                <span class="mt-0.5 {% if item.done %}text-emerald-600{% else %}text-amber-600{% endif %}">{% if item.done %}{% icon "badge-check" class="h-5 w-5" %}{% else %}{% icon "hourglass" class="h-5 w-5" %}{% endif %}</span>
+                <p class="text-sm {% if item.done %}text-emerald-900{% else %}text-amber-900{% endif %}">
+                  {% if item.done %}Qualified on {{ item.done_at|date:"F j, Y" }}{% if sec.member.qualified_by %} by {{ sec.member.qualified_by.name }}{% endif %}.{% else %}<strong class="font-semibold">Awaiting manager review.</strong> Your project manager will review your sample work and qualify you — no action needed in the portal.{% endif %}
+                </p>
+              </div>
+              {% endif %}
+
+              {% if item.rule == "manual" and not item.done %}
+              <form method="post" action="{% url 'portal:onboarding_complete_step' step.pk %}" class="pt-1">{% csrf_token %}
+                <button type="submit" class="btn btn-success btn-sm">{% icon "check" class="h-3.5 w-3.5" %} Mark as complete</button>
+                <span class="ml-2 text-xs text-slate-500">Confirm once you've read this step.</span>
+              </form>
+              {% elif item.rule == "manual" and item.done %}
+              <p class="text-xs text-emerald-700">{% icon "check" class="inline h-3 w-3" %} You confirmed this step on {{ item.done_at|date:"M j, Y" }}.</p>
+              {% endif %}
+            </div>
+          {% endif %}
+        </div>
+      </li>
+      {% endwith %}{% endfor %}
+    </ol>
+  </section>
+  {% endfor %}
+{% else %}
+  <div class="card">
+    {% include "portal/includes/empty.html" with icon="route" title="No onboarding assigned yet" text="When you're added to a project, its onboarding steps will appear here." action_url="/portal/training/" action_label="Browse training" %}
+  </div>
+{% endif %}
+{% endblock %}

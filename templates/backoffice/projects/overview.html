@@ -1,0 +1,50 @@
+{% extends "backoffice/projects/_base.html" %}
+{% load backoffice_tags %}
+{% block content %}
+<section class="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-5" aria-label="Project figures">
+  {% for t in stats %}{% include "backoffice/components/stat.html" with t=t %}{% endfor %}
+</section>
+<div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
+  <section class="card min-w-0 lg:col-span-2">
+    <div class="card-header"><h2 class="card-title">About this project</h2></div>
+    <div class="card-body">
+      {% if project.description %}<div class="prose-content">{{ project.description|markdown }}</div>{% elif project.summary %}<p class="text-sm text-slate-700">{{ project.summary }}</p>{% else %}<p class="text-sm text-slate-500">No description yet.</p>{% endif %}
+      <dl class="bo-kv mt-6 border-t border-slate-100 pt-5 sm:!grid-cols-3">
+        <div><dt>Client</dt><dd>{{ project.client_name|default:"—" }}</dd></div>
+        <div><dt>Organisation</dt><dd>{{ project.organization.name|default:"—" }}</dd></div>
+        <div><dt>Platform</dt><dd>{{ project.platform|default:"—" }}</dd></div>
+        <div><dt>Start</dt><dd>{{ project.start_date|date:"j M Y"|default:"—" }}</dd></div>
+        <div><dt>End</dt><dd>{{ project.end_date|date:"j M Y"|default:"—" }}</dd></div>
+        <div><dt>Portal page</dt><dd><a href="{% url 'portal:project_detail' project.slug %}" class="bo-link">/portal/projects/{{ project.slug }}/</a></dd></div>
+      </dl>
+    </div>
+  </section>
+  <div class="min-w-0 space-y-6">
+    <section class="card">
+      <div class="card-header"><h2 class="card-title">Teams</h2><a href="{% url 'backoffice:project_teams' project.pk %}" class="text-xs font-medium text-brand-600">Manage</a></div>
+      {% if teams %}<ul class="bo-list">{% for t in teams %}<li class="flex items-center justify-between px-5 py-3 text-sm"><span><span class="font-medium text-slate-900">{{ t.name }}</span>{% if t.lead %}<span class="block text-xs text-slate-500">Lead: {{ t.lead.name }}</span>{% endif %}</span><span class="bo-num text-xs text-slate-500">{{ t.n }} member{{ t.n|pluralize }}</span></li>{% endfor %}</ul>
+      {% else %}<p class="px-5 py-4 text-sm text-slate-500">No teams — feedback goes to the whole project.</p>{% endif %}
+    </section>
+    <section class="card">
+      <div class="card-header"><h2 class="card-title">Staff</h2></div>
+      {% if staff %}<ul class="bo-list">{% for m in staff %}<li class="px-5 py-3">{% include "backoffice/components/person.html" with u=m.user sub=m.get_role_display %}</li>{% endfor %}</ul>
+      {% else %}<p class="px-5 py-4 text-sm text-slate-500">No project manager or trainer assigned yet.</p>{% endif %}
+    </section>
+  </div>
+</div>
+<section class="card mt-6">
+  <div class="card-header"><h2 class="card-title">Latest feedback</h2><a href="{% url 'backoffice:feedback_list' %}?project={{ project.pk }}" class="text-xs font-medium text-brand-600">All feedback</a></div>
+  {% if recent_feedback %}
+  <div class="table-wrap"><table class="table"><tbody>
+    {% for fb in recent_feedback %}
+      <tr>
+        <td class="w-16"><span class="bo-code">{{ fb.display_number }}</span></td>
+        <td><a href="{% url 'backoffice:feedback_detail' fb.pk %}" class="font-medium text-slate-900 hover:text-brand-700">{{ fb.topic }}</a></td>
+        <td class="text-xs text-slate-500">{{ fb.published_at|date:"j M Y" }}</td>
+        <td class="w-48">{% include "backoffice/components/meter.html" with value=fb.watched|bar_width:fb.total|floatformat:0|add:0 done=fb.watched total=fb.total unit="watched" %}</td>
+      </tr>
+    {% endfor %}
+  </tbody></table></div>
+  {% else %}<p class="px-5 py-4 text-sm text-slate-500">No feedback published yet.</p>{% endif %}
+</section>
+{% endblock %}

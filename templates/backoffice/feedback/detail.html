@@ -1,0 +1,116 @@
+{% extends "backoffice/base.html" %}
+{% load static backoffice_tags %}
+{% block page_header %}
+<div class="bo-header">
+  <div class="min-w-0">
+    <div class="flex flex-wrap items-center gap-2">
+      <span class="bo-code !text-xs">{{ fb.display_number }}</span>
+      {% status_badge fb.status fb.get_status_display %}
+      {% if fb.severity != "normal" %}{% status_badge fb.severity fb.get_severity_display %}{% endif %}
+      <span class="bo-chip"><span class="dot h-1.5 w-1.5" style="background: {{ fb.project.color }}"></span>{{ fb.project.code }} · {{ fb.team.name|default:"whole project" }}</span>
+      <span class="bo-chip">{{ fb.get_cadence_display }}</span>
+    </div>
+    <h1 class="page-title mt-2">{{ fb.topic }}</h1>
+    <p class="page-subtitle">{% if fb.summary %}{{ fb.summary }} · {% endif %}{% if fb.published_at %}published {{ fb.published_at|date:"j M Y, H:i" }}{% else %}draft{% endif %}{% if fb.created_by %} by {{ fb.created_by.name }}{% endif %}{% if fb.due_at %} · due {{ fb.due_at|date:"j M, H:i" }}{% endif %}</p>
+  </div>
+  <div class="flex flex-wrap gap-2">
+    <a href="{% querystring format='csv' page=None %}" class="btn btn-secondary btn-sm">{% icon "download" class="h-4 w-4" %} CSV</a>
+    {% if can_edit %}
+      {% if fb.status != "published" %}
+        <form method="post" action="{% url 'backoffice:feedback_publish' fb.pk %}" data-confirm="Publish {{ fb.display_number }} to {% if fb.team %}team {{ fb.team.name }}{% else %}everyone on {{ fb.project.code }}{% endif %}? They are notified by email and in the portal.">{% csrf_token %}<button class="btn btn-primary btn-sm">{% icon "send" class="h-4 w-4" %} Publish</button></form>
+      {% else %}
+        <form method="post" action="{% url 'backoffice:feedback_status' fb.pk %}" data-confirm="Move back to draft? Employees will no longer see it.">{% csrf_token %}<input type="hidden" name="action" value="unpublish"><button class="btn btn-secondary btn-sm">Unpublish</button></form>
+      {% endif %}
+      {% if fb.status != "archived" %}<form method="post" action="{% url 'backoffice:feedback_status' fb.pk %}" data-confirm="Archive this feedback? Tracking is kept.">{% csrf_token %}<input type="hidden" name="action" value="archive"><button class="btn btn-secondary btn-sm">{% icon "archive" class="h-4 w-4" %}<span class="sr-only">Archive</span></button></form>{% endif %}
+      <a href="{% url 'backoffice:feedback_edit' fb.pk %}" class="btn btn-secondary btn-sm">{% icon "pencil" class="h-4 w-4" %} Edit</a>
+      {% if fb.status != "published" %}<form method="post" action="{% url 'backoffice:feedback_status' fb.pk %}" data-confirm="Delete {{ fb.display_number }} and its tracking data?">{% csrf_token %}<input type="hidden" name="action" value="delete"><button class="btn btn-danger-soft btn-sm" title="Delete">{% icon "trash-2" class="h-4 w-4" %}</button></form>{% endif %}
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+{% block content %}
+<section class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5" aria-label="Summary">
+  <div class="stat"><p class="stat-label">Recipients</p><p class="stat-value !text-2xl">{{ summary.total }}</p><p class="stat-meta">{{ fb.team.name|default:"whole project" }}</p></div>
+  <div class="stat"><p class="stat-label">Opened</p><p class="stat-value !text-2xl">{% if seen_pct is not None %}{{ seen_pct }}%{% else %}—{% endif %}</p><p class="stat-meta">{{ summary.seen }} of {{ summary.total }} · {{ summary.total|sub:summary.seen }} not yet</p></div>
+  <div class="stat"><p class="stat-label">Watched</p><p class="stat-value !text-2xl">{% if watch_pct is not None %}{{ watch_pct }}%{% else %}—{% endif %}</p><div class="bo-meter mt-2{% if watch_pct >= 100 %} is-good{% endif %}"><span style="width: {{ watch_pct|default:0 }}%"></span></div></div>
+  <div class="stat"><p class="stat-label">Test passed</p><p class="stat-value !text-2xl">{% if fb.test %}{% if pass_pct is not None %}{{ pass_pct }}%{% else %}—{% endif %}{% else %}—{% endif %}</p><p class="stat-meta">{% if fb.test %}{{ summary.passed }} of {{ summary.total }}{% else %}No test linked{% endif %}</p></div>
+  <div class="stat col-span-2 sm:col-span-1"><p class="stat-label">Completed</p><p class="stat-value !text-2xl">{{ summary.completed }}</p><p class="stat-meta">watched{% if fb.test %} and passed{% endif %}</p></div>
+</section>
+
+<div class="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
+  <section class="card min-w-0">
+    <div class="card-header"><div><h2 class="card-title">Tracking</h2><p class="mt-0.5 text-xs text-slate-500">Status: <strong>Passed</strong> · <strong>Review</strong> = submitted but not passed · <strong>Pending</strong> = not watched or no attempt</p></div></div>
+    <form method="get" class="bo-filters" data-autosubmit>
+      {% include "backoffice/components/search.html" with value=filters.q placeholder="Employee name or ID" %}
+      <select name="state" class="select" aria-label="State">
+        <option value="">Everyone</option>
+        <option value="pending"{% if filters.state == "pending" %} selected{% endif %}>Pending</option>
+        <option value="completed"{% if filters.state == "completed" %} selected{% endif %}>Completed</option>
+        <option value="unseen"{% if filters.state == "unseen" %} selected{% endif %}>Never opened</option>
+        <option value="not_watched"{% if filters.state == "not_watched" %} selected{% endif %}>Not watched</option>
+        {% if fb.test %}<option value="review"{% if filters.state == "review" %} selected{% endif %}>Review (failed)</option><option value="passed"{% if filters.state == "passed" %} selected{% endif %}>Passed</option>{% endif %}
+      </select>
+      {% if fb.test %}
+      <input type="number" name="score_min" value="{{ filters.score_min }}" min="0" max="100" placeholder="Min score %" class="input sm:!w-32" aria-label="Minimum score">
+      <input type="number" name="score_max" value="{{ filters.score_max }}" min="0" max="100" placeholder="Max score %" class="input sm:!w-32" aria-label="Maximum score">
+      <button class="btn btn-secondary btn-sm sm:!w-auto">Apply</button>
+      {% endif %}
+    </form>
+    {% if page.object_list %}
+      {% include "backoffice/feedback/_tracking_table.html" with rows=page %}
+      {% include "components/pagination.html" with page=page %}
+    {% elif fb.is_published %}
+      {% include "components/empty_state.html" with icon="users" title="No matching recipients" %}
+    {% else %}
+      {% include "components/empty_state.html" with icon="send" title="Not published yet" text="Publish to send it to the project or team; tracking starts immediately." %}
+    {% endif %}
+  </section>
+
+  <aside class="min-w-0 space-y-6">
+    {% if fb.video %}
+    <section class="card overflow-hidden">
+      <video controls preload="metadata" playsinline class="aspect-video w-full bg-ink-950" data-src="{% asset_url fb.video %}"{% if fb.video.is_hls %} data-hls data-hls-lib="{% static 'vendor/hls.min.js' %}"{% endif %}{% if fb.video.thumbnail %} poster="{% asset_url fb.video.thumbnail %}"{% endif %}></video>
+      <p class="px-5 py-3 text-xs text-slate-500">{{ fb.video.duration_sec|duration }} · {{ fb.video.get_provider_display }} · admin preview (not tracked)</p>
+    </section>
+    {% endif %}
+
+    <section class="card card-body">
+      <h2 class="bo-section mb-3">Test</h2>
+      {% if fb.test %}
+        <a href="{% url 'backoffice:test_builder' fb.test.pk %}" class="block rounded-lg p-3 ring-1 ring-slate-200 hover:ring-brand-300">
+          <span class="flex items-center justify-between gap-2"><span class="truncate text-sm font-medium text-slate-900">{{ fb.test.title }}</span>{% status_badge fb.test.status fb.test.get_status_display %}</span>
+          <span class="mt-1 block text-xs text-slate-500">{{ question_count }} question{{ question_count|pluralize }} · pass ≥ {{ fb.test.passing_score }}%{% if fb.test.attempt_limit %} · {{ fb.test.attempt_limit }} attempts{% endif %}</span>
+        </a>
+        {% if not question_count %}<p class="mt-2 text-xs font-medium text-amber-700">Add questions before publishing the feedback.</p>{% endif %}
+        <div class="mt-3 flex flex-wrap gap-2">
+          <a href="{% url 'backoffice:test_builder' fb.test.pk %}" class="btn btn-secondary btn-sm">{% icon "list-checks" class="h-3.5 w-3.5" %} Questions</a>
+          <a href="{% url 'backoffice:test_results' fb.test.pk %}" class="btn btn-secondary btn-sm">{% icon "bar-chart-3" class="h-3.5 w-3.5" %} Results</a>
+          {% if can_edit %}<form method="post" action="{% url 'backoffice:feedback_test_link' fb.pk %}" data-confirm="Unlink this test? Existing assignments and results are kept.">{% csrf_token %}<input type="hidden" name="action" value="unlink"><button class="btn btn-ghost btn-sm">Unlink</button></form>{% endif %}
+        </div>
+      {% elif can_edit %}
+        <p class="text-xs leading-5 text-slate-500">A short test checks that employees understood the feedback. It's assigned automatically to every recipient.</p>
+        <form method="post" action="{% url 'backoffice:feedback_test_create' fb.pk %}" class="mt-3">{% csrf_token %}<button class="btn btn-primary btn-sm w-full">{% icon "plus" class="h-4 w-4" %} Create test for this feedback</button></form>
+        {% if link_form.fields.test.queryset.exists %}
+        <form method="post" action="{% url 'backoffice:feedback_test_link' fb.pk %}" class="mt-3 flex gap-2">{% csrf_token %}
+          <select name="test" class="select !py-2 text-[13px]" aria-label="Existing test" required><option value="">…or link an existing test</option>{% for t in link_form.fields.test.queryset %}<option value="{{ t.pk }}">{{ t.title }}</option>{% endfor %}</select>
+          <button class="btn btn-secondary btn-sm shrink-0">Link</button>
+        </form>
+        {% endif %}
+      {% else %}<p class="text-sm text-slate-500">No test linked.</p>{% endif %}
+    </section>
+
+    <section class="card">
+      <div class="card-header"><h2 class="card-title">Explanation</h2></div>
+      <div class="card-body prose-content !text-sm">{{ fb.explanation|markdown }}</div>
+    </section>
+
+    {% if add_form and add_form.fields.users.queryset.exists %}
+    <form method="post" action="{% url 'backoffice:feedback_recipients' fb.pk %}" class="card card-body space-y-3">{% csrf_token %}
+      <div><h2 class="bo-section">Send to more people</h2><p class="mt-1 text-xs text-slate-500">{{ fb.project.code }} members who didn't receive it (e.g. other teams or new joiners).</p></div>
+      {% include "backoffice/components/picker.html" with field=add_form.users %}
+      <button class="btn btn-secondary w-full">{% icon "send" class="h-4 w-4" %} Send</button>
+    </form>
+    {% endif %}
+  </aside>
+</div>
+{% endblock %}

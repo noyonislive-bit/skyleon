@@ -1,0 +1,347 @@
+{% extends "portal/base.html" %}
+{% load portal_tags %}
+{% block browser_title %}Dashboard{% endblock %}
+{% block content %}
+{% portal_counts as c %}{% with u=request.user %}
+
+<!-- Hero -->
+<section class="portal-hero" aria-labelledby="greeting">
+  <div class="absolute inset-0 -z-10 grid-bg opacity-60"></div>
+  <div class="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+    <div class="min-w-0">
+      <p class="eyebrow-dark">{% icon "sparkles" class="h-3.5 w-3.5" %} {{ now|date:"l, j F" }}</p>
+      <h1 id="greeting" class="mt-3 text-2xl font-semibold tracking-tight text-white sm:text-3xl">{{ greeting }}, {{ u.first_name }}</h1>
+      <div class="mt-3 flex flex-wrap items-center gap-2 text-sm">
+        {% if u.employee_id %}<span class="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-1 font-mono text-xs text-white ring-1 ring-white/15">{% icon "id-card" class="h-3.5 w-3.5 text-accent-300" %} {{ u.employee_id }}</span>{% endif %}
+        <span class="inline-flex items-center gap-1.5 rounded-full bg-white/5 px-2.5 py-1 text-xs text-slate-300 ring-1 ring-white/10">{{ u.title|default:u.get_role_display }}</span>
+        {% for p in projects|slice:":2" %}<span class="inline-flex items-center gap-1.5 rounded-full bg-white/5 px-2.5 py-1 text-xs text-slate-300 ring-1 ring-white/10"><span class="dot" style="background: {{ p.member.project.color }}"></span>{{ p.member.project.code }}</span>{% endfor %}
+      </div>
+      <p class="mt-4 max-w-xl text-sm leading-6 text-slate-400">
+        {% if c.feedback or c.tests or c.training %}
+          You have
+          {% if c.training %}<strong class="font-medium text-white">{{ c.training }} required video{{ c.training|pluralize }}</strong>{% if c.feedback or c.tests %}, {% endif %}{% endif %}
+          {% if c.feedback %}<strong class="font-medium text-white">{{ c.feedback }} new feedback</strong>{% if c.tests %} and {% endif %}{% endif %}
+          {% if c.tests %}<strong class="font-medium text-white">{{ c.tests }} test{{ c.tests|pluralize }}</strong>{% endif %}
+          waiting for you.
+        {% else %}
+          You're all caught up. Great work — check the training library for optional material.
+        {% endif %}
+      </p>
+    </div>
+    <div class="grid shrink-0 grid-cols-3 gap-2 sm:gap-3">
+      <a href="{% url 'portal:training' %}?status=required" class="rounded-xl bg-white/5 p-3 ring-1 ring-white/10 transition hover:bg-white/10 sm:w-32 sm:p-4">
+        <p class="font-mono text-[10px] tracking-[0.14em] text-slate-400 uppercase">Training</p>
+        <p class="mt-2 text-xl font-semibold text-white tabular-nums sm:text-2xl">{{ stats.required_percent }}%</p>
+        <p class="mt-0.5 text-[11px] text-slate-400">{{ stats.required_done }}/{{ stats.required_total }} required</p>
+      </a>
+      <a href="{% url 'portal:tests' %}" class="rounded-xl bg-white/5 p-3 ring-1 ring-white/10 transition hover:bg-white/10 sm:w-32 sm:p-4">
+        <p class="font-mono text-[10px] tracking-[0.14em] text-slate-400 uppercase">Tests</p>
+        <p class="mt-2 text-xl font-semibold text-white tabular-nums sm:text-2xl">{{ c.tests }}</p>
+        <p class="mt-0.5 text-[11px] text-slate-400">pending</p>
+      </a>
+      <a href="{% url 'portal:feedback' %}" class="rounded-xl p-3 ring-1 transition sm:w-32 sm:p-4 {% if c.feedback %}bg-amber-400/15 ring-amber-300/30 hover:bg-amber-400/20{% else %}bg-white/5 ring-white/10 hover:bg-white/10{% endif %}">
+        <p class="font-mono text-[10px] tracking-[0.14em] {% if c.feedback %}text-amber-200{% else %}text-slate-400{% endif %} uppercase">Feedback</p>
+        <p class="mt-2 text-xl font-semibold text-white tabular-nums sm:text-2xl">{{ c.feedback }}</p>
+        <p class="mt-0.5 text-[11px] {% if c.feedback %}text-amber-200/80{% else %}text-slate-400{% endif %}">unseen</p>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- Unseen feedback: highlighted -->
+{% if unseen_feedback %}
+<section class="mt-6 overflow-hidden rounded-xl bg-gradient-to-r from-amber-50 to-orange-50 ring-1 ring-amber-200" aria-labelledby="unseen-title">
+  <div class="flex flex-wrap items-center justify-between gap-3 border-b border-amber-200/70 px-5 py-3.5">
+    <div class="flex items-center gap-3">
+      <span class="relative flex h-9 w-9 items-center justify-center rounded-lg bg-amber-400 text-ink-950">{% icon "message-square-warning" class="h-5 w-5" %}<span class="absolute -top-1 -right-1 h-3 w-3 animate-pulse-soft rounded-full bg-red-500 ring-2 ring-amber-50"></span></span>
+      <div>
+        <h2 id="unseen-title" class="text-sm font-semibold text-amber-950">New feedback from QA — please review</h2>
+        <p class="text-xs text-amber-800/80">Watch the video, read the explanation and take the short test.</p>
+      </div>
+    </div>
+    <a href="{% url 'portal:feedback' %}?tab=new" class="btn btn-sm bg-amber-500 text-ink-950 hover:bg-amber-400">View all new {% icon "arrow-right" class="h-3.5 w-3.5" %}</a>
+  </div>
+  <ul class="divide-y divide-amber-200/60">
+    {% for r in unseen_feedback %}
+    <li>
+      <a href="{% url 'portal:feedback_detail' r.feedback.number %}" class="flex flex-wrap items-center gap-x-4 gap-y-1 px-5 py-3 transition hover:bg-white/50">
+        <span class="font-mono text-sm font-semibold text-amber-900">{{ r.feedback.display_number }}</span>
+        <span class="min-w-0 flex-1 truncate text-sm font-semibold text-slate-900">{{ r.feedback.topic }}</span>
+        <span class="flex items-center gap-2">{% severity_badge r.feedback %}<span class="badge badge-brand">New</span></span>
+        <span class="hidden text-xs text-amber-900/70 sm:inline">{{ r.feedback.project.code }}{% if r.feedback.team %} · {{ r.feedback.team.name }}{% endif %} · {{ r.feedback.published_at|timesince }} ago</span>
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+<!-- Performance tiles -->
+<section class="mt-6 grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4" aria-label="My performance">
+  <div class="stat">
+    <div class="flex items-center justify-between"><p class="stat-label">Required training</p><span class="text-brand-500">{% icon "graduation-cap" class="h-4 w-4" %}</span></div>
+    <p class="stat-value">{{ stats.required_done }}<span class="text-lg text-slate-400">/{{ stats.required_total }}</span></p>
+    <div class="progress mt-3 h-1.5"><div class="progress-bar{% if stats.required_percent >= 100 %} is-complete{% endif %}" style="width: {{ stats.required_percent }}%"></div></div>
+  </div>
+  <div class="stat">
+    <div class="flex items-center justify-between"><p class="stat-label">Avg. test score</p><span class="text-violet-500">{% icon "target" class="h-4 w-4" %}</span></div>
+    <p class="stat-value">{% if test_stats.avg is not None %}{{ test_stats.avg|floatformat:0 }}<span class="text-lg text-slate-400">%</span>{% else %}—{% endif %}</p>
+    <p class="stat-meta">{% if test_stats.taken %}{{ test_stats.passed }} of {{ test_stats.taken }} attempt{{ test_stats.taken|pluralize }} passed{% else %}No tests taken yet{% endif %}</p>
+  </div>
+  <div class="stat">
+    <div class="flex items-center justify-between"><p class="stat-label">Feedback watched</p><span class="text-amber-500">{% icon "eye" class="h-4 w-4" %}</span></div>
+    <p class="stat-value">{% if watched_rate is not None %}{{ watched_rate }}<span class="text-lg text-slate-400">%</span>{% else %}—{% endif %}</p>
+    <p class="stat-meta">{% if fb_stats.total %}{{ fb_stats.watched }} of {{ fb_stats.total }} feedback item{{ fb_stats.total|pluralize }}{% else %}No feedback received yet{% endif %}</p>
+  </div>
+  <div class="stat">
+    <div class="flex items-center justify-between"><p class="stat-label">Tutorials completed</p><span class="text-emerald-500">{% icon "circle-check-big" class="h-4 w-4" %}</span></div>
+    <p class="stat-value">{{ stats.all_done }}</p>
+    <p class="stat-meta">of {{ stats.all_total }} available to you</p>
+  </div>
+</section>
+
+<div class="mt-6 grid gap-6 xl:grid-cols-3">
+  <div class="space-y-6 xl:col-span-2">
+
+    <!-- Onboarding -->
+    {% if onboarding %}
+    <section class="card" aria-labelledby="onb-title">
+      <div class="card-header">
+        <h2 id="onb-title" class="card-title flex items-center gap-2">{% icon "route" class="h-4 w-4 text-slate-400" %} Onboarding progress</h2>
+        <a href="{% url 'portal:onboarding' %}" class="text-xs font-semibold text-brand-600 hover:text-brand-700">Open onboarding →</a>
+      </div>
+      <ul class="divide-y divide-slate-100">
+        {% for sec in onboarding %}
+        <li class="flex flex-col gap-4 px-5 py-4 sm:flex-row sm:items-center">
+          <div class="ring-progress h-14 w-14 {% if sec.completed %}is-complete{% endif %}" style="--p: {{ sec.percent }}"><span class="text-xs font-semibold text-slate-900 tabular-nums">{{ sec.percent }}%</span></div>
+          <div class="min-w-0 flex-1">
+            <p class="text-sm font-semibold text-slate-900">{% if sec.project %}{{ sec.project.name }} <span class="font-mono text-xs font-normal text-slate-500">{{ sec.project.code }}</span>{% else %}Company onboarding{% endif %}</p>
+            <p class="mt-0.5 text-xs text-slate-500">{{ sec.done }} of {{ sec.total }} steps complete</p>
+            {% if sec.completed %}
+              <p class="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700">{% icon "party-popper" class="h-3.5 w-3.5" %} Onboarding complete — you're qualified.</p>
+            {% elif sec.next %}
+              <p class="mt-2 flex items-center gap-1.5 text-xs text-slate-600"><span class="font-medium text-slate-900">Next:</span> Step {{ sec.next.step.order }} · {{ sec.next.step.title }}{% if sec.next.rule == "qualification" %} <span class="badge badge-warning">Awaiting manager review</span>{% endif %}</p>
+            {% endif %}
+          </div>
+          {% if not sec.completed %}<a href="{% url 'portal:onboarding' %}#step-{{ sec.next.step.pk }}" class="btn btn-secondary btn-sm self-start sm:self-center">Continue {% icon "arrow-right" class="h-3.5 w-3.5" %}</a>{% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+    </section>
+    {% endif %}
+
+    <!-- Training -->
+    <section class="card" aria-labelledby="training-title">
+      <div class="card-header">
+        <h2 id="training-title" class="card-title flex items-center gap-2">{% icon "graduation-cap" class="h-4 w-4 text-slate-400" %} Training</h2>
+        <a href="{% url 'portal:training' %}" class="text-xs font-semibold text-brand-600 hover:text-brand-700">Training library →</a>
+      </div>
+      <div class="card-body">
+        <div class="flex flex-wrap items-end justify-between gap-2">
+          <div>
+            <p class="text-sm font-medium text-slate-900">Required training progress</p>
+            <p class="text-xs text-slate-500">{{ stats.required_done }} of {{ stats.required_total }} required tutorial{{ stats.required_total|pluralize }} completed</p>
+          </div>
+          <span class="font-mono text-sm font-semibold text-slate-900 tabular-nums">{{ stats.required_percent }}%</span>
+        </div>
+        <div class="progress mt-2.5" role="progressbar" aria-label="Required training" aria-valuenow="{{ stats.required_percent }}" aria-valuemin="0" aria-valuemax="100"><div class="progress-bar{% if stats.required_percent >= 100 %} is-complete{% endif %}" style="width: {{ stats.required_percent }}%"></div></div>
+
+        {% if continue_watching %}
+        <h3 class="mt-6 text-xs font-semibold tracking-wide text-slate-500 uppercase">Continue watching</h3>
+        <ul class="mt-2 space-y-2">
+          {% for t in continue_watching %}
+          <li>
+            <a href="{% url 'portal:tutorial_detail' t.pk %}" class="flex items-center gap-3 rounded-lg p-2 ring-1 ring-slate-200 transition hover:bg-slate-50 hover:ring-slate-300">
+              <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-600">{% icon "circle-play" class="h-5 w-5" %}</span>
+              <span class="min-w-0 flex-1">
+                <span class="block truncate text-sm font-medium text-slate-900">{{ t.title }}</span>
+                <span class="mt-1 flex items-center gap-2"><span class="progress h-1 max-w-40"><span class="progress-bar block" style="width: {{ t.my_percent|pct }}%"></span></span><span class="font-mono text-[11px] text-slate-500">{{ t.my_percent|floatformat:0 }}%</span></span>
+              </span>
+              {% icon "chevron-right" class="h-4 w-4 text-slate-400" %}
+            </a>
+          </li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+
+        <h3 class="mt-6 flex items-center gap-2 text-xs font-semibold tracking-wide text-slate-500 uppercase">New this week {% if new_tutorials %}<span class="badge badge-info normal-case">{{ new_tutorials|length }}</span>{% endif %}</h3>
+        {% if new_tutorials %}
+          <div class="mt-3 grid gap-4 sm:grid-cols-2">
+            {% for t in new_tutorials %}{% include "portal/includes/tutorial_card.html" with t=t new_since=None %}{% endfor %}
+          </div>
+        {% else %}
+          <p class="mt-2 rounded-lg bg-slate-50 px-4 py-3 text-sm text-slate-500">No new tutorials in the last {{ new_days }} days.</p>
+        {% endif %}
+      </div>
+    </section>
+
+    <!-- Tests -->
+    <section class="card" aria-labelledby="tests-title">
+      <div class="card-header">
+        <h2 id="tests-title" class="card-title flex items-center gap-2">{% icon "clipboard-check" class="h-4 w-4 text-slate-400" %} Tests</h2>
+        <a href="{% url 'portal:tests' %}" class="text-xs font-semibold text-brand-600 hover:text-brand-700">All tests →</a>
+      </div>
+      <div class="grid divide-y divide-slate-100 md:grid-cols-2 md:divide-x md:divide-y-0">
+        <div class="p-5">
+          <h3 class="text-xs font-semibold tracking-wide text-slate-500 uppercase">Pending</h3>
+          {% if pending_tests %}
+          <ul class="mt-3 space-y-2.5">
+            {% for r in pending_tests %}
+            <li>
+              <a href="{% url 'portal:test_detail' r.test.pk %}" class="flex items-start gap-3 rounded-lg p-2.5 ring-1 ring-slate-200 transition hover:bg-slate-50 hover:ring-slate-300">
+                <span class="icon-tile h-9 w-9 rounded-lg bg-violet-50 text-violet-600 ring-violet-100">{% icon r.test.kind|kind_icon class="h-4 w-4" %}</span>
+                <span class="min-w-0 flex-1">
+                  <span class="block truncate text-sm font-medium text-slate-900">{{ r.test.title }}</span>
+                  <span class="meta-row mt-1">{% tone_badge r.badge.tone r.badge.label %}{% if r.state.attempts_left is not None %}<span>{{ r.state.attempts_left }} attempt{{ r.state.attempts_left|pluralize }} left</span>{% endif %}{% if r.due_at %}<span class="{% if r.due_at < now %}text-red-600{% endif %}">Due {{ r.due_at|date:"M j" }}</span>{% endif %}</span>
+                  {% if r.needs_video %}<span class="mt-1 block text-[11px] text-amber-700">Watch the feedback video first</span>{% endif %}
+                </span>
+              </a>
+            </li>
+            {% endfor %}
+          </ul>
+          {% else %}
+            {% include "portal/includes/empty.html" with icon="circle-check-big" title="No pending tests" text="New tests will appear here when they're assigned." compact=True %}
+          {% endif %}
+        </div>
+        <div class="p-5">
+          <h3 class="text-xs font-semibold tracking-wide text-slate-500 uppercase">Recently completed</h3>
+          {% if recent_attempts %}
+          <ul class="mt-3 divide-y divide-slate-100">
+            {% for a in recent_attempts %}
+            <li>
+              <a href="{% url 'portal:result_detail' a.pk %}" class="flex items-center gap-3 py-2.5 hover:opacity-80">
+                <span class="ring-progress h-10 w-10 {% if a.passed %}is-complete{% else %}[--ring:var(--color-red-500)]{% endif %}" style="--p: {{ a.score|pct }}; --thickness: 4px"><span class="text-[10px] font-semibold tabular-nums">{{ a.score|floatformat:0 }}</span></span>
+                <span class="min-w-0 flex-1">
+                  <span class="block truncate text-sm font-medium text-slate-900">{{ a.test.title }}</span>
+                  <span class="text-xs text-slate-500">Attempt {{ a.attempt_number }} · {{ a.submitted_at|date:"M j, H:i" }}</span>
+                </span>
+                {% if a.passed %}<span class="badge badge-success">Passed</span>{% else %}<span class="badge badge-danger">Failed</span>{% endif %}
+              </a>
+            </li>
+            {% endfor %}
+          </ul>
+          {% else %}
+            {% include "portal/includes/empty.html" with icon="trophy" title="No results yet" text="Your scores will show up here after your first test." compact=True %}
+          {% endif %}
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Right column -->
+  <div class="space-y-6">
+    <section class="card" aria-labelledby="projects-title">
+      <div class="card-header">
+        <h2 id="projects-title" class="card-title flex items-center gap-2">{% icon "briefcase" class="h-4 w-4 text-slate-400" %} My projects</h2>
+        <a href="{% url 'portal:projects' %}" class="text-xs font-semibold text-brand-600 hover:text-brand-700">All →</a>
+      </div>
+      {% if projects %}
+      <ul class="divide-y divide-slate-100">
+        {% for p in projects %}{% with m=p.member %}
+        <li>
+          <a href="{% url 'portal:project_detail' m.project.slug %}" class="block px-5 py-4 transition hover:bg-slate-50/70">
+            <div class="flex items-start gap-3">
+              <span class="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg font-mono text-[10px] font-semibold text-white" style="background: {{ m.project.color }}">{{ m.project.code|slice:":3" }}</span>
+              <div class="min-w-0 flex-1">
+                <p class="truncate text-sm font-semibold text-slate-900">{{ m.project.name }}</p>
+                <p class="mt-0.5 text-xs text-slate-500">{{ m.get_role_display }}{% if m.team %} · {{ m.team.name }}{% endif %}</p>
+                <div class="mt-2 flex flex-wrap gap-1.5">
+                  {% if m.qualified_at %}<span class="badge badge-success">{% icon "badge-check" class="h-3 w-3" %} Qualified</span>{% elif p.onboarding %}<span class="badge badge-warning">Onboarding · {{ p.onboarding.percent }}%</span>{% else %}<span class="badge badge-neutral">Not yet qualified</span>{% endif %}
+                </div>
+              </div>
+            </div>
+          </a>
+        </li>
+        {% endwith %}{% endfor %}
+      </ul>
+      {% else %}
+        {% include "portal/includes/empty.html" with icon="briefcase" title="No project yet" text="Your manager will assign you to a project. Company training is available meanwhile." compact=True %}
+      {% endif %}
+    </section>
+
+    {% url 'practice:list' as practice_url %}{% url 'guides:list' as guides_url %}
+    {% if practice_url or guides_url %}
+    <section class="card" aria-labelledby="tools-title">
+      <div class="card-header"><h2 id="tools-title" class="card-title flex items-center gap-2">{% icon "wrench" class="h-4 w-4 text-slate-400" %} Practice &amp; work guides</h2></div>
+      <div class="grid gap-3 p-4">
+        {% if practice_url %}
+        <a href="{{ practice_url }}" class="group flex items-start gap-3 rounded-xl p-3 ring-1 ring-slate-200 transition hover:bg-slate-50 hover:ring-brand-300">
+          <span class="icon-tile h-10 w-10 bg-brand-50 text-brand-600 ring-brand-100">{% icon "clapperboard" class="h-5 w-5" %}</span>
+          <span class="min-w-0 flex-1">
+            <span class="block text-sm font-semibold text-slate-900 group-hover:text-brand-700">Practice Lab</span>
+            <span class="mt-0.5 block text-xs text-slate-500">Rehearse on sample clips with a replica of the production clipping tool.</span>
+          </span>
+          {% icon "arrow-right" class="mt-1 h-4 w-4 text-slate-300 group-hover:text-brand-500" %}
+        </a>
+        {% endif %}
+        {% if guides_url %}
+        <a href="{{ guides_url }}" class="group flex items-start gap-3 rounded-xl p-3 ring-1 ring-slate-200 transition hover:bg-slate-50 hover:ring-brand-300">
+          <span class="icon-tile h-10 w-10 bg-emerald-50 text-emerald-600 ring-emerald-100">{% icon "book-open-check" class="h-5 w-5" %}</span>
+          <span class="min-w-0 flex-1">
+            <span class="block text-sm font-semibold text-slate-900 group-hover:text-brand-700">Work guides</span>
+            <span class="mt-0.5 block text-xs text-slate-500">Step-by-step work documents (Bangla): video splitting, description writing.</span>
+          </span>
+          {% icon "arrow-right" class="mt-1 h-4 w-4 text-slate-300 group-hover:text-brand-500" %}
+        </a>
+        {% endif %}
+      </div>
+    </section>
+    {% endif %}
+
+    <section class="card" aria-labelledby="meetings-title">
+      <div class="card-header">
+        <h2 id="meetings-title" class="card-title flex items-center gap-2">{% icon "calendar-clock" class="h-4 w-4 text-slate-400" %} Upcoming meetings</h2>
+        <a href="{% url 'portal:meetings' %}" class="text-xs font-semibold text-brand-600 hover:text-brand-700">All →</a>
+      </div>
+      {% if meetings %}
+      <ul class="divide-y divide-slate-100">
+        {% for m in meetings %}
+        <li class="flex gap-3 px-5 py-4">
+          <div class="flex w-12 shrink-0 flex-col items-center rounded-lg bg-slate-50 py-1.5 ring-1 ring-slate-200">
+            <span class="text-[10px] font-semibold tracking-wide text-red-500 uppercase">{{ m.starts_at|date:"M" }}</span>
+            <span class="text-lg leading-tight font-semibold text-slate-900">{{ m.starts_at|date:"j" }}</span>
+          </div>
+          <div class="min-w-0 flex-1">
+            <p class="truncate text-sm font-semibold text-slate-900">{{ m.title }}</p>
+            <p class="mt-0.5 text-xs text-slate-500">{{ m.starts_at|date:"D H:i" }} · {{ m.duration_min }} min{% if m.project %} · {{ m.project.code }}{% endif %}</p>
+            {% if m.meeting_url %}<a href="{{ m.meeting_url }}" target="_blank" rel="noopener noreferrer" class="btn {% if m.is_live %}btn-success{% else %}btn-secondary{% endif %} btn-sm mt-2">{% icon "video" class="h-3.5 w-3.5" %} {% if m.is_live %}Join now{% else %}Join link{% endif %}</a>{% endif %}
+          </div>
+          {% if m.is_live %}<span class="badge badge-success h-fit"><span class="dot animate-pulse-soft bg-emerald-500"></span>Live</span>{% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+        {% include "portal/includes/empty.html" with icon="calendar-days" title="No upcoming meetings" compact=True %}
+      {% endif %}
+    </section>
+
+    <section class="card" aria-labelledby="ann-title">
+      <div class="card-header">
+        <h2 id="ann-title" class="card-title flex items-center gap-2">{% icon "megaphone" class="h-4 w-4 text-slate-400" %} Announcements {% if c.announcements %}<span class="badge badge-brand">{{ c.announcements }} unread</span>{% endif %}</h2>
+        <a href="{% url 'portal:announcements' %}" class="text-xs font-semibold text-brand-600 hover:text-brand-700">All →</a>
+      </div>
+      {% if announcements %}
+      <ul class="divide-y divide-slate-100">
+        {% for a in announcements %}
+        <li>
+          <a href="{% url 'portal:announcement_detail' a.pk %}" class="list-row {% if not a.is_read %}is-unread{% endif %}">
+            <span class="mt-1.5 w-2 shrink-0">{% if not a.is_read %}<span class="unread-dot" title="Unread"></span>{% endif %}</span>
+            <span class="min-w-0 flex-1">
+              <span class="flex items-center gap-1.5">
+                {% if a.pinned %}<span class="text-brand-500" title="Pinned">{% icon "pin" class="h-3.5 w-3.5" %}</span>{% endif %}
+                <span class="truncate text-sm {% if not a.is_read %}font-semibold text-slate-900{% else %}font-medium text-slate-700{% endif %}">{{ a.title }}</span>
+              </span>
+              <span class="meta-row mt-1">{% if a.priority == "important" %}<span class="badge badge-warning">Important</span>{% endif %}<span>{% if a.project %}{{ a.project.code }}{% else %}Company-wide{% endif %}</span><span>{{ a.published_at|timesince }} ago</span></span>
+            </span>
+          </a>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+        {% include "portal/includes/empty.html" with icon="megaphone" title="No announcements" compact=True %}
+      {% endif %}
+    </section>
+  </div>
+</div>
+{% endwith %}
+{% endblock %}

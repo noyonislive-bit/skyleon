@@ -1,0 +1,11 @@
+{% extends "website/base_site.html" %}
+{% block content %}
+{% include "website/partials/thanks.html" with eyebrow="Message sent" title="Thanks for getting in touch." text="We've received your message and a member of our team will reply shortly. A confirmation has been sent to your email." %}
+<section class="section-tight bg-white">
+  <div class="container-page grid gap-4 md:grid-cols-3">
+    <a href="{% url 'website:quote' %}" class="card card-lift p-6"><span class="icon-tile">{% icon "clipboard-list" class="h-5 w-5" %}</span><h2 class="mt-5 font-semibold">Have a project in mind?</h2><p class="mt-1.5 text-sm leading-6 text-slate-600">Request a quote with your dataset details.</p></a>
+    <a href="{% url 'website:services' %}" class="card card-lift p-6"><span class="icon-tile">{% icon "layers" class="h-5 w-5" %}</span><h2 class="mt-5 font-semibold">Explore our services</h2><p class="mt-1.5 text-sm leading-6 text-slate-600">Image, video, action, text and documents.</p></a>
+    <a href="{% url 'website:home' %}" class="card card-lift p-6"><span class="icon-tile">{% icon "home" class="h-5 w-5" %}</span><h2 class="mt-5 font-semibold">Back to home</h2><p class="mt-1.5 text-sm leading-6 text-slate-600">Return to the {{ brand.name }} homepage.</p></a>
+  </div>
+</section>
+{% endblock %}

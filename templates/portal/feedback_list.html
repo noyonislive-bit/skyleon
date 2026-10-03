@@ -1,0 +1,89 @@
+{% extends "portal/base.html" %}
+{% load portal_tags %}
+{% block content %}
+<div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+  <div class="stat {% if counts.new %}ring-amber-300 bg-amber-50/60{% endif %}">
+    <div class="flex items-center justify-between"><p class="stat-label">Unseen</p><span class="{% if counts.new %}text-amber-500{% else %}text-slate-400{% endif %}">{% icon "mail-open" class="h-4 w-4" %}</span></div>
+    <p class="stat-value">{{ counts.new }}</p>
+    <p class="stat-meta">{% if counts.new %}Open these first{% else %}Nothing new{% endif %}</p>
+  </div>
+  <div class="stat">
+    <div class="flex items-center justify-between"><p class="stat-label">Pending</p><span class="text-sky-500">{% icon "hourglass" class="h-4 w-4" %}</span></div>
+    <p class="stat-value">{{ counts.pending }}</p>
+    <p class="stat-meta">Video or test still to do</p>
+  </div>
+  <div class="stat">
+    <div class="flex items-center justify-between"><p class="stat-label">Completed</p><span class="text-emerald-500">{% icon "circle-check-big" class="h-4 w-4" %}</span></div>
+    <p class="stat-value">{{ counts.completed }}<span class="text-lg text-slate-400">/{{ counts.all }}</span></p>
+    <p class="stat-meta">Watched{% if pending_feedback_tests %} · {{ pending_feedback_tests }} test{{ pending_feedback_tests|pluralize }} open{% else %} and tested{% endif %}</p>
+  </div>
+  <div class="stat">
+    <div class="flex items-center justify-between"><p class="stat-label">Test results</p><span class="text-violet-500">{% icon "target" class="h-4 w-4" %}</span></div>
+    <p class="stat-value">{% if test_summary.avg is not None %}{{ test_summary.avg|floatformat:0 }}<span class="text-lg text-slate-400">%</span>{% else %}—{% endif %}</p>
+    <p class="stat-meta">{% if test_summary.taken %}Avg. score · {{ test_summary.passed }} of {{ test_summary.taken }} attempt{{ test_summary.taken|pluralize }} passed{% else %}No feedback tests taken yet{% endif %}</p>
+  </div>
+</div>
+
+<div class="card mt-6">
+  <nav class="tabs px-3" aria-label="Feedback filters">
+    {% for t in tabs %}
+      <a href="?tab={{ t.key }}" class="tab {% if tab == t.key %}is-active{% endif %}" {% if tab == t.key %}aria-current="page"{% endif %}>{{ t.label }} <span class="count {% if t.key == 'new' and t.count %}bg-amber-100 text-amber-800{% endif %}">{{ t.count }}</span></a>
+    {% endfor %}
+  </nav>
+
+  {% if page.object_list %}
+  <ul class="divide-y divide-slate-100">
+    {% for r in page.object_list %}{% with fb=r.feedback %}
+    <li>
+      <a href="{% url 'portal:feedback_detail' fb.number %}" class="group flex flex-col gap-3 px-5 py-4 transition hover:bg-slate-50/80 sm:flex-row sm:items-center {% if not r.first_viewed_at %}bg-amber-50/50{% endif %}">
+        <div class="flex min-w-0 flex-1 items-start gap-3">
+          <span class="mt-2 w-2 shrink-0">{% if not r.first_viewed_at %}<span class="dot bg-amber-500" title="Unseen"></span>{% endif %}</span>
+          <span class="flex h-11 w-14 shrink-0 items-center justify-center rounded-lg font-mono text-sm font-semibold {% if not r.first_viewed_at %}bg-amber-100 text-amber-900 ring-1 ring-amber-200{% else %}bg-slate-100 text-slate-700{% endif %}">{{ fb.display_number }}</span>
+          <div class="min-w-0 flex-1">
+            <p class="flex flex-wrap items-center gap-2">
+              <span class="text-[15px] {% if not r.first_viewed_at %}font-semibold text-slate-900{% else %}font-medium text-slate-800{% endif %} group-hover:text-brand-700">{{ fb.topic }}</span>
+              {% if not r.first_viewed_at %}<span class="badge badge-brand">New</span>{% endif %}
+              {% severity_badge fb %}
+            </p>
+            {% if fb.summary %}<p class="mt-0.5 line-clamp-1 text-sm text-slate-500">{{ fb.summary }}</p>{% endif %}
+            <p class="meta-row mt-1.5">
+              <span>{{ fb.project.code }}{% if fb.team %} · {{ fb.team.name }}{% else %} · Whole project{% endif %}</span>
+              <span>{{ fb.get_cadence_display }}</span>
+              <span>{{ fb.published_at|date:"M j, Y" }}</span>
+            </p>
+          </div>
+        </div>
+        <div class="flex flex-wrap items-center gap-2 pl-[5.25rem] sm:justify-end sm:pl-0">
+          {% if fb.video_id %}
+            {% if r.watched_at %}<span class="badge badge-success">{% icon "eye" class="h-3 w-3" %} Watched</span>
+            {% elif r.percent %}<span class="badge badge-info">{% icon "circle-play" class="h-3 w-3" %} {{ r.percent|floatformat:0 }}% watched</span>
+            {% else %}<span class="badge badge-neutral">{% icon "video" class="h-3 w-3" %} Not watched</span>{% endif %}
+          {% else %}
+            <span class="badge badge-neutral">{% icon "file-text" class="h-3 w-3" %} Read only</span>
+          {% endif %}
+          {% if fb.test_id %}
+            {% if r.test_passed %}<span class="badge badge-success">{% icon "award" class="h-3 w-3" %} Test {{ r.best_score|floatformat:0 }}%</span>
+            {% elif r.test_taken %}<span class="badge badge-danger">Test {{ r.best_score|floatformat:0 }}% · retake</span>
+            {% else %}<span class="badge badge-warning">Test pending</span>{% endif %}
+          {% endif %}
+          {% if r.acknowledged_at %}<span class="badge badge-neutral" title="Acknowledged">{% icon "thumbs-up" class="h-3 w-3" %}</span>{% endif %}
+          <span class="hidden text-slate-300 group-hover:text-slate-500 sm:block">{% icon "chevron-right" class="h-4 w-4" %}</span>
+        </div>
+      </a>
+    </li>
+    {% endwith %}{% endfor %}
+  </ul>
+  {% include "components/pagination.html" with page=page %}
+  {% else %}
+    {% if tab == "new" %}
+      {% include "portal/includes/empty.html" with icon="mail-open" title="No unseen feedback" text="You've opened every feedback item. Nice!" %}
+    {% elif tab == "pending" %}
+      {% include "portal/includes/empty.html" with icon="circle-check-big" title="Nothing pending" text="All opened feedback has been watched and tested." %}
+    {% elif tab == "completed" %}
+      {% include "portal/includes/empty.html" with icon="list-checks" title="No completed feedback yet" text="Watch a feedback video and pass its test to complete it." %}
+    {% else %}
+      {% include "portal/includes/empty.html" with icon="message-square-warning" title="No feedback yet" text="QA feedback for your projects and team will appear here." %}
+    {% endif %}
+  {% endif %}
+</div>
+{% endblock %}

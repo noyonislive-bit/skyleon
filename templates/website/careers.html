@@ -1,0 +1,127 @@
+{% extends "website/base_site.html" %}
+{% block content %}
+{% url 'website:capability' as cap_url %}
+<section class="hero-dark">
+  <div class="absolute inset-0 grid-bg fade-grid" aria-hidden="true"></div>
+  <div class="glow-brand -top-48 left-[10%] h-[520px] w-[520px]" aria-hidden="true"></div>
+  <div class="glow-accent top-20 -right-24 h-[420px] w-[420px]" aria-hidden="true"></div>
+  <div class="container-page relative grid items-center gap-12 pt-28 pb-16 sm:pt-36 sm:pb-24 lg:grid-cols-[1.1fr_1fr]">
+    <div>
+      {% include "website/partials/breadcrumbs.html" %}
+      <p class="eyebrow-dark mt-7"><span class="h-1.5 w-1.5 rounded-full bg-accent-300"></span>Careers / join our team</p>
+      <h1 class="mt-4 text-[2.3rem] leading-[1.08] font-semibold tracking-tight sm:text-5xl lg:text-[3.3rem]" style="letter-spacing:-0.035em">Join a professional annotation team.</h1>
+      <p class="lead-dark mt-6 max-w-xl">Work on real AI data annotation projects with structured training, daily feedback and a clear path from annotator to reviewer and QA.</p>
+      <div class="mt-9 flex flex-wrap gap-3">
+        <a href="#apply" class="btn btn-accent btn-lg">Apply now {% icon "arrow-down" class="h-4 w-4" %}</a>
+        <a href="{{ cap_url }}" class="btn btn-light btn-lg">How our teams work</a>
+      </div>
+    </div>
+    <div class="min-w-0">{% include "website/visuals/training_portal.html" %}</div>
+  </div>
+</section>
+
+<section class="section bg-white">
+  <div class="container-page">
+    <div class="reveal max-w-2xl"><p class="eyebrow">Why join</p><h2 class="section-title mt-4">Grow your skills on real projects.</h2></div>
+    <div class="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {% for icon_name, title, text in why_join %}
+        <div class="reveal card p-6"><span class="icon-tile">{% icon icon_name class="h-5 w-5" %}</span><h3 class="mt-5 text-base font-semibold">{{ title }}</h3><p class="mt-2 text-sm leading-6 text-slate-600">{{ text }}</p></div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="section bg-slate-50">
+  <div class="container-page">
+    <div class="reveal mx-auto max-w-3xl text-center"><p class="eyebrow">How training works</p><h2 class="section-title mt-4">From application to project work.</h2></div>
+    <ol class="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      {% for icon_name, title, text in training_steps %}
+        <li class="reveal rounded-2xl bg-white p-5 ring-1 ring-slate-200">
+          <div class="flex items-center justify-between"><span class="icon-tile h-10 w-10">{% icon icon_name class="h-[18px] w-[18px]" %}</span><span class="font-mono text-[11px] text-slate-300">{{ forloop.counter|stringformat:"02d" }}</span></div>
+          <h3 class="mt-4 text-[15px] font-semibold">{{ title }}</h3>
+          <p class="mt-1.5 text-sm leading-6 text-slate-600">{{ text }}</p>
+        </li>
+      {% endfor %}
+    </ol>
+  </div>
+</section>
+
+<section class="section bg-white">
+  <div class="container-page">
+    <div class="reveal max-w-2xl"><p class="eyebrow">Roles</p><h2 class="section-title mt-4">Annotator, reviewer and QA.</h2></div>
+    <div class="mt-14 grid gap-5 md:grid-cols-3">
+      {% for role in roles %}
+        <div class="reveal card relative overflow-hidden p-7">
+          <span class="absolute inset-x-0 top-0 h-[3px] {{ role.tone.bg }} opacity-70" aria-hidden="true"></span>
+          <span class="icon-tile">{% icon role.icon class="h-5 w-5" %}</span>
+          <h3 class="mt-5 text-lg font-semibold">{{ role.name }}</h3>
+          <p class="mt-2 text-sm leading-6 text-slate-600">{{ role.text }}</p>
+          <ul class="mt-5 space-y-2 border-t border-slate-100 pt-5 text-sm text-slate-700">{% for p in role.points %}<li class="flex items-center gap-2.5">{% icon "check" class="h-4 w-4 text-brand-600" stroke_width="2.25" %}{{ p }}</li>{% endfor %}</ul>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="scroll-mt-20 bg-slate-50 py-20 sm:py-28" id="apply">
+  <div class="container-page grid gap-10 lg:grid-cols-[1fr_1.6fr] lg:gap-14">
+    <div class="lg:pt-4">
+      <p class="eyebrow">Apply</p>
+      <h2 class="section-title mt-4">Application form</h2>
+      <p class="lead mt-5">Tell us about your experience and availability. Annotation experience helps but isn't always required — attention to detail matters most.</p>
+      <ul class="mt-8 space-y-3 text-[15px] text-slate-700">
+        <li class="flex items-start gap-3">{% icon "file-text" class="mt-0.5 h-5 w-5 shrink-0 text-brand-600" %}CV in PDF, DOC or DOCX (max 10 MB)</li>
+        <li class="flex items-start gap-3">{% icon "link" class="mt-0.5 h-5 w-5 shrink-0 text-brand-600" %}Optional portfolio link or sample file</li>
+        <li class="flex items-start gap-3">{% icon "lock" class="mt-0.5 h-5 w-5 shrink-0 text-brand-600" %}Your information is used only to evaluate your application</li>
+      </ul>
+      <div class="mt-8 rounded-2xl bg-white p-5 ring-1 ring-slate-200">
+        <p class="text-sm font-semibold text-slate-900">Asked to create a portal account?</p>
+        <p class="mt-1 text-sm leading-6 text-slate-600">If our team has already asked you to create an account, use the team sign-up page instead.</p>
+        <a href="{% url 'accounts:signup' %}" class="link-arrow mt-3">Create your portal account {% icon "arrow-right" class="h-4 w-4" %}</a>
+      </div>
+    </div>
+    <div class="form-card">
+      <form method="post" enctype="multipart/form-data" novalidate data-public-form class="space-y-9">
+        {% csrf_token %}
+        {% include "components/honeypot.html" %}
+        {% include "components/form_errors.html" %}
+        {% if form.errors and not form.non_field_errors %}<div class="alert alert-error" role="alert">{% icon "alert-circle" class="mt-0.5 h-4 w-4 shrink-0" %}<p>Please check the highlighted fields below.</p></div>{% endif %}
+        <fieldset>
+          <legend class="form-section-title"><span class="text-brand-600">01</span> About you</legend>
+          <div class="mt-5 grid gap-5 sm:grid-cols-2">
+            {% include "components/field.html" with field=form.full_name %}
+            {% include "components/field.html" with field=form.email %}
+            {% include "components/field.html" with field=form.phone %}
+            {% include "components/field.html" with field=form.location %}
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend class="form-section-title"><span class="text-brand-600">02</span> Experience &amp; availability</legend>
+          <div class="mt-5 grid gap-5 sm:grid-cols-2">
+            {% include "components/field.html" with field=form.experience %}
+            {% include "components/field.html" with field=form.preferred_work_type %}
+            {% include "components/field.html" with field=form.availability class="sm:col-span-2" %}
+            {% include "components/field.html" with field=form.annotation_experience class="sm:col-span-2" %}
+            {% include "website/partials/pill_field.html" with field=form.skills class="sm:col-span-2" %}
+            {% include "components/field.html" with field=form.other_skills class="sm:col-span-2" %}
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend class="form-section-title"><span class="text-brand-600">03</span> CV &amp; samples</legend>
+          <div class="mt-5 grid gap-5 sm:grid-cols-2">
+            {% include "website/partials/file_field.html" with field=form.cv %}
+            {% include "website/partials/file_field.html" with field=form.sample %}
+            {% include "components/field.html" with field=form.portfolio_url class="sm:col-span-2" %}
+          </div>
+        </fieldset>
+        <div class="space-y-5 border-t border-slate-100 pt-7">
+          {% include "components/field.html" with field=form.consent %}
+          <button type="submit" class="btn btn-accent btn-lg w-full sm:w-auto">Submit application {% icon "arrow-right" class="h-4 w-4" %}</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</section>
+
+{% include "website/partials/faq.html" with faqs=faqs title="Questions from applicants" %}
+{% endblock %}

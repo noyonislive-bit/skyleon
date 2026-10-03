@@ -1,0 +1,33 @@
+{% comment %}
+  Searchable multi-select for people (CheckboxSelectMultiple field). Works without JS; backoffice.js adds search / select all.
+  Usage: {% include "backoffice/components/picker.html" with field=form.users %}
+{% endcomment %}
+<div class="bo-picker" data-picker>
+  <div class="flex items-center gap-2 border-b border-slate-200 p-2">
+    <div class="relative flex-1">
+      <span class="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-slate-400">{% icon "search" class="h-4 w-4" %}</span>
+      <input type="search" class="input !py-1.5 pl-8 text-[13px]" placeholder="Search name, ID or email…" data-picker-search aria-label="Search people">
+    </div>
+    <span class="shrink-0 font-mono text-[11px] text-slate-500 tabular-nums" data-picker-count></span>
+  </div>
+  <div class="max-h-64 space-y-0.5 overflow-y-auto p-1.5" data-picker-list>
+    {% for cb in field %}
+      {% with parts=cb.choice_label|split:"·" %}
+      <label class="bo-picker-item" data-picker-item data-text="{{ cb.choice_label|lower }}">
+        {{ cb.tag }}
+        <span class="min-w-0 flex-1 truncate"><span class="font-medium text-slate-900">{{ parts.0 }}</span>{% for p in parts %}{% if not forloop.first %} <span class="text-xs text-slate-500">· {{ p }}</span>{% endif %}{% endfor %}</span>
+      </label>
+      {% endwith %}
+    {% empty %}
+      <p class="px-3 py-6 text-center text-sm text-slate-500">{{ empty|default:"Nobody available to add." }}</p>
+    {% endfor %}
+    <p class="px-3 py-6 text-center text-sm text-slate-500" data-picker-none hidden>No matches.</p>
+  </div>
+  {% if field.field.queryset.exists %}
+  <div class="flex items-center justify-between gap-2 border-t border-slate-200 px-3 py-2 text-xs">
+    <button type="button" class="font-medium text-brand-600 hover:text-brand-700" data-picker-all>Select all shown</button>
+    <button type="button" class="font-medium text-slate-500 hover:text-slate-800" data-picker-clear>Clear</button>
+  </div>
+  {% endif %}
+</div>
+{% for error in field.errors %}<p class="field-error">{{ error }}</p>{% endfor %}

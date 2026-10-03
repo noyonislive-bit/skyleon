@@ -1,0 +1,80 @@
+{% extends "portal/base.html" %}
+{% load portal_tags %}
+{% block browser_title %}{{ test.title }}{% endblock %}
+{% block content %}
+<div class="grid gap-6 xl:grid-cols-3">
+  <div class="space-y-6 xl:col-span-2">
+    <section class="card overflow-hidden">
+      <div class="relative overflow-hidden bg-ink-900 px-6 py-7 text-slate-300">
+        <div class="absolute inset-0 grid-bg opacity-70"></div>
+        <div class="absolute -top-20 -right-10 h-56 w-56 rounded-full bg-violet-500/30 blur-[80px]"></div>
+        <div class="relative">
+          <p class="eyebrow-dark">{% icon test.kind|kind_icon class="h-3.5 w-3.5" %} {{ test.get_kind_display }}{% if test.project %} · {{ test.project.code }}{% endif %}</p>
+          <h1 class="mt-3 text-2xl font-semibold tracking-tight text-white sm:text-3xl">{{ test.title }}</h1>
+          <div class="mt-3 flex flex-wrap items-center gap-2">{% tone_badge badge.tone badge.label %}{% if feedback %}<a href="{% url 'portal:feedback_detail' feedback.number %}" class="badge bg-white/10 text-slate-200 ring-white/15 hover:bg-white/15">{% icon "message-square-warning" class="h-3 w-3" %} Feedback {{ feedback.display_number }}</a>{% endif %}</div>
+        </div>
+      </div>
+      <dl class="grid grid-cols-2 divide-slate-100 border-b border-slate-100 sm:grid-cols-4 sm:divide-x">
+        <div class="px-5 py-4"><dt class="kv-label">Questions</dt><dd class="kv-value text-lg">{{ test.question_count }}</dd></div>
+        <div class="px-5 py-4"><dt class="kv-label">Pass mark</dt><dd class="kv-value text-lg">{{ test.passing_score }}%</dd></div>
+        <div class="px-5 py-4"><dt class="kv-label">Attempts</dt><dd class="kv-value text-lg">{{ state.attempts_used }}<span class="text-slate-400">/{% if test.attempt_limit %}{{ test.attempt_limit }}{% else %}∞{% endif %}</span></dd></div>
+        <div class="px-5 py-4"><dt class="kv-label">Time limit</dt><dd class="kv-value text-lg">{% if test.time_limit_min %}{{ test.time_limit_min }} min{% else %}None{% endif %}</dd></div>
+      </dl>
+      <div class="card-body">
+        {% if test.description %}<div class="prose-content">{{ test.description|markdown }}</div>{% endif %}
+        <ul class="mt-4 grid gap-2 text-sm text-slate-600 sm:grid-cols-2">
+          <li class="flex gap-2">{% icon "check" class="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" %} Scored automatically when you submit.</li>
+          <li class="flex gap-2">{% icon "check" class="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" %} Multi-answer questions need every correct option.</li>
+          {% if test.time_limit_min %}<li class="flex gap-2">{% icon "timer" class="mt-0.5 h-4 w-4 shrink-0 text-amber-500" %} The timer starts when you begin and submits automatically at zero.</li>{% endif %}
+          <li class="flex gap-2">{% icon "check" class="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" %} {% if test.reveal_answers %}Correct answers are shown after you submit.{% else %}You'll see which questions were right or wrong.{% endif %}</li>
+        </ul>
+
+        <div class="mt-6 border-t border-slate-100 pt-5">
+          {% if state.status == "passed" %}
+            <div class="alert alert-success">{% icon "award" class="mt-0.5 h-4 w-4 shrink-0" %}<p class="flex-1">You passed this test with <strong>{{ state.best_score|floatformat:0 }}%</strong>.{% if state.last_attempt %} <a class="font-semibold underline" href="{% url 'portal:result_detail' state.last_attempt.pk %}">View your result</a>{% endif %}</p></div>
+          {% elif state.status == "locked" %}
+            <div class="alert alert-warning">{% icon "lock" class="mt-0.5 h-4 w-4 shrink-0" %}<p class="flex-1">You've used all {{ test.attempt_limit }} attempts (best {{ state.best_score|floatformat:0 }}%). Your trainer will follow up with you.</p></div>
+          {% elif gate %}
+            <div class="alert alert-warning">{% icon "lock" class="mt-0.5 h-4 w-4 shrink-0" %}<p class="flex-1">{{ gate }}{% if feedback %} <a class="font-semibold underline" href="{% url 'portal:feedback_detail' feedback.number %}">Open feedback {{ feedback.display_number }}</a>{% endif %}</p></div>
+            <button type="button" class="btn btn-primary btn-lg mt-4" disabled aria-disabled="true">{% icon "play" class="h-4 w-4" %} Start test</button>
+          {% else %}
+            <form method="post" action="{% url 'portal:test_start' test.pk %}" class="flex flex-wrap items-center gap-4">{% csrf_token %}
+              <button type="submit" class="btn btn-primary btn-lg">
+                {% if state.status == "in_progress" %}{% icon "play" class="h-4 w-4" %} Resume attempt {{ state.open_attempt.attempt_number }}{% elif state.status == "review" %}{% icon "rotate-ccw" class="h-4 w-4" %} Retake test{% else %}{% icon "play" class="h-4 w-4" %} Start test{% endif %}
+              </button>
+              <p class="text-sm text-slate-500">
+                {% if state.attempts_left is not None %}{{ state.attempts_left }} attempt{{ state.attempts_left|pluralize }} left.{% else %}Unlimited attempts.{% endif %}
+                {% if test.time_limit_min and state.status != "in_progress" %} You'll have {{ test.time_limit_min }} minutes.{% endif %}
+              </p>
+            </form>
+          {% endif %}
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <aside>
+    <section class="card">
+      <div class="card-header"><h2 class="card-title">Attempt history</h2>{% if state.best_score is not None %}<span class="text-xs text-slate-500">Best <strong class="font-mono text-slate-900">{{ state.best_score|floatformat:0 }}%</strong></span>{% endif %}</div>
+      {% if attempts %}
+      <ul class="divide-y divide-slate-100">
+        {% for a in attempts %}
+        <li>
+          <a href="{% url 'portal:result_detail' a.pk %}" class="flex items-center gap-3 px-5 py-3 transition hover:bg-slate-50">
+            <span class="ring-progress h-11 w-11 {% if a.passed %}is-complete{% else %}[--ring:var(--color-red-500)]{% endif %}" style="--p: {{ a.score|pct }}; --thickness: 4px"><span class="text-[11px] font-semibold tabular-nums">{{ a.score|floatformat:0 }}</span></span>
+            <span class="min-w-0 flex-1">
+              <span class="block text-sm font-medium text-slate-900">Attempt {{ a.attempt_number }}</span>
+              <span class="text-xs text-slate-500">{{ a.submitted_at|date:"M j, Y · H:i" }} · {{ a.points_earned }}/{{ a.points_total }} pts</span>
+            </span>
+            {% if a.passed %}<span class="badge badge-success">Passed</span>{% else %}<span class="badge badge-danger">Failed</span>{% endif %}
+          </a>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+        {% include "portal/includes/empty.html" with icon="history" title="No attempts yet" text="Your submitted attempts and scores will be listed here." compact=True %}
+      {% endif %}
+    </section>
+  </aside>
+</div>
+{% endblock %}

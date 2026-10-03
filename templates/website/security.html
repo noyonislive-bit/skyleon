@@ -1,0 +1,57 @@
+{% extends "website/base_site.html" %}
+{% block content %}
+{% url 'website:contact' as contact_url %}{% url 'website:platforms' as plat_url %}
+{% include "website/partials/page_hero.html" with eyebrow="Security & confidentiality" title="Your data stays inside your project." lead="Confidential handling, controlled access and secure accounts are part of how every project runs — from the first pilot to the final delivery." primary_url=contact_url primary_label="Discuss your requirements" secondary_url=plat_url secondary_label="Platforms & workflow" %}
+
+<section class="section bg-white">
+  <div class="container-page">
+    <div class="reveal max-w-2xl">
+      <p class="eyebrow">How we protect client data</p>
+      <h2 class="section-title mt-4">Confidentiality by default.</h2>
+    </div>
+    <div class="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {% for name, text, icon_name in security_items %}
+        <div class="reveal card p-6">
+          <span class="icon-tile">{% icon icon_name class="h-5 w-5" %}</span>
+          <h3 class="mt-5 text-base font-semibold">{{ name }}</h3>
+          <p class="mt-2 text-sm leading-6 text-slate-600">{{ text }}</p>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="relative isolate overflow-hidden bg-ink-900 section dark-surface">
+  <div class="absolute inset-0 grid-bg" aria-hidden="true"></div>
+  <div class="container-page relative grid items-center gap-14 lg:grid-cols-2 lg:gap-16">
+    <div class="reveal">
+      <p class="eyebrow-dark"><span class="h-1.5 w-1.5 rounded-full bg-accent-300"></span>Role-based access</p>
+      <h2 class="section-title mt-4">Each role sees only what it needs.</h2>
+      <p class="lead-dark mt-5">Access is granted per project and per role. When someone leaves a project, their access to it is removed.</p>
+      <p class="mt-6 text-sm leading-6 text-slate-400">Have specific requirements — a client-provided environment, NDAs for every team member, restricted data handling? Tell us during the requirement review and we'll confirm what we can support for your project.</p>
+    </div>
+    <div class="reveal min-w-0">
+      <div class="ws-window overflow-x-auto">
+        <table class="w-full min-w-[460px] text-left text-[13px]">
+          <caption class="sr-only">Illustrative access by role</caption>
+          <thead><tr class="border-b border-white/10 font-mono text-[10.5px] tracking-wider text-slate-500 uppercase"><th class="px-4 py-3 font-medium">Role</th><th class="px-3 py-3 text-center font-medium">Assigned data</th><th class="px-3 py-3 text-center font-medium">Guidelines</th><th class="px-3 py-3 text-center font-medium">Review queue</th><th class="px-3 py-3 text-center font-medium">Exports</th></tr></thead>
+          <tbody class="text-slate-300">
+            {% for role, a, b, c, d in access_matrix %}
+              <tr class="border-b border-white/5 last:border-0">
+                <td class="px-4 py-3 font-medium text-white">{{ role }}</td>
+                <td class="px-3 py-3 text-center">{% if a %}{% icon "check" class="mx-auto h-4 w-4 text-label-lime" stroke_width="2.25" %}{% else %}<span class="text-slate-600">—</span>{% endif %}</td>
+                <td class="px-3 py-3 text-center">{% if b %}{% icon "check" class="mx-auto h-4 w-4 text-label-lime" stroke_width="2.25" %}{% else %}<span class="text-slate-600">—</span>{% endif %}</td>
+                <td class="px-3 py-3 text-center">{% if c %}{% icon "check" class="mx-auto h-4 w-4 text-label-lime" stroke_width="2.25" %}{% else %}<span class="text-slate-600">—</span>{% endif %}</td>
+                <td class="px-3 py-3 text-center">{% if d %}{% icon "check" class="mx-auto h-4 w-4 text-label-lime" stroke_width="2.25" %}{% else %}<span class="text-slate-600">—</span>{% endif %}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        <p class="border-t border-white/10 px-4 py-3 font-mono text-[10.5px] text-slate-500">Illustrative — access is configured per project.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+{% include "website/partials/cta_band.html" with title="Discuss your security requirements" text="Tell us how your data must be handled. We'll confirm the access model, environment and agreements for your project before work starts." primary_label="Request a Quote" %}
+{% endblock %}

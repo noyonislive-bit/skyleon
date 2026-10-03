@@ -1,0 +1,8 @@
+{% comment %} Usage: {% include "backoffice/components/person.html" with u=user link=True sub=… %} {% endcomment %}
+<div class="bo-person">
+  {% include "components/avatar.html" with user=u size="h-8 w-8 text-[11px]" %}
+  <div class="min-w-0">
+    {% if link %}<a href="{% url 'backoffice:employee_detail' u.pk %}" class="bo-person-name">{{ u.name }}</a>{% else %}<span class="bo-person-name">{{ u.name }}</span>{% endif %}
+    <span class="bo-person-sub">{% if sub %}{{ sub }}{% else %}{{ u.employee_id|default:u.email }}{% endif %}</span>
+  </div>
+</div>

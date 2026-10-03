@@ -1,0 +1,13 @@
+{% extends "website/base_site.html" %}
+{% block content %}
+{% include "website/partials/thanks.html" with eyebrow="Careers" title="Thank you for applying." text="Application received. Our team will review your information and contact you if your profile matches an available project." %}
+<section class="section-tight bg-white">
+  <div class="container-page max-w-3xl text-center">
+    <p class="text-[15px] leading-7 text-slate-600">A confirmation has been sent to your email. If our team has asked you to create a portal account, you can do that on the <a href="{% url 'accounts:signup' %}" class="font-medium text-brand-600 underline decoration-brand-300 underline-offset-2">team sign-up page</a>.</p>
+    <div class="mt-8 flex flex-wrap justify-center gap-3">
+      <a href="{% url 'website:capability' %}" class="btn btn-secondary">How our teams work</a>
+      <a href="{% url 'website:home' %}" class="btn btn-ghost">Back to home</a>
+    </div>
+  </div>
+</section>
+{% endblock %}

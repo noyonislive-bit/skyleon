@@ -1,0 +1,19 @@
+{% comment %} {% include "website/partials/faq.html" with faqs=faqs title="…" bg="bg-slate-50" %} {% endcomment %}
+<section class="section {{ bg|default:'bg-white' }}" id="faq">
+  <div class="container-page grid gap-12 lg:grid-cols-[0.8fr_1.2fr] lg:gap-20">
+    <div class="reveal">
+      <p class="eyebrow">FAQ</p>
+      <h2 class="section-title mt-4">{{ title|default:"Frequently asked questions" }}</h2>
+      <p class="lead mt-5">{{ intro|default:"Can't find what you're looking for? Our team is happy to answer questions about your specific dataset." }}</p>
+      <a href="{% url 'website:contact' %}" class="link-arrow mt-6">Ask a question {% icon "arrow-right" class="h-4 w-4" %}</a>
+    </div>
+    <div class="reveal border-t border-slate-200">
+      {% for q, a in faqs %}
+        <details class="faq-item" {% if forloop.first %}open{% endif %}>
+          <summary>{{ q }}<span class="faq-icon">{% icon "plus" class="h-3.5 w-3.5" stroke_width="2.25" %}</span></summary>
+          <div><p>{{ a }}</p></div>
+        </details>
+      {% endfor %}
+    </div>
+  </div>
+</section>

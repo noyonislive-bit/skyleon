@@ -1,0 +1,8 @@
+{% comment %} Compact completion meter: {% include "backoffice/components/meter.html" with value=pct done=3 total=4 unit="videos" %} {% endcomment %}
+{% if value is None %}<span class="bo-muted">—</span>{% else %}
+<div class="flex min-w-[7rem] items-center gap-2">
+  <div class="bo-meter-track flex-1"><span class="{% if value >= 100 %}is-done{% endif %}" style="width: {{ value }}%"></span></div>
+  <span class="w-9 text-right font-mono text-xs text-slate-600 tabular-nums">{{ value }}%</span>
+</div>
+{% if total is not None and total != "" %}<p class="mt-0.5 text-[11px] text-slate-400">{{ done }} of {{ total }}{% if unit %} {{ unit }}{% endif %}</p>{% elif label %}<p class="mt-0.5 text-[11px] text-slate-400">{{ label }}</p>{% endif %}
+{% endif %}

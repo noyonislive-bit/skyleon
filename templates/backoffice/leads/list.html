@@ -1,0 +1,41 @@
+{% extends "backoffice/base.html" %}
+{% load backoffice_tags %}
+{% block page_actions %}
+  <a href="{% querystring format='csv' page=None %}" class="btn btn-secondary btn-sm">{% icon "download" class="h-4 w-4" %} Export CSV</a>
+{% endblock %}
+{% block content %}
+<div class="mb-4 bo-segment flex-wrap">
+  <a href="?" class="{% if not filters.status %}is-active{% endif %}">All <span class="bo-num text-slate-400">{{ total }}</span></a>
+  {% for v, l in statuses %}<a href="?status={{ v }}" class="{% if filters.status == v %}is-active{% endif %}">{{ l }} <span class="bo-num text-slate-400">{{ counts|get_item:v|default:0 }}</span></a>{% endfor %}
+</div>
+<div class="card">
+  <form method="get" class="bo-filters">
+    {% if filters.status %}<input type="hidden" name="status" value="{{ filters.status }}">{% endif %}
+    {% include "backoffice/components/search.html" with value=filters.q placeholder="Name, company, email or type" %}
+    <button class="btn btn-secondary btn-sm sm:!w-auto">Search</button>
+  </form>
+  {% if page.object_list %}
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>Contact</th><th>Project type</th><th>Dataset</th><th>Timeline</th><th>Status</th><th>Received</th><th></th></tr></thead>
+      <tbody>
+      {% for q in page %}
+        <tr>
+          <td><a href="{% url 'backoffice:lead_detail' q.pk %}" class="bo-person-name">{{ q.company|default:q.name }}</a><span class="bo-person-sub">{{ q.name }} · {{ q.email }}</span></td>
+          <td class="text-sm"><span class="font-medium text-slate-800">{{ q.project_type }}</span>{% if q.annotation_types %}<span class="block text-xs text-slate-500">{{ q.annotation_types|join:", " }}</span>{% endif %}</td>
+          <td class="text-sm">{{ q.dataset_size|default:"—" }}</td>
+          <td class="text-sm whitespace-nowrap">{{ q.timeline|default:"—" }}</td>
+          <td>{% status_badge q.status q.get_status_display %}{% if q.attachment_id %} <span class="bo-chip" title="Has an attachment">{% icon "paperclip" class="h-3 w-3" %}</span>{% endif %}</td>
+          <td class="text-xs whitespace-nowrap text-slate-500">{{ q.created_at|date:"j M Y" }}<span class="block">{{ q.created_at|timesince }} ago</span></td>
+          <td><a href="{% url 'backoffice:lead_detail' q.pk %}" class="bo-icon-btn">{% icon "chevron-right" class="h-4 w-4" %}</a></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% include "components/pagination.html" with page=page %}
+  {% else %}
+    {% include "components/empty_state.html" with icon="file-text" title="No quote requests" text="Requests from the “Get a quote” form appear here." %}
+  {% endif %}
+</div>
+{% endblock %}

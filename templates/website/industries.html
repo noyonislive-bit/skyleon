@@ -1,0 +1,52 @@
+{% extends "website/base_site.html" %}
+{% block content %}
+{% url 'website:quote' as quote_url %}{% url 'website:services' as services_url %}
+{% include "website/partials/page_hero.html" with eyebrow="Industries" title="Annotation for the industries building computer vision." lead="Every domain has its own edge cases — occluded products, fine-grained hand actions, crowded scenes, expert-defined medical categories. We adapt guidelines, taxonomies and QA to each one." primary_url=quote_url primary_label="Discuss your use case" secondary_url=services_url secondary_label="Our services" %}
+
+<nav class="sticky top-16 z-30 border-b border-slate-200 bg-white/90 backdrop-blur xl:top-[72px]" aria-label="Industries on this page">
+  <div class="container-page flex gap-1 overflow-x-auto py-2.5 text-sm [scrollbar-width:none]">
+    {% for ind in industries %}<a href="#{{ ind.slug }}" class="flex shrink-0 items-center gap-2 rounded-lg px-3 py-1.5 font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-900">{% icon ind.icon class="h-4 w-4 text-brand-600" %}{{ ind.name }}</a>{% endfor %}
+  </div>
+</nav>
+
+<section class="bg-white py-12 sm:py-16">
+  <div class="container-page space-y-5">
+    {% for ind in industries %}
+      <article id="{{ ind.slug }}" class="reveal scroll-mt-36 overflow-hidden rounded-2xl ring-1 ring-slate-200">
+        <div class="grid lg:grid-cols-[1fr_1.15fr]">
+          <div class="relative overflow-hidden bg-ink-900 p-7 text-slate-300 sm:p-10">
+            <div class="absolute inset-0 grid-bg opacity-70" aria-hidden="true"></div>
+            <div class="absolute -right-16 -bottom-24 h-64 w-64 rounded-full blur-3xl {{ ind.tone.soft }}" aria-hidden="true"></div>
+            <div class="relative">
+              <div class="flex items-center gap-3">
+                <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-white/[0.06] ring-1 ring-white/10 {{ ind.tone.text }}">{% icon ind.icon class="h-5 w-5" %}</span>
+                <span class="font-mono text-xs tracking-[0.16em] text-slate-500">{{ forloop.counter|stringformat:"02d" }}</span>
+              </div>
+              <h2 class="mt-6 text-2xl font-semibold tracking-tight text-white sm:text-3xl" style="letter-spacing:-0.03em">{{ ind.name }}</h2>
+              <p class="mt-3 text-[15px] leading-7 text-slate-400">{{ ind.summary }}</p>
+              {% if ind.note %}<p class="mt-5 flex gap-2.5 rounded-xl bg-white/[0.04] p-4 text-[13.5px] leading-6 text-slate-300 ring-1 ring-white/10">{% icon "info" class="mt-0.5 h-4 w-4 shrink-0 text-accent-300" %}{{ ind.note }}</p>{% endif %}
+              <div class="mt-7 flex flex-wrap gap-2">
+                {% for slug in ind.services %}{% with s=services_by_slug|get_item:slug %}<a href="{% url 'website:service_detail' slug %}" class="chip-dark py-1.5 transition hover:bg-white/10 hover:text-white">{% icon s.icon class="h-3.5 w-3.5" %}{{ s.name }}</a>{% endwith %}{% endfor %}
+              </div>
+            </div>
+          </div>
+          <div class="bg-white p-7 sm:p-10">
+            <p class="font-mono text-[11px] tracking-[0.16em] text-slate-400 uppercase">Typical annotation</p>
+            <ul class="mt-5 grid gap-3 sm:grid-cols-2">
+              {% for item in ind.items %}
+                <li class="flex items-start gap-3 rounded-xl bg-slate-50 p-4 ring-1 ring-slate-200/70">
+                  <span class="mt-1 h-2.5 w-2.5 shrink-0 rounded-sm {{ ind.tone.bg }}"></span>
+                  <span class="text-[15px] font-medium text-slate-800">{{ item }}</span>
+                </li>
+              {% endfor %}
+            </ul>
+            <a href="{% url 'website:quote' %}?type={{ ind.services.0 }}" class="link-arrow mt-7">Discuss your {{ ind.name }} project {% icon "arrow-right" class="h-4 w-4" %}</a>
+          </div>
+        </div>
+      </article>
+    {% endfor %}
+  </div>
+</section>
+
+{% include "website/partials/cta_band.html" with title="Don't see your industry?" text="If your data is images, video, text or documents, we can most likely help. Share your use case and we'll review the requirements with you." primary_label="Tell us about your use case" %}
+{% endblock %}

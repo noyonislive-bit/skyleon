@@ -1,0 +1,57 @@
+{% extends "portal/base.html" %}
+{% block browser_title %}{{ guideline.title }}{% endblock %}
+{% block content %}
+<div class="grid gap-6 xl:grid-cols-3">
+  <article class="card min-w-0 xl:col-span-2">
+    <header class="border-b border-slate-100 px-6 py-5">
+      <p class="eyebrow">{% icon "book-open" class="h-3.5 w-3.5" %} {{ project.code }} guideline</p>
+      <h1 class="mt-2 text-2xl font-semibold tracking-tight text-slate-900">{{ guideline.title }}</h1>
+      <p class="meta-row mt-2"><span class="badge badge-neutral font-mono">v{{ guideline.version }}</span><span>Updated {{ guideline.updated_at|date:"M j, Y" }}</span><span>{{ project.name }}</span></p>
+    </header>
+    <div class="prose-content px-6 py-6">{{ guideline.content|markdown }}</div>
+
+    {% if document %}
+    <div class="mx-6 mb-6 flex flex-wrap items-center gap-3 rounded-xl bg-slate-50 p-4 ring-1 ring-slate-200">
+      <span class="icon-tile h-10 w-10 bg-white text-slate-600 ring-slate-200">{% icon "paperclip" class="h-5 w-5" %}</span>
+      <div class="min-w-0 flex-1">
+        <p class="truncate text-sm font-medium text-slate-900">{{ document.original_name|default:"Attached document" }}</p>
+        <p class="text-xs text-slate-500">{% if document.size_bytes %}{{ document.size_bytes|filesize_h }}{% endif %}{% if document.mime_type %} · {{ document.mime_type }}{% endif %}</p>
+      </div>
+      {% if document_url %}
+        <a href="{{ document_url }}" target="_blank" rel="noopener" class="btn btn-secondary btn-sm">{% icon "eye" class="h-3.5 w-3.5" %} View</a>
+        <a href="{{ document_download_url }}" class="btn btn-secondary btn-sm">{% icon "download" class="h-3.5 w-3.5" %} Download</a>
+      {% else %}
+        <span class="badge badge-neutral">Processing</span>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    <footer class="flex flex-wrap items-center gap-3 border-t border-slate-100 bg-slate-50/60 px-6 py-5">
+      {% if ack_current %}
+        <span class="inline-flex items-center gap-2 rounded-lg bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-800 ring-1 ring-emerald-200">{% icon "check-circle-2" class="h-4 w-4" %} You confirmed reading v{{ guideline.version }} on {{ ack.acknowledged_at|date:"M j, Y" }}</span>
+      {% else %}
+        {% if ack %}<p class="w-full text-sm text-amber-800">{% icon "alert-triangle" class="inline h-4 w-4" %} This guideline was updated since you read v{{ ack.version }}. Please review the changes.</p>{% endif %}
+        <form method="post" action="{% url 'portal:guideline_ack' project.slug guideline.pk %}">{% csrf_token %}
+          <button type="submit" class="btn btn-primary">{% icon "check" class="h-4 w-4" %} I have read this version</button>
+        </form>
+        <p class="text-xs text-slate-500">Confirms you've read version {{ guideline.version }}.</p>
+      {% endif %}
+    </footer>
+  </article>
+
+  <aside class="space-y-6">
+    <section class="card">
+      <div class="card-header"><h2 class="card-title">Other guidelines</h2><a href="{% url 'portal:project_detail' project.slug %}#guidelines" class="text-xs font-semibold text-brand-600 hover:text-brand-700">Project →</a></div>
+      {% if others %}
+      <ul class="divide-y divide-slate-100">
+        {% for g in others %}
+        <li><a href="{% url 'portal:guideline_detail' project.slug g.pk %}" class="flex items-center gap-3 px-5 py-3 text-sm hover:bg-slate-50">{% icon "file-text" class="h-4 w-4 shrink-0 text-slate-400" %}<span class="min-w-0 flex-1 truncate font-medium text-slate-800">{{ g.title }}</span><span class="font-mono text-xs text-slate-400">v{{ g.version }}</span></a></li>
+        {% endfor %}
+      </ul>
+      {% else %}
+        {% include "portal/includes/empty.html" with icon="files" title="No other guidelines" compact=True %}
+      {% endif %}
+    </section>
+  </aside>
+</div>
+{% endblock %}

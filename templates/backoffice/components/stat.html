@@ -1,0 +1,10 @@
+{% comment %} Stat tile. Usage: {% include "backoffice/components/stat.html" with t=tile %} — t: label, value, meta, icon, url?, query?, meter?, tone? {% endcomment %}
+{% if t.url %}<a href="{% url t.url %}{{ t.query|default:'' }}" class="stat bo-stat{% if t.tone %} is-{{ t.tone }}{% endif %}">{% else %}<div class="stat bo-stat{% if t.tone %} is-{{ t.tone }}{% endif %}">{% endif %}
+  <div class="flex items-start justify-between gap-3">
+    <p class="stat-label">{{ t.label }}</p>
+    <span class="bo-stat-icon">{% icon t.icon|default:"activity" class="h-4 w-4" %}</span>
+  </div>
+  <p class="stat-value !mt-1">{{ t.value }}</p>
+  {% if t.meter is not None %}<div class="bo-meter mt-3{% if t.meter >= 100 %} is-good{% endif %}" role="progressbar" aria-valuenow="{{ t.meter }}" aria-valuemin="0" aria-valuemax="100" aria-label="{{ t.label }}"><span style="width: {{ t.meter }}%"></span></div>{% endif %}
+  {% if t.meta %}<p class="stat-meta mt-auto pt-2">{{ t.meta }}</p>{% endif %}
+{% if t.url %}</a>{% else %}</div>{% endif %}

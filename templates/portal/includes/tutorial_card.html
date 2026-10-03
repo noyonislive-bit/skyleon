@@ -1,0 +1,20 @@
+{% comment %} Usage: {% include "portal/includes/tutorial_card.html" with t=tutorial new_since=new_since %} — t annotated with my_status / my_percent {% endcomment %}
+<a href="{% url 'portal:tutorial_detail' t.pk %}" class="group card flex flex-col overflow-hidden transition hover:-translate-y-0.5 hover:shadow-lg hover:ring-slate-300">
+  {% include "portal/includes/tutorial_thumb.html" with t=t %}
+  <div class="flex flex-1 flex-col p-4">
+    <div class="flex flex-wrap items-center gap-1.5">
+      {% if t.is_required %}<span class="badge badge-brand">Required</span>{% else %}<span class="badge badge-neutral">Optional</span>{% endif %}
+      {% if new_since and t.published_at >= new_since and t.my_status != "completed" %}<span class="badge badge-info">{% icon "sparkles" class="h-3 w-3" %} New</span>{% endif %}
+      <span class="badge badge-neutral">{{ t.get_cadence_display }}</span>
+    </div>
+    <h3 class="mt-2.5 line-clamp-2 text-[15px] leading-snug font-semibold text-slate-900 group-hover:text-brand-700">{{ t.title }}</h3>
+    <p class="mt-1 text-xs text-slate-500">{% if t.project %}{{ t.project.code }} · {{ t.project.name }}{% else %}Company-wide{% endif %}</p>
+    <div class="mt-auto pt-4">
+      <div class="mb-1.5 flex items-center justify-between text-xs">
+        <span class="font-medium {% if t.my_status == 'completed' %}text-emerald-700{% elif t.my_status == 'in_progress' %}text-brand-700{% else %}text-slate-500{% endif %}">{% if t.my_status == "completed" %}Completed{% elif t.my_status == "in_progress" %}In progress{% else %}Not started{% endif %}</span>
+        <span class="font-mono text-slate-500 tabular-nums">{{ t.my_percent|floatformat:0 }}%</span>
+      </div>
+      <div class="progress h-1.5" role="progressbar" aria-label="Watched" aria-valuenow="{{ t.my_percent|floatformat:0 }}" aria-valuemin="0" aria-valuemax="100"><div class="progress-bar{% if t.my_status == 'completed' %} is-complete{% endif %}" style="width: {{ t.my_percent|floatformat:0 }}%"></div></div>
+    </div>
+  </div>
+</a>

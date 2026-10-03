@@ -1,0 +1,33 @@
+{% extends "backoffice/base.html" %}
+{% load backoffice_tags %}
+{% block page_actions %}
+  <a href="{% querystring format='csv' page=None %}" class="btn btn-secondary btn-sm">{% icon "download" class="h-4 w-4" %} Export CSV</a>
+{% endblock %}
+{% block content %}
+<section class="grid grid-cols-2 gap-3 sm:grid-cols-4" aria-label="Summary for the current filters">
+  <div class="stat"><p class="stat-label">Deliveries</p><p class="stat-value !text-2xl">{{ summary.total }}</p><p class="stat-meta">employee × feedback</p></div>
+  <div class="stat"><p class="stat-label">Opened</p><p class="stat-value !text-2xl">{{ summary.seen }}</p><p class="stat-meta">{{ summary.total|sub:summary.seen }} never opened</p></div>
+  <div class="stat"><p class="stat-label">Watched</p><p class="stat-value !text-2xl">{{ summary.watched }}</p><p class="stat-meta">{{ summary.total|sub:summary.watched }} not watched</p></div>
+  <div class="stat"><p class="stat-label">Completed</p><p class="stat-value !text-2xl">{{ summary.completed }}</p><p class="stat-meta">watched + test passed</p></div>
+</section>
+<div class="card mt-6">
+  <form method="get" class="bo-filters" data-autosubmit>
+    <select name="employee" class="select" aria-label="Employee"><option value="">All employees</option>{% for e in employees %}<option value="{{ e.pk }}"{% if filters.employee == e.pk|stringformat:"s" %} selected{% endif %}>{{ e.name }}{% if e.employee_id %} · {{ e.employee_id }}{% endif %}</option>{% endfor %}</select>
+    <select name="project" class="select" aria-label="Project"><option value="">All projects</option>{% for p in projects %}<option value="{{ p.pk }}"{% if filters.project == p.pk|stringformat:"s" %} selected{% endif %}>{{ p.code }}</option>{% endfor %}</select>
+    <select name="feedback" class="select" aria-label="Feedback item"><option value="">All feedback</option>{% for f in feedback_choices %}<option value="{{ f.pk }}"{% if filters.feedback == f.pk|stringformat:"s" %} selected{% endif %}>{{ f.display_number }} · {{ f.topic|truncatechars:28 }}</option>{% endfor %}</select>
+    <select name="state" class="select" aria-label="State"><option value="">Completed &amp; pending</option>{% for v, l in states %}<option value="{{ v }}"{% if filters.state == v %} selected{% endif %}>{{ l }}</option>{% endfor %}</select>
+    <label class="flex items-center gap-1.5 text-xs text-slate-500 sm:w-auto">From <input type="date" name="date_from" value="{{ filters.date_from }}" class="input sm:!w-36" aria-label="Published from"></label>
+    <label class="flex items-center gap-1.5 text-xs text-slate-500 sm:w-auto">to <input type="date" name="date_to" value="{{ filters.date_to }}" class="input sm:!w-36" aria-label="Published to"></label>
+    <input type="number" name="score_min" value="{{ filters.score_min }}" min="0" max="100" placeholder="Min score %" class="input sm:!w-28" aria-label="Minimum score">
+    <input type="number" name="score_max" value="{{ filters.score_max }}" min="0" max="100" placeholder="Max score %" class="input sm:!w-28" aria-label="Maximum score">
+    <button class="btn btn-secondary btn-sm sm:!w-auto">Apply</button>
+    {% if request.GET %}<a href="{% url 'backoffice:feedback_tracking' %}" class="btn btn-ghost btn-sm sm:!w-auto">Reset</a>{% endif %}
+  </form>
+  {% if page.object_list %}
+    {% include "backoffice/feedback/_tracking_table.html" with rows=page show_feedback=True %}
+    {% include "components/pagination.html" with page=page %}
+  {% else %}
+    {% include "components/empty_state.html" with icon="scan-eye" title="Nothing matches" text="Try other filters — or publish feedback to start tracking." %}
+  {% endif %}
+</div>
+{% endblock %}

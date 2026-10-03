@@ -1,0 +1,8 @@
+{% comment %} Renders the visual for a service dict `svc` (requires `segments` for action visuals). {% endcomment %}
+{% if svc.visual == "action" %}{% include "website/visuals/action_timeline.html" %}
+{% elif svc.visual == "image" %}{% include "website/visuals/svc_image.html" %}
+{% elif svc.visual == "video" %}{% include "website/visuals/svc_video.html" %}
+{% elif svc.visual == "description" %}{% include "website/visuals/svc_description.html" %}
+{% elif svc.visual == "text" %}{% include "website/visuals/svc_text.html" %}
+{% elif svc.visual == "ocr" %}{% include "website/visuals/svc_ocr.html" %}
+{% endif %}

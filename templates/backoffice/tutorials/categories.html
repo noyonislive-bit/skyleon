@@ -1,0 +1,42 @@
+{% extends "backoffice/base.html" %}
+{% load backoffice_tags %}
+{% block content %}
+<div class="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
+  <section class="card min-w-0">
+    {% if categories %}
+    <ul class="bo-list">
+      {% for c in categories %}
+        <li class="px-5 py-3">
+          {% if can_edit %}
+          <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <form method="post" action="{% url 'backoffice:category_edit' c.pk %}" class="flex flex-1 items-center gap-2">{% csrf_token %}
+              {{ c.form.name|add_class:"!py-2" }}
+              <div class="w-20">{{ c.form.order|add_class:"!py-2" }}</div>
+              <button class="btn btn-secondary btn-sm">Save</button>
+            </form>
+            <div class="flex items-center gap-2">
+              <a href="{% url 'backoffice:tutorial_list' %}?category={{ c.pk }}" class="btn btn-ghost btn-sm">{{ c.n }} tutorial{{ c.n|pluralize }}</a>
+              <form method="post" action="{% url 'backoffice:category_delete' c.pk %}" data-confirm="Delete category “{{ c.name }}”? Its tutorials become uncategorised.">{% csrf_token %}<button class="bo-icon-btn is-danger" title="Delete">{% icon "trash-2" class="h-4 w-4" %}</button></form>
+            </div>
+          </div>
+          {% else %}
+          <div class="flex items-center justify-between text-sm"><span class="font-medium text-slate-900">{{ c.name }}</span><span class="text-xs text-slate-500">{{ c.n }} tutorial{{ c.n|pluralize }}</span></div>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+    {% else %}{% include "components/empty_state.html" with icon="tag" title="No categories" %}{% endif %}
+  </section>
+  {% if can_edit %}
+  <form method="post" class="card card-body h-fit space-y-4">{% csrf_token %}
+    <h2 class="bo-section">New category</h2>
+    {% include "components/form_errors.html" %}
+    {% include "components/field.html" with field=form.name %}
+    {% include "components/field.html" with field=form.order hint="Lower numbers come first." %}
+    <button class="btn btn-primary w-full">Add category</button>
+  </form>
+  {% else %}
+  <div class="alert alert-info h-fit">{% icon "info" class="mt-0.5 h-4 w-4 shrink-0" %}<p>Categories are company-wide; ask a super admin or trainer to change them.</p></div>
+  {% endif %}
+</div>
+{% endblock %}

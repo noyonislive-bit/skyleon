@@ -1,0 +1,28 @@
+{% extends "backoffice/base.html" %}
+{% load backoffice_tags %}
+{% block content %}
+<form method="post" class="card" novalidate>{% csrf_token %}
+  <div class="card-body space-y-6">
+    {% include "components/form_errors.html" %}
+    <div class="grid gap-5 sm:grid-cols-6">
+      {% include "components/field.html" with field=form.name class="sm:col-span-3" %}
+      {% include "components/field.html" with field=form.code class="sm:col-span-1" %}
+      {% include "components/field.html" with field=form.status class="sm:col-span-2" %}
+      {% include "components/field.html" with field=form.summary class="sm:col-span-6" %}
+      {% include "components/field.html" with field=form.description class="sm:col-span-6" hint="Markdown supported — shown on the project page in the portal." %}
+      {% include "components/field.html" with field=form.client_name class="sm:col-span-3" %}
+      {% include "components/field.html" with field=form.organization class="sm:col-span-3" %}
+      {% include "components/field.html" with field=form.annotation_type class="sm:col-span-3" %}
+      {% include "components/field.html" with field=form.platform class="sm:col-span-3" %}
+      {% include "components/field.html" with field=form.start_date class="sm:col-span-2" %}
+      {% include "components/field.html" with field=form.end_date class="sm:col-span-2" %}
+      {% include "components/field.html" with field=form.color class="sm:col-span-1" %}
+      {% include "components/field.html" with field=form.slug class="sm:col-span-6" %}
+    </div>
+  </div>
+  <div class="flex justify-end gap-2 border-t border-slate-100 px-5 py-4">
+    <a href="{% if project %}{% url 'backoffice:project_detail' project.pk %}{% else %}{% url 'backoffice:project_list' %}{% endif %}" class="btn btn-ghost">Cancel</a>
+    <button class="btn btn-primary">{% if project %}Save changes{% else %}Create project{% endif %}</button>
+  </div>
+</form>
+{% endblock %}

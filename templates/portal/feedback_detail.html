@@ -1,0 +1,148 @@
+{% extends "portal/base.html" %}
+{% load static portal_tags %}
+{% block browser_title %}{{ fb.display_number }} · {{ fb.topic }}{% endblock %}
+{% block content %}
+<!-- Header -->
+<header class="card overflow-hidden">
+  <div class="flex flex-col gap-5 p-5 sm:flex-row sm:items-start sm:p-6">
+    <div class="flex h-16 w-20 shrink-0 items-center justify-center rounded-xl bg-ink-900 font-mono text-xl font-semibold text-white shadow-glow">{{ fb.display_number }}</div>
+    <div class="min-w-0 flex-1">
+      <div class="flex flex-wrap items-center gap-2">
+        {% severity_badge fb %}
+        <span class="badge badge-neutral">{{ fb.get_cadence_display }} feedback</span>
+        {% if was_new %}<span class="badge badge-brand">New</span>{% endif %}
+      </div>
+      <h1 class="mt-2 text-2xl font-semibold tracking-tight text-slate-900">{{ fb.topic }}</h1>
+      {% if fb.summary %}<p class="mt-1.5 text-[15px] leading-7 text-slate-600">{{ fb.summary }}</p>{% endif %}
+      <p class="meta-row mt-3">
+        <span class="inline-flex items-center gap-1.5"><span class="dot" style="background: {{ fb.project.color }}"></span>{{ fb.project.code }} · {{ fb.project.name }}</span>
+        <span>{% if fb.team %}{{ fb.team.name }}{% else %}Whole project{% endif %}</span>
+        <span>Published {{ fb.published_at|date:"M j, Y" }}</span>
+        {% if fb.created_by %}<span>by {{ fb.created_by.name }}</span>{% endif %}
+        {% if fb.due_at %}<span class="font-medium text-amber-700">Due {{ fb.due_at|date:"M j, Y" }}</span>{% endif %}
+      </p>
+    </div>
+  </div>
+  <!-- Checklist -->
+  <ol class="grid grid-cols-2 divide-slate-100 border-t border-slate-100 bg-slate-50/60 text-xs sm:grid-cols-4 sm:divide-x" aria-label="Your progress on this feedback">
+    <li class="flex items-center gap-2 px-5 py-3"><span class="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-white">{% icon "check" class="h-3 w-3" stroke_width="3" %}</span><span class="font-medium text-slate-700">Opened</span></li>
+    <li class="flex items-center gap-2 px-5 py-3">
+      <span class="{% if not recipient.watched_at %}hidden {% endif %}flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-white" data-show-when-complete>{% icon "check" class="h-3 w-3" stroke_width="3" %}</span>
+      <span class="{% if recipient.watched_at %}hidden {% endif %}h-5 w-5 rounded-full ring-2 ring-slate-300 ring-inset" data-hide-when-complete></span>
+      <span class="font-medium text-slate-700">{% if fb.video_id %}Video watched{% else %}Read{% endif %}</span>
+    </li>
+    <li class="flex items-center gap-2 px-5 py-3">
+      {% if recipient.acknowledged_at %}<span class="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-white">{% icon "check" class="h-3 w-3" stroke_width="3" %}</span>{% else %}<span class="h-5 w-5 rounded-full ring-2 ring-slate-300 ring-inset"></span>{% endif %}
+      <span class="font-medium text-slate-700">Acknowledged</span>
+    </li>
+    <li class="flex items-center gap-2 px-5 py-3">
+      {% if not test %}<span class="flex h-5 w-5 items-center justify-center rounded-full bg-slate-200 text-slate-500">{% icon "minus" class="h-3 w-3" %}</span><span class="text-slate-500">No test</span>
+      {% elif state.status == "passed" %}<span class="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-white">{% icon "check" class="h-3 w-3" stroke_width="3" %}</span><span class="font-medium text-slate-700">Test passed</span>
+      {% else %}<span class="h-5 w-5 rounded-full ring-2 ring-slate-300 ring-inset"></span><span class="font-medium text-slate-700">Test {% if state.status == "locked" %}failed{% else %}to do{% endif %}</span>{% endif %}
+    </li>
+  </ol>
+</header>
+
+<div class="mt-6 grid gap-6 xl:grid-cols-3">
+  <div class="min-w-0 space-y-6 xl:col-span-2">
+    {% if fb.video_id %}
+    <section aria-labelledby="video-title">
+      <h2 id="video-title" class="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-900"><span class="flex h-6 w-6 items-center justify-center rounded-full bg-brand-600 font-mono text-[11px] text-white">1</span> Watch the feedback video</h2>
+      <div class="mb-3 {% if not recipient.watched_at %}hidden{% endif %}" data-complete-banner>
+        <div class="alert alert-success" role="status">{% icon "circle-check-big" class="mt-0.5 h-4 w-4 shrink-0" %}<p class="flex-1"><strong class="font-semibold">Video watched</strong> — recorded on <span data-complete-date>{{ recipient.watched_at|date:"M j, Y · H:i" }}</span>.</p></div>
+      </div>
+      {% include "portal/includes/player.html" with player=player label=fb.topic %}
+    </section>
+    {% endif %}
+
+    <section class="card" aria-labelledby="explain-title">
+      <div class="card-header">
+        <h2 id="explain-title" class="card-title flex items-center gap-2">{% if fb.video_id %}<span class="flex h-6 w-6 items-center justify-center rounded-full bg-brand-600 font-mono text-[11px] text-white">2</span>{% else %}{% icon "lightbulb" class="h-4 w-4 text-amber-500" %}{% endif %} Correct way to handle this type of task</h2>
+      </div>
+      <div class="card-body">
+        <div class="prose-content">{{ fb.explanation|markdown }}</div>
+        <div class="mt-6 flex flex-wrap items-center gap-3 border-t border-slate-100 pt-5">
+          {% if recipient.acknowledged_at %}
+            <span class="inline-flex items-center gap-2 rounded-lg bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-800 ring-1 ring-emerald-200">{% icon "thumbs-up" class="h-4 w-4" %} You confirmed you understand · {{ recipient.acknowledged_at|date:"M j, H:i" }}</span>
+          {% else %}
+            <form method="post" action="{% url 'portal:feedback_ack' fb.number %}">{% csrf_token %}
+              <button type="submit" class="btn btn-primary">{% icon "thumbs-up" class="h-4 w-4" %} I understand</button>
+            </form>
+            <p class="text-xs text-slate-500">Confirm you've understood how to handle this situation from now on.</p>
+          {% endif %}
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <aside class="space-y-6">
+    <section class="card" id="test" aria-labelledby="test-title">
+      <div class="card-header">
+        <h2 id="test-title" class="card-title flex items-center gap-2">{% icon "clipboard-check" class="h-4 w-4 text-violet-500" %} Question / Test</h2>
+        {% if badge %}{% tone_badge badge.tone badge.label %}{% endif %}
+      </div>
+      {% if test %}
+      <div class="card-body">
+        <p class="text-sm font-semibold text-slate-900">{{ test.title }}</p>
+        {% if test.description %}<p class="mt-1 text-sm text-slate-500">{{ test.description }}</p>{% endif %}
+        <dl class="mt-4 grid grid-cols-3 gap-3 rounded-lg bg-slate-50 p-3 text-center ring-1 ring-slate-200">
+          <div><dt class="kv-label text-[10px]">Questions</dt><dd class="mt-0.5 text-sm font-semibold text-slate-900">{{ question_count }}</dd></div>
+          <div><dt class="kv-label text-[10px]">Pass mark</dt><dd class="mt-0.5 text-sm font-semibold text-slate-900">{{ test.passing_score }}%</dd></div>
+          <div><dt class="kv-label text-[10px]">Attempts</dt><dd class="mt-0.5 text-sm font-semibold text-slate-900">{{ state.attempts_used }}{% if test.attempt_limit %}/{{ test.attempt_limit }}{% endif %}</dd></div>
+        </dl>
+
+        {% if state.status == "passed" %}
+          <div class="mt-4 flex items-center gap-3 rounded-lg bg-emerald-50 p-3 ring-1 ring-emerald-200">
+            <span class="text-emerald-600">{% icon "award" class="h-6 w-6" %}</span>
+            <p class="text-sm text-emerald-900"><strong class="font-semibold">Passed</strong> with {{ state.best_score|floatformat:0 }}%.</p>
+          </div>
+        {% elif state.status == "locked" %}
+          <div class="mt-4 rounded-lg bg-slate-100 p-3 text-sm text-slate-700 ring-1 ring-slate-200">You've used all attempts for this test (best {{ state.best_score|floatformat:0 }}%). Your trainer will follow up.</div>
+        {% else %}
+          <form method="post" action="{% url 'portal:test_start' test.pk %}" class="mt-4">{% csrf_token %}
+            {% if state.status == "in_progress" %}
+              <button type="submit" class="btn btn-primary w-full">{% icon "play" class="h-4 w-4" %} Resume test</button>
+            {% else %}
+              <button type="submit" class="btn btn-primary w-full" {% if not recipient.watched_at %}disabled aria-disabled="true" aria-describedby="test-locked-note" data-unlock-on-complete{% endif %}>
+                {% if state.status == "review" %}{% icon "rotate-ccw" class="h-4 w-4" %} Retake test{% else %}{% icon "play" class="h-4 w-4" %} Start test{% endif %}
+              </button>
+            {% endif %}
+          </form>
+          {% if not recipient.watched_at and state.status != "in_progress" %}
+            <p id="test-locked-note" class="mt-2 flex items-start gap-1.5 text-xs text-amber-700" data-hide-when-complete>{% icon "lock" class="mt-px h-3.5 w-3.5 shrink-0" %} Watch the feedback video first (at least {{ player.threshold|default:90 }}%). The test unlocks automatically once your viewing is recorded.</p>
+            <p class="mt-2 hidden text-xs text-emerald-700" data-show-when-complete>{% icon "check" class="inline h-3.5 w-3.5" %} Video watched — the test is unlocked.</p>
+          {% elif state.status == "review" %}
+            <p class="mt-2 text-xs text-slate-500">Best so far {{ state.best_score|floatformat:0 }}%{% if state.attempts_left is not None %} · {{ state.attempts_left }} attempt{{ state.attempts_left|pluralize }} left{% endif %}.</p>
+          {% endif %}
+        {% endif %}
+      </div>
+      {% if attempts %}
+      <div class="border-t border-slate-100">
+        <p class="px-5 pt-4 text-xs font-semibold tracking-wide text-slate-500 uppercase">Your results</p>
+        <ul class="divide-y divide-slate-100 pb-1">
+          {% for a in attempts %}
+          <li><a href="{% url 'portal:result_detail' a.pk %}" class="flex items-center justify-between gap-3 px-5 py-2.5 text-sm hover:bg-slate-50">
+            <span class="text-slate-600">Attempt {{ a.attempt_number }} · {{ a.submitted_at|date:"M j, H:i" }}</span>
+            <span class="flex items-center gap-2"><span class="font-mono font-semibold text-slate-900">{{ a.score|floatformat:0 }}%</span>{% if a.passed %}<span class="badge badge-success">Passed</span>{% else %}<span class="badge badge-danger">Failed</span>{% endif %}</span>
+          </a></li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+      {% else %}
+        {% include "portal/includes/empty.html" with icon="clipboard-check" title="No test for this feedback" text="Just watch the video and confirm you understand." compact=True %}
+      {% endif %}
+    </section>
+
+    <section class="card card-body">
+      <h2 class="card-title">Need help?</h2>
+      <p class="mt-1 text-sm text-slate-500">Re-read the project guidelines or ask your trainer during the next calibration call.</p>
+      <div class="mt-4 flex flex-wrap gap-2">
+        <a href="{% url 'portal:project_detail' fb.project.slug %}#guidelines" class="btn btn-secondary btn-sm">{% icon "book-open" class="h-3.5 w-3.5" %} Guidelines</a>
+        <a href="{% url 'portal:meetings' %}" class="btn btn-ghost btn-sm">{% icon "calendar-clock" class="h-3.5 w-3.5" %} Meetings</a>
+      </div>
+    </section>
+  </aside>
+</div>
+{% endblock %}
+{% block page_scripts %}{% if player %}<script src="{% static 'js/player.js' %}" defer></script>{% endif %}{% endblock %}

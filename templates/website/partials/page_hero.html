@@ -1,0 +1,26 @@
+{% comment %}
+  Dark hero for inner pages.
+  {% url 'website:quote' as quote_url %}
+  {% include "website/partials/page_hero.html" with eyebrow="…" title="…" lead="…" primary_url=quote_url primary_label="Request a Quote" secondary_url=… secondary_label=… visual="website/visuals/…" %}
+{% endcomment %}
+<section class="hero-dark">
+  <div class="absolute inset-0 grid-bg fade-grid" aria-hidden="true"></div>
+  <div class="glow-brand -top-48 left-[12%] h-[520px] w-[520px]" aria-hidden="true"></div>
+  <div class="glow-accent top-10 -right-24 h-[420px] w-[420px]" aria-hidden="true"></div>
+  <div class="container-page relative pt-28 pb-16 sm:pt-36 sm:pb-20 {% if visual %}grid items-center gap-12 lg:grid-cols-[1.05fr_1fr] lg:gap-14{% endif %}">
+    <div class="{% if not visual %}max-w-3xl{% endif %}">
+      {% include "website/partials/breadcrumbs.html" %}
+      {% if eyebrow %}<p class="eyebrow-dark mt-7"><span class="h-1.5 w-1.5 rounded-full bg-accent-300"></span>{{ eyebrow }}</p>{% endif %}
+      <h1 class="mt-4 text-[2.3rem] leading-[1.08] font-semibold tracking-tight sm:text-5xl lg:text-[3.35rem]" style="letter-spacing:-0.035em">{{ title }}</h1>
+      {% if lead %}<p class="lead-dark mt-6 max-w-2xl">{{ lead }}</p>{% endif %}
+      {% if badge %}<p class="mt-5 inline-flex items-center gap-2 rounded-full bg-label-amber/10 px-3 py-1 text-xs font-medium text-label-amber ring-1 ring-label-amber/30"><span class="dot animate-pulse-soft bg-label-amber"></span>{{ badge }}</p>{% endif %}
+      {% if primary_label %}
+        <div class="mt-9 flex flex-wrap gap-3">
+          <a href="{{ primary_url }}" class="btn btn-accent btn-lg">{{ primary_label }} {% icon "arrow-right" class="h-4 w-4" %}</a>
+          {% if secondary_label %}<a href="{{ secondary_url }}" class="btn btn-light btn-lg">{{ secondary_label }}</a>{% endif %}
+        </div>
+      {% endif %}
+    </div>
+    {% if visual %}<div class="min-w-0">{% include visual %}</div>{% endif %}
+  </div>
+</section>

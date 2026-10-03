@@ -1,0 +1,71 @@
+{% extends "backoffice/projects/_base.html" %}
+{% load backoffice_tags %}
+{% block project_actions %}{% if form %}<a href="{% url 'backoffice:step_create' project.pk %}" class="btn btn-primary btn-sm">{% icon "plus" class="h-4 w-4" %} Add step</a>{% endif %}{% endblock %}
+{% block content %}
+<div class="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
+  <section class="card min-w-0">
+    <div class="card-header">
+      <div><h2 class="card-title">Onboarding steps</h2><p class="mt-0.5 text-xs text-slate-500">Employees complete them in order. Tutorial and test steps complete automatically.</p></div>
+      <span class="text-xs text-slate-500">{{ employee_count }} employee{{ employee_count|pluralize }}</span>
+    </div>
+    {% if steps %}
+    <ol class="bo-list">
+      {% for s in steps %}
+        <li class="flex gap-4 px-5 py-4" id="step-{{ s.pk }}">
+          <span class="bo-step-num mt-0.5">{{ forloop.counter }}</span>
+          <div class="min-w-0 flex-1">
+            <div class="flex flex-wrap items-center gap-2">
+              <p class="font-medium text-slate-900">{{ s.title }}</p>
+              <span class="bo-chip">{{ s.get_step_type_display }}</span>
+            </div>
+            {% if s.description %}<p class="mt-0.5 text-sm text-slate-600">{{ s.description }}</p>{% endif %}
+            <div class="mt-2 flex flex-wrap items-center gap-2 text-xs">
+              {% if s.rule == "tutorial" %}<a href="{% url 'backoffice:tutorial_detail' s.tutorial.pk %}" class="badge badge-info">{% icon "circle-play" class="h-3 w-3" %} {{ s.tutorial.title|truncatechars:40 }}</a><span class="text-slate-500">done when the video is watched</span>
+              {% elif s.rule == "test" %}<a href="{% url 'backoffice:test_builder' s.test.pk %}" class="badge badge-brand">{% icon "clipboard-check" class="h-3 w-3" %} {{ s.test.title|truncatechars:40 }}</a><span class="text-slate-500">done when the test is passed</span>
+              {% elif s.rule == "qualification" %}<span class="badge badge-warning">{% icon "award" class="h-3 w-3" %} Manager qualification</span><span class="text-slate-500">done when you qualify the member</span>
+              {% else %}<span class="badge badge-neutral">{% icon "check" class="h-3 w-3" %} Employee confirms</span>{% endif %}
+              {% if s.guideline %}<span class="badge badge-neutral">{% icon "book-open" class="h-3 w-3" %} {{ s.guideline.title|truncatechars:32 }}</span>{% endif %}
+            </div>
+            <div class="mt-3 flex max-w-xs items-center gap-2">
+              <div class="bo-meter-track flex-1"><span class="{% if s.done_count == employee_count and employee_count %}is-done{% endif %}" style="width: {{ s.done_count|bar_width:employee_count }}%"></span></div>
+              <span class="bo-num text-[11px] text-slate-500">{{ s.done_count }}/{{ employee_count }} done</span>
+            </div>
+          </div>
+          {% if form %}
+          <div class="flex shrink-0 flex-col items-end gap-1 sm:flex-row sm:items-start">
+            <form method="post" action="{% url 'backoffice:step_move' s.pk %}">{% csrf_token %}<input type="hidden" name="direction" value="up"><button class="bo-icon-btn" title="Move up"{% if forloop.first %} disabled{% endif %}>{% icon "arrow-up" class="h-4 w-4" %}</button></form>
+            <form method="post" action="{% url 'backoffice:step_move' s.pk %}">{% csrf_token %}<input type="hidden" name="direction" value="down"><button class="bo-icon-btn" title="Move down"{% if forloop.last %} disabled{% endif %}>{% icon "arrow-down" class="h-4 w-4" %}</button></form>
+            <a href="{% url 'backoffice:step_edit' s.pk %}" class="bo-icon-btn" title="Edit">{% icon "pencil" class="h-4 w-4" %}</a>
+            <form method="post" action="{% url 'backoffice:step_delete' s.pk %}" data-confirm="Delete step “{{ s.title }}”?">{% csrf_token %}<button class="bo-icon-btn is-danger" title="Delete">{% icon "trash-2" class="h-4 w-4" %}</button></form>
+          </div>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ol>
+    {% else %}
+      <div class="flex flex-col items-center px-6 py-12 text-center">
+        <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-100 text-slate-500">{% icon "route" class="h-6 w-6" %}</div>
+        <h3 class="mt-4 text-sm font-semibold text-slate-900">No onboarding yet</h3>
+        <p class="mt-1 max-w-sm text-sm text-slate-500">Start from the standard 8-step onboarding and link your tutorials, guidelines and test to each step.</p>
+        {% if form %}
+        <div class="mt-5 flex flex-wrap justify-center gap-2">
+          <form method="post" action="{% url 'backoffice:onboarding_template' project.pk %}">{% csrf_token %}<button class="btn btn-primary btn-sm">{% icon "wand-sparkles" class="h-4 w-4" %} Create default 8-step template</button></form>
+          <a href="{% url 'backoffice:step_create' project.pk %}" class="btn btn-secondary btn-sm">Add a single step</a>
+        </div>
+        {% endif %}
+      </div>
+    {% endif %}
+  </section>
+  <aside class="min-w-0 space-y-4">
+    <div class="card card-body text-sm text-slate-600">
+      <h2 class="bo-section mb-3">How steps complete</h2>
+      <ul class="space-y-3">
+        <li class="flex gap-2.5">{% icon "circle-play" class="mt-0.5 h-4 w-4 shrink-0 text-sky-600" %}<span><strong class="text-slate-800">Tutorial linked</strong> — when ≥ the completion threshold of the video has really been played.</span></li>
+        <li class="flex gap-2.5">{% icon "clipboard-check" class="mt-0.5 h-4 w-4 shrink-0 text-brand-600" %}<span><strong class="text-slate-800">Test linked</strong> — when the employee passes the test.</span></li>
+        <li class="flex gap-2.5">{% icon "award" class="mt-0.5 h-4 w-4 shrink-0 text-amber-600" %}<span><strong class="text-slate-800">Final qualification</strong> — when a manager clicks Qualify on the Members tab.</span></li>
+        <li class="flex gap-2.5">{% icon "check" class="mt-0.5 h-4 w-4 shrink-0 text-slate-500" %}<span><strong class="text-slate-800">Anything else</strong> — the employee confirms after reading it.</span></li>
+      </ul>
+    </div>
+  </aside>
+</div>
+{% endblock %}

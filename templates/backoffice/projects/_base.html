@@ -1,0 +1,25 @@
+{% extends "backoffice/base.html" %}
+{% load backoffice_tags %}
+{% block page_header %}
+<div class="bo-header !mb-4">
+  <div class="flex min-w-0 items-start gap-4">
+    <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-white shadow-card" style="background: {{ project.color }}">{% icon "folder-open" class="h-6 w-6" %}</span>
+    <div class="min-w-0">
+      <div class="flex flex-wrap items-center gap-2">
+        <h1 class="page-title">{{ project.name }}</h1>
+        <span class="bo-code">{{ project.code }}</span>
+        {% status_badge project.status project.get_status_display %}
+      </div>
+      <p class="page-subtitle">{% if project.client_name %}{{ project.client_name }} · {% endif %}{{ project.annotation_type|default:"Annotation project" }}{% if project.platform %} · {{ project.platform }}{% endif %}</p>
+    </div>
+  </div>
+  <div class="flex flex-wrap gap-2">
+    {% block project_actions %}{% endblock %}
+    {% if can_edit %}<a href="{% url 'backoffice:project_edit' project.pk %}" class="btn btn-secondary btn-sm">{% icon "pencil" class="h-4 w-4" %} Edit project</a>{% endif %}
+  </div>
+</div>
+<nav class="tabs mb-6" aria-label="Project sections">
+  {% for t in tabs %}<a href="{{ t.url }}" class="tab{% if tab == t.key %} is-active{% endif %}"{% if tab == t.key %} aria-current="page"{% endif %}>{{ t.label }}{% if t.count is not None %}<span class="count">{{ t.count }}</span>{% endif %}</a>{% endfor %}
+</nav>
+{% if page_title %}<h2 class="mb-4 text-lg font-semibold text-slate-900">{{ page_title }}</h2>{% endif %}
+{% endblock %}

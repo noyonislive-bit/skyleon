@@ -1,0 +1,46 @@
+{% extends "layouts/app_shell.html" %}
+{% load static backoffice_tags %}
+{% block title %}{% if page_title %}{{ page_title }}{% elif crumbs %}{% for label, url in crumbs %}{% if forloop.last %}{{ label }}{% endif %}{% endfor %}{% else %}Admin{% endif %} · {{ brand.name }} admin{% endblock %}
+{% block home_url %}{% url 'backoffice:dashboard' %}{% endblock %}
+{% block shell_label %}Admin panel{% endblock %}
+
+{% block sidebar_nav %}
+  {% admin_nav as nav %}
+  {% for group in nav.groups %}
+    <p class="side-heading">{{ group.heading }}</p>
+    {% for item in group.items %}
+      <a href="{{ item.url }}" class="side-link{% if nav.active == item.key %} is-active{% endif %}"{% if nav.active == item.key %} aria-current="page"{% endif %}>
+        {% icon item.icon class="h-[18px] w-[18px] shrink-0" %}<span class="truncate">{{ item.label }}</span>
+        {% if item.count %}<span class="count{% if item.key == 'emails' %} !bg-red-500{% endif %}" title="{{ item.count }}">{{ item.count }}</span>{% endif %}
+      </a>
+    {% endfor %}
+  {% endfor %}
+{% endblock %}
+
+{% block breadcrumbs %}
+  <nav class="flex min-w-0 items-center gap-1.5" aria-label="Breadcrumb">
+    <a href="{% url 'backoffice:dashboard' %}" class="hidden shrink-0 hover:text-slate-900 sm:inline">Admin</a>
+    {% for label, url in crumbs %}
+      <span class="hidden shrink-0 text-slate-300 sm:inline-flex">{% icon "chevron-right" class="h-3.5 w-3.5" %}</span>
+      {% if url and not forloop.last %}<a href="{{ url }}" class="hidden truncate hover:text-slate-900 sm:inline">{{ label }}</a>
+      {% else %}<span class="truncate font-medium text-slate-900">{{ label }}</span>{% endif %}
+    {% empty %}
+      {% if page_title %}<span class="hidden shrink-0 text-slate-300 sm:inline-flex">{% icon "chevron-right" class="h-3.5 w-3.5" %}</span><span class="truncate font-medium text-slate-900">{{ page_title }}</span>{% endif %}
+    {% endfor %}
+  </nav>
+{% endblock %}
+
+{% block topbar_actions %}
+  {% admin_nav as nav %}
+  {% if nav.portal_access %}
+    <a href="{% url 'portal:dashboard' %}" class="btn btn-ghost btn-sm" title="Open the employee portal">{% icon "external-link" class="h-4 w-4" %}<span class="hidden md:inline">View portal</span></a>
+  {% endif %}
+  {% if nav.content_manage %}
+    <a href="{% url 'backoffice:feedback_create' %}" class="btn btn-primary btn-sm">{% icon "plus" class="h-4 w-4" %}<span class="hidden sm:inline">New feedback</span><span class="sm:hidden">Feedback</span></a>
+  {% endif %}
+{% endblock %}
+
+{% block scripts %}
+  <script src="{% static 'js/backoffice.js' %}" defer></script>
+  {% block page_scripts %}{% endblock %}
+{% endblock %}

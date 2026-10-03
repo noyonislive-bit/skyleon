@@ -1,0 +1,98 @@
+{% extends "website/base_site.html" %}
+{% block content %}
+<section class="hero-dark">
+  <div class="absolute inset-0 grid-bg fade-grid" aria-hidden="true"></div>
+  <div class="glow-brand -top-48 left-[10%] h-[520px] w-[520px]" aria-hidden="true"></div>
+  <div class="glow-accent top-10 -right-24 h-[420px] w-[420px]" aria-hidden="true"></div>
+  <div class="container-page relative pt-28 pb-36 sm:pt-36 sm:pb-40">
+    <div class="max-w-3xl">
+      {% include "website/partials/breadcrumbs.html" %}
+      <p class="eyebrow-dark mt-7"><span class="h-1.5 w-1.5 rounded-full bg-accent-300"></span>Request a quote</p>
+      <h1 class="mt-4 text-[2.3rem] leading-[1.08] font-semibold tracking-tight sm:text-5xl" style="letter-spacing:-0.035em">Tell us about your annotation project.</h1>
+      <p class="lead-dark mt-6 max-w-2xl">Share a few details and our team will review your requirements — usually followed by a short pilot task so you can evaluate quality on your own data before production.</p>
+    </div>
+  </div>
+</section>
+
+<section class="relative z-10 -mt-24 pb-20 sm:pb-28">
+  <div class="container-page grid gap-8 lg:grid-cols-[1.55fr_1fr] lg:gap-10">
+    <div class="form-card">
+      <form method="post" enctype="multipart/form-data" novalidate data-public-form class="space-y-9">
+        {% csrf_token %}
+        {% include "components/honeypot.html" %}
+        {{ form.source }}
+        {% include "components/form_errors.html" %}
+        {% if form.errors and not form.non_field_errors %}<div class="alert alert-error" role="alert">{% icon "alert-circle" class="mt-0.5 h-4 w-4 shrink-0" %}<p>Please check the highlighted fields below.</p></div>{% endif %}
+
+        <fieldset>
+          <legend class="form-section-title"><span class="text-brand-600">01</span> Contact details</legend>
+          <div class="mt-5 grid gap-5 sm:grid-cols-2">
+            {% include "components/field.html" with field=form.name %}
+            {% include "components/field.html" with field=form.company %}
+            {% include "components/field.html" with field=form.email %}
+            {% include "components/field.html" with field=form.phone %}
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend class="form-section-title"><span class="text-brand-600">02</span> Project</legend>
+          <div class="mt-5 grid gap-5 sm:grid-cols-2">
+            {% include "components/field.html" with field=form.project_type class="sm:col-span-2" %}
+            {% include "website/partials/pill_field.html" with field=form.annotation_types class="sm:col-span-2" %}
+            {% include "components/field.html" with field=form.dataset_size %}
+            {% include "components/field.html" with field=form.timeline %}
+            {% include "components/field.html" with field=form.platform class="sm:col-span-2" %}
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend class="form-section-title"><span class="text-brand-600">03</span> Details</legend>
+          <div class="mt-5 grid gap-5">
+            {% include "components/field.html" with field=form.requirements %}
+            {% include "website/partials/file_field.html" with field=form.attachment %}
+          </div>
+        </fieldset>
+
+        <div class="flex flex-col gap-4 border-t border-slate-100 pt-7 sm:flex-row sm:items-center sm:justify-between">
+          <p class="text-xs leading-5 text-slate-500">By submitting, you agree to our <a href="{% url 'website:privacy' %}" class="underline hover:text-slate-700">privacy policy</a>. Your information and files are kept confidential.</p>
+          <button type="submit" class="btn btn-accent btn-lg shrink-0">Request a Quote {% icon "arrow-right" class="h-4 w-4" %}</button>
+        </div>
+      </form>
+    </div>
+
+    <aside class="space-y-5 lg:pt-0">
+      <div class="rounded-2xl bg-white p-6 shadow-card ring-1 ring-slate-200 sm:p-7">
+        <h2 class="text-lg font-semibold">What happens next</h2>
+        <ol class="relative mt-6 space-y-6">
+          <span class="absolute top-2 bottom-2 left-[15px] w-px bg-slate-200" aria-hidden="true"></span>
+          {% for icon_name, title, text in next_steps %}
+            <li class="relative flex gap-4">
+              <span class="relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-brand-600 ring-1 ring-slate-200">{% icon icon_name class="h-4 w-4" %}</span>
+              <span><span class="block text-sm font-semibold text-slate-900">{{ title }}</span><span class="mt-0.5 block text-sm leading-6 text-slate-600">{{ text }}</span></span>
+            </li>
+          {% endfor %}
+        </ol>
+      </div>
+      <div class="rounded-2xl bg-slate-50 p-6 ring-1 ring-slate-200 sm:p-7">
+        <h2 class="text-base font-semibold">Helpful to include</h2>
+        <ul class="mt-4 space-y-2.5 text-sm text-slate-600">
+          {% for item in helpful %}<li class="flex items-start gap-2.5">{% icon "check" class="mt-0.5 h-4 w-4 shrink-0 text-brand-600" stroke_width="2.25" %}{{ item }}</li>{% endfor %}
+        </ul>
+        <p class="mt-4 text-xs leading-5 text-slate-500">Don't have everything yet? That's fine — we can help shape the guideline during the pilot.</p>
+      </div>
+      <div class="relative overflow-hidden rounded-2xl bg-ink-900 p-6 text-slate-300 ring-1 ring-ink-800 sm:p-7">
+        <div class="absolute inset-0 grid-bg" aria-hidden="true"></div>
+        <div class="relative">
+          <span class="icon-tile-dark">{% icon "shield-check" class="h-5 w-5" %}</span>
+          <h2 class="mt-4 text-base font-semibold text-white">Confidential by default</h2>
+          <p class="mt-2 text-sm leading-6 text-slate-400">Samples you share are used only to evaluate your project. NDAs are available where required.</p>
+          <a href="{% url 'website:security' %}" class="link-arrow-dark mt-4">Security &amp; confidentiality {% icon "arrow-right" class="h-4 w-4" %}</a>
+        </div>
+      </div>
+      {% if company.email %}
+        <p class="px-1 text-sm text-slate-500">Prefer email? Write to <a href="mailto:{{ company.email }}" class="font-medium text-brand-600 hover:text-brand-700">{{ company.email }}</a></p>
+      {% endif %}
+    </aside>
+  </div>
+</section>
+{% endblock %}
