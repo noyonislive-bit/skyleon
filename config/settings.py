@@ -55,7 +55,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "whitenoise.runserver_nostatic",
-    "django.contrib.staticfiles",
+    "apps.core.staticfiles.SkyleonStaticFilesConfig",
     "django.contrib.sitemaps",
     "django.contrib.humanize",
     # Project apps
