@@ -5,7 +5,7 @@
   `crumbs` and `jsonld` via apps.website.views.page().
 {% endcomment %}
 {% block title %}{{ meta.title|default:brand.name }}{% endblock %}
-{% block meta_description %}{{ meta.description|default:brand.description }}{% endblock %}
+{% block meta_description %}{{ meta.description|default:brand.description|meta_desc }}{% endblock %}
 {% block meta_robots %}{% if noindex %}<meta name="robots" content="noindex, follow">{% endif %}{% endblock %}
 {% block og_title %}{{ meta.title|default:brand.name }}{% endblock %}
 {% block og_description %}{{ meta.description|default:brand.description }}{% endblock %}

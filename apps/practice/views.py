@@ -18,11 +18,12 @@ from .models import AttemptStatus, PracticeAttempt, PracticeTask
 from .scoring import clean_clips
 
 
-def _json_body(request):
+def _json_body(request) -> dict:
     try:
-        return json.loads(request.body or b"{}")
+        data = json.loads(request.body or b"{}")
     except ValueError:
         return {}
+    return data if isinstance(data, dict) else {}
 
 
 def _visible_task_or_404(request, pk):

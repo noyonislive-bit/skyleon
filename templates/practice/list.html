@@ -1,6 +1,6 @@
 {% extends "portal/base.html" %}
 {% block content %}
-<div class="grid gap-6 lg:grid-cols-[1fr_320px]">
+<div class="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
   <div class="space-y-4">
     <div class="card overflow-hidden">
       <div class="flex flex-wrap items-center gap-4 bg-ink-900 p-5 text-slate-300">
@@ -21,7 +21,7 @@
             <h2 class="font-semibold text-slate-900 group-hover:text-brand-700">{{ t.title }}</h2>
             {% if row.passed %}{% status_badge "passed" "পাস" %}{% elif row.attempts %}{% status_badge "review" "আরও প্র্যাকটিস দরকার" %}{% elif row.draft %}{% status_badge "in_progress" "চলছে" %}{% else %}{% status_badge "new" "নতুন" %}{% endif %}
           </div>
-          <p class="mt-1 text-sm text-slate-500">{{ t.project.name|default:"সব প্রজেক্ট" }} · পাস নম্বর {{ t.passing_score }}%{% if not t.has_reference %} · কভারেজ প্র্যাকটিস{% endif %}</p>
+          <p class="mt-1 text-sm text-slate-500">{{ t.project.name|default:"সব প্রজেক্ট" }} · পাস মার্ক {{ t.passing_score }}%{% if not t.has_reference %} · কভারেজ প্র্যাকটিস{% endif %}</p>
         </div>
         <div class="flex items-center gap-6 text-sm">
           <div class="text-right"><p class="text-xs text-slate-500">সেরা স্কোর</p><p class="font-semibold tabular-nums text-slate-900">{% if row.best is not None %}{{ row.best|floatformat:0 }}%{% else %}—{% endif %}</p></div>

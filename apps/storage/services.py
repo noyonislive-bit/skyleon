@@ -56,7 +56,7 @@ def store_uploaded_file(uploaded, *, kind=MediaKind.DOCUMENT, purpose="", user=N
         raise ValidationError("The file content does not match its extension.")
     backend = get_backend()
     key = build_key(purpose, uploaded.name)
-    mime = guess_mime(uploaded.name, uploaded.content_type or "application/octet-stream")
+    mime = _trusted_mime(uploaded.name, kind)
     size = backend.save(key, uploaded, mime)
     return MediaAsset.objects.create(
         kind=kind, provider=backend.name, storage_key=key, mime_type=mime, size_bytes=size or uploaded.size,
@@ -65,12 +65,22 @@ def store_uploaded_file(uploaded, *, kind=MediaKind.DOCUMENT, purpose="", user=N
     )
 
 
+def _trusted_mime(filename: str, kind: str) -> str:
+    """MIME type from the (already validated) extension — the browser-supplied type is ignored."""
+    mime = guess_mime(filename)
+    if kind == MediaKind.VIDEO and not mime.startswith("video/"):
+        return "video/mp4"
+    if kind == MediaKind.IMAGE and not mime.startswith("image/"):
+        return "application/octet-stream"
+    return mime
+
+
 def create_pending_upload(*, filename, size, mime_type, kind, purpose, user) -> MediaAsset:
     validate_upload(filename, size, kind)
     backend = get_backend()
     return MediaAsset.objects.create(
         kind=kind, provider=backend.name, storage_key=build_key(purpose, filename),
-        mime_type=mime_type or guess_mime(filename), size_bytes=size, original_name=os.path.basename(filename)[:255],
+        mime_type=_trusted_mime(filename, kind), size_bytes=size, original_name=os.path.basename(filename)[:255],
         status=MediaStatus.UPLOADING, purpose=purpose, uploaded_by=user,
     )
 

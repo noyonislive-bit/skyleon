@@ -9,7 +9,7 @@
   </div>
 </div>
 
-<div class="grid gap-6 xl:grid-cols-3">
+<div class="grid grid-cols-1 gap-6 xl:grid-cols-3">
   <div class="min-w-0 xl:col-span-2">
     {% include "portal/includes/player.html" with player=player label=tutorial.title %}
 
@@ -39,13 +39,25 @@
         <div class="ring-progress h-20 w-20 {% if progress.is_completed %}is-complete{% endif %}" style="--p: {{ progress.percent|pct }}; --thickness: 7px" data-progress-ring>
           <span class="text-base font-semibold text-slate-900 tabular-nums"><span data-ring-percent>{{ progress.percent|floatformat:0 }}</span>%</span>
         </div>
-        <dl class="grid flex-1 gap-2 text-sm">
+        <dl class="grid grid-cols-1 flex-1 gap-2 text-sm">
           <div><dt class="kv-label">অবস্থা</dt><dd class="mt-0.5" data-status-badge>{% status_badge progress.status progress.status|label_bn:"progress" %}</dd></div>
           <div><dt class="kv-label">দেখেছেন</dt><dd class="mt-0.5 font-mono text-slate-900 tabular-nums"><span data-watched-seconds>{{ progress.watched_seconds|duration }}</span>{% if tutorial.video.duration_sec %} / {{ tutorial.video.duration_sec|duration }}{% endif %}</dd></div>
         </dl>
       </div>
+      {% if not tutorial.video_id %}
+      <div class="mt-5 border-t border-slate-100 pt-4">
+        {% if progress.is_completed %}
+          <p class="flex items-center gap-2 text-sm font-medium text-emerald-700">{% icon "circle-check" class="h-4 w-4" %} পড়া শেষ হিসেবে রেকর্ড হয়েছে।</p>
+        {% else %}
+          <p class="text-xs text-slate-500">এই ট্রেনিংয়ে ভিডিও নেই। পুরো লেখাটা মন দিয়ে পড়ে তারপর নিচের বোতাম চাপুন।</p>
+          <form method="post" action="{% url 'portal:tutorial_complete' tutorial.pk %}" class="mt-3">{% csrf_token %}
+            <button class="btn btn-primary w-full">{% icon "check" class="h-4 w-4" %} পড়েছি — সম্পন্ন করুন</button>
+          </form>
+        {% endif %}
+      </div>
+      {% endif %}
       <ul class="mt-5 space-y-2 border-t border-slate-100 pt-4 text-xs text-slate-500">
-        <li class="flex gap-2">{% icon "eye" class="h-3.5 w-3.5 shrink-0 text-slate-400" %} ভিডিওর {{ player.threshold }}% সত্যিই দেখা হলে নিজে থেকেই সম্পন্ন হবে।</li>
+        {% if tutorial.video_id %}<li class="flex gap-2">{% icon "eye" class="h-3.5 w-3.5 shrink-0 text-slate-400" %} ভিডিওর {{ player.threshold }}% সত্যিই দেখা হলে নিজে থেকেই সম্পন্ন হবে।</li>{% endif %}
         {% if tutorial.is_required %}<li class="flex gap-2">{% icon "lock" class="h-3.5 w-3.5 shrink-0 text-slate-400" %} বাধ্যতামূলক ট্রেনিং একবার পুরো না দেখা পর্যন্ত সামনে টেনে এগোনো যাবে না।</li>{% endif %}
         <li class="flex gap-2">{% icon "history" class="h-3.5 w-3.5 shrink-0 text-slate-400" %} যেখানে থেমেছিলেন, সেখান থেকেই আবার চলবে।</li>
         {% if progress.due_at %}<li class="flex gap-2 {% if not progress.is_completed %}font-medium text-amber-700{% endif %}">{% icon "alarm-clock" class="h-3.5 w-3.5 shrink-0" %} শেষ তারিখ: {{ progress.due_at|date:"j M Y" }}</li>{% endif %}

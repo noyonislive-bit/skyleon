@@ -65,9 +65,9 @@ Generate a secret key with `python -c "import secrets; print(secrets.token_urlsa
 ## 5. Initialise the database and static files
 
 ```bash
+python manage.py collectstatic --noinput    # first: pages need the static-files manifest
 python manage.py migrate
 python manage.py createcachetable
-python manage.py collectstatic --noinput
 python manage.py seed_demo --defaults        # tutorial categories
 python manage.py createsuperuser             # your Super Admin login (email + name + password)
 ```
@@ -105,7 +105,10 @@ cPanel → **Cron Jobs** (replace the paths with the ones from step 3):
 | Daily 03:15 | `/home/cpuser/virtualenv/skyloon/3.11/bin/python /home/cpuser/skyloon/manage.py cleanup >/dev/null 2>&1` |
 
 `process_emails` retries any email that could not be sent immediately (e.g. SMTP hiccup).
-`cleanup` removes expired sessions, abandoned uploads and old delivered emails.
+`cleanup` removes expired sessions, abandoned uploads and old delivered / failed emails.
+To honour the privacy policy, you can also let it delete personal data that is no longer needed:
+`manage.py cleanup --purge-days 365` removes rejected job applications and closed quote requests /
+messages older than 365 days (with their uploaded files).
 
 ## 8. Email
 
@@ -161,8 +164,8 @@ tracked by the portal.
 source /home/cpuser/virtualenv/skyloon/3.11/bin/activate && cd /home/cpuser/skyloon
 git pull                       # or upload the new files
 pip install -r requirements.txt
-python manage.py migrate
 python manage.py collectstatic --noinput
+python manage.py migrate
 touch tmp/restart.txt
 ```
 
@@ -171,9 +174,21 @@ touch tmp/restart.txt
 | Symptom | Fix |
 |---|---|
 | "Incomplete response" / 500 right after deploy | Check `stderr.log` in the app root; usually a missing `.env` value (`SECRET_KEY`, `ALLOWED_HOSTS`) or DB credentials |
-| CSS missing | Run `collectstatic` and restart the app |
+| Every page returns 500 after an update ("Missing staticfiles manifest entry" in the log) | Run `collectstatic --noinput`, then restart the app — templates refer to the hashed file names in that manifest |
 | `CSRF verification failed` on forms | `CSRF_TRUSTED_ORIGINS` must contain `https://your-domain` (and `www.` variant) |
 | Emails not arriving | Check *Admin → Email log*; verify SMTP values; run `python manage.py process_emails` |
 | `Access denied for user` | The DB user is not added to the database with ALL PRIVILEGES |
 | Videos don't play from S3 | Check the bucket CORS rule and that `S3_ENDPOINT_URL` is correct |
 | Changes not visible | Restart the app (`touch tmp/restart.txt`) |
+
+## Security notes
+
+* **Rate limits** (login, signup, password reset, public forms) use the visitor's IP address. On plain cPanel
+  hosting leave `TRUSTED_PROXY_COUNT=0` and `BEHIND_HTTPS_PROXY=false`. Only when the site is behind
+  Cloudflare or another proxy set `TRUSTED_PROXY_COUNT=1` and `BEHIND_HTTPS_PROXY=true`.
+* `/django-admin/` (low-level database admin, super admins only) signs in through the normal, rate-limited login page.
+* Uploaded files are never shown as web pages: anything other than video, audio, images, PDF and plain text is
+  always downloaded, and every file is served with a sandboxing Content-Security-Policy.
+* Request bodies larger than `MAX_REQUEST_BODY_MB` (default 30 MB) are refused before they are read; videos use
+  chunked uploads. If your host's ModSecurity limits request bodies, keep `UPLOAD_CHUNK_SIZE` below that limit.
+* Password-reset emails go through the email outbox too, so they appear in **Admin → Email log** and are retried.

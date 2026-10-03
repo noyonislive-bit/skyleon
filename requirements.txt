@@ -2,6 +2,8 @@
 # cleanly inside cPanel's "Setup Python App" virtualenv (no compiler required).
 Django==5.2.17
 PyMySQL==1.2.3
+# Needed by PyMySQL for MySQL 8's caching_sha2_password over TCP (manylinux wheel, no compiler).
+cryptography==44.0.3
 python-dotenv==1.1.1
 whitenoise==6.11.0
 Markdown==3.9

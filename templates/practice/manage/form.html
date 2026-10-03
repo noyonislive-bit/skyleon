@@ -66,7 +66,11 @@
       {% if task.has_reference %}<p class="text-slate-600">{{ task.reference_clips|length }} clips recorded.</p>
       <ol class="mt-2 max-h-56 space-y-1 overflow-auto font-mono text-xs text-slate-600">{% for c in task.reference_clips %}<li>Clip {{ forloop.counter }}: {{ c.0|floatformat:2 }}s – {{ c.1|floatformat:2 }}s</li>{% endfor %}</ol>
       {% else %}<p class="text-amber-700">Not recorded yet — employees would only be scored on coverage.</p>{% endif %}
-      <form method="post" action="{% url 'practice:manage_delete' task.pk %}" class="mt-5 border-t border-slate-100 pt-4" data-confirm="Delete this practice task and all attempts?">{% csrf_token %}<button class="btn btn-danger-soft btn-sm">{% icon "trash-2" class="h-4 w-4" %} Delete task</button></form>
+      {% if attempt_count %}
+      <p class="mt-5 border-t border-slate-100 pt-4 text-xs text-slate-500">{{ attempt_count }} submitted attempt{{ attempt_count|pluralize }} — unpublish the task instead of deleting it, so the results are kept.</p>
+      {% else %}
+      <form method="post" action="{% url 'practice:manage_delete' task.pk %}" class="mt-5 border-t border-slate-100 pt-4" data-confirm="Delete this practice task? Unsubmitted drafts are deleted with it.">{% csrf_token %}<button class="btn btn-danger-soft btn-sm">{% icon "trash-2" class="h-4 w-4" %} Delete task</button></form>
+      {% endif %}
     </div>
     {% endif %}
   </aside>

@@ -13,11 +13,12 @@ Scoping rules (on top of the permission codes in accounts.permissions):
 """
 
 import csv
+import math
 from datetime import datetime, time
 
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
-from django.db.models import Exists, OuterRef
+from django.db.models import Exists, OuterRef, Q
 from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import NoReverseMatch, reverse
@@ -84,6 +85,24 @@ def can_manage_employee(user, target) -> bool:
     if target.role != Role.EMPLOYEE:
         return has_permission(user, "staff.manage")
     return True
+
+
+def can_edit_content(user, project_id) -> bool:
+    """can_manage_content_for() by project id, using the per-request cached scope (no query per table row)."""
+    if project_id is None:
+        return can_manage_content_for(user, None)
+    if not has_permission(user, "content.manage"):
+        return False
+    ids = scope_ids(user)
+    return ids is None or project_id in ids
+
+
+def people_q(user, prefix="user"):
+    """Q() limiting rows (progress, attempts, assignments …) to the people the viewer may see — the
+    same scope as the employee pages and the per-item tracking tables. Empty for super admins."""
+    if is_unscoped(user):
+        return Q()
+    return Q(**{f"{prefix}__in": employee_scope(user)})
 
 
 def can_target_project(user, project) -> bool:
@@ -164,10 +183,14 @@ def day_end(d):
 
 
 def parse_float(value):
-    try:
-        return float(value) if value not in (None, "") else None
-    except (TypeError, ValueError):
+    """A finite float from a query-string value, else None (rejects "nan", "inf", junk)."""
+    if value in (None, ""):
         return None
+    try:
+        number = float(value)
+    except (TypeError, ValueError, OverflowError):
+        return None
+    return number if math.isfinite(number) else None
 
 
 def int_or_none(value):

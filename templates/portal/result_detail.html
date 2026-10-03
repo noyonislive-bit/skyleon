@@ -2,6 +2,7 @@
 {% load portal_tags %}
 {% block browser_title %}ফলাফল · {{ test.title }}{% endblock %}
 {% block content %}
+<span hidden data-clear-test-draft="{{ attempt.pk }}"></span>
 <section class="card overflow-hidden" aria-labelledby="result-title">
   <div class="relative overflow-hidden px-6 py-8 sm:px-8 {% if attempt.passed %}bg-gradient-to-br from-emerald-50 via-white to-teal-50{% else %}bg-gradient-to-br from-red-50 via-white to-amber-50{% endif %}">
     <div class="flex flex-col gap-6 sm:flex-row sm:items-center">
@@ -45,7 +46,7 @@
 <section class="mt-6" aria-labelledby="review-title">
   <div class="mb-3 flex flex-wrap items-end justify-between gap-2">
     <h2 id="review-title" class="text-base font-semibold text-slate-900">প্রশ্নগুলো মিলিয়ে দেখুন</h2>
-    <p class="text-xs text-slate-500">{% if reveal %}আপনার উত্তর আর সঠিক উত্তর পাশাপাশি দেখানো হলো।{% else %}এই টেস্টে সঠিক উত্তর দেখানো হয় না।{% endif %}</p>
+    <p class="text-xs text-slate-500">{% if reveal %}আপনার উত্তর আর সঠিক উত্তর পাশাপাশি দেখানো হলো।{% elif reveal_later %}সঠিক উত্তরগুলো দেখা যাবে পাস করার পর, অথবা সব চেষ্টা শেষ হলে।{% else %}এই টেস্টে সঠিক উত্তর দেখানো হয় না।{% endif %}</p>
   </div>
   <ol class="space-y-4">
     {% for q in questions %}

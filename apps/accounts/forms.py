@@ -1,11 +1,12 @@
 from django import forms
 from django.contrib.auth import authenticate, password_validation
-from django.utils import translation
 from django.contrib.auth.forms import PasswordResetForm, SetPasswordForm
+from django.template.loader import render_to_string
+from django.utils import translation
 
 from apps.core.forms import HoneypotMixin, StyledFormMixin
 
-from .models import User, UserStatus
+from .models import Role, User, UserStatus
 
 
 def is_bn() -> bool:
@@ -103,7 +104,23 @@ class SignupForm(StyledFormMixin, HoneypotMixin, forms.Form):
 
 
 class StyledPasswordResetForm(StyledFormMixin, PasswordResetForm):
-    pass
+    """Django's reset form, but:
+      * also for invited users who never set a password (Django skips accounts without a usable password),
+      * the email goes through our outbox (Email log, retries) instead of being sent directly."""
+
+    def get_users(self, email):
+        return User.objects.filter(email__iexact=email, is_active=True)
+
+    def send_mail(self, subject_template_name, email_template_name, context, from_email, to_email, html_email_template_name=None):
+        from apps.comms.services import queue_email
+        from apps.core.site_settings import BRAND
+
+        user = context.get("user")
+        if getattr(user, "role", None) == Role.CLIENT:  # the client portal is in English
+            queue_email(to_email, f"Password reset — {BRAND['name']}", "password_reset_en", context)
+            return
+        subject = "".join(render_to_string(subject_template_name, {**context, "brand": BRAND}).splitlines())
+        queue_email(to_email, subject, "password_reset", context)
 
 
 class StyledSetPasswordForm(StyledFormMixin, SetPasswordForm):

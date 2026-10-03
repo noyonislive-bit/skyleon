@@ -6,13 +6,14 @@ from django.urls import reverse
 from django.views.decorators.http import require_POST
 
 from apps.accounts.decorators import permission_required_code
+from apps.accounts.models import UserStatus
 from apps.accounts.permissions import can_manage_content_for, project_scope
 from apps.assessments.models import Question, QuestionOption, QuestionType, Test, TestAssignment, TestAttempt, TestKind
 from apps.assessments.services import assign_test, publish_test, test_state
 from apps.core import audit
 from apps.core.choices import ContentStatus
 
-from ..forms import AssignPeopleForm, OptionFormSet, QuestionForm, TestForm, clean_question
+from ..forms import AssignPeopleForm, OptionFormSet, QuestionForm, TestForm, clean_question, tf_key
 from ..helpers import (
     assignable_employees,
     csv_response,
@@ -21,6 +22,7 @@ from ..helpers import (
     get_content,
     paginate,
     pct,
+    people_q,
     redirect_back,
     staff_projects,
     wants_csv,
@@ -34,11 +36,22 @@ def _linked_feedback(test):
         return None
 
 
+def pending_assignments(user):
+    """Assignments of published tests to active people in the viewer's scope that have no passed attempt yet
+    (the dashboard's "Tests pending" figure and the test list's `?pending=1` filter)."""
+    passed = TestAttempt.objects.filter(test=OuterRef("test"), user=OuterRef("user"), passed=True)
+    return project_scope(
+        TestAssignment.objects.filter(test__status=ContentStatus.PUBLISHED, user__status=UserStatus.ACTIVE)
+        .filter(people_q(user)),
+        user, field="test__project",
+    ).filter(~Exists(passed))
+
+
 @permission_required_code("content.manage")
 def test_list(request):
     user = request.user
     qs = project_scope(Test.objects.all(), user).select_related("project", "feedback")
-    f = {k: request.GET.get(k, "").strip() for k in ("q", "project", "kind", "status")}
+    f = {k: request.GET.get(k, "").strip() for k in ("q", "project", "kind", "status", "pending")}
     if f["q"]:
         qs = qs.filter(Q(title__icontains=f["q"]) | Q(description__icontains=f["q"]))
     if f["project"] == "global":
@@ -49,17 +62,25 @@ def test_list(request):
         qs = qs.filter(kind=f["kind"])
     if f["status"] in ContentStatus.values:
         qs = qs.filter(status=f["status"])
+    pending = dict(pending_assignments(user).order_by().values_list("test_id").annotate(n=Count("pk")))
+    pending_total = None
+    if f["pending"] == "1":
+        qs = qs.filter(pk__in=list(pending))
+        pending_total = sum(pending.get(pk, 0) for pk in qs.values_list("pk", flat=True))
+    # Counts cover the same people as the test's results page.
+    submitted = Q(attempts__submitted_at__isnull=False) & people_q(user, "attempts__user")
     qs = qs.annotate(
         question_count=Count("questions", distinct=True),
-        assigned=Count("assignments", distinct=True),
-        attempt_count=Count("attempts", filter=Q(attempts__submitted_at__isnull=False), distinct=True),
-        takers=Count("attempts__user", filter=Q(attempts__submitted_at__isnull=False), distinct=True),
-        passers=Count("attempts__user", filter=Q(attempts__passed=True), distinct=True),
+        assigned=Count("assignments", filter=people_q(user, "assignments__user"), distinct=True),
+        attempt_count=Count("attempts", filter=submitted, distinct=True),
+        takers=Count("attempts__user", filter=submitted, distinct=True),
+        passers=Count("attempts__user", filter=submitted & Q(attempts__passed=True), distinct=True),
     ).order_by("-created_at")
     page = paginate(request, qs)
     for t in page:
         t.pass_rate = pct(t.passers, t.takers)
         t.linked_feedback = _linked_feedback(t)
+        t.pending = pending.get(t.pk, 0)
     return render(request, "backoffice/tests/list.html", {
         "page_title": "Tests",
         "page_subtitle": "Training, onboarding, feedback and qualification tests with automatic scoring.",
@@ -69,6 +90,7 @@ def test_list(request):
         "kinds": TestKind.choices,
         "statuses": ContentStatus.choices,
         "filters": f,
+        "pending_total": pending_total,
     })
 
 
@@ -114,9 +136,9 @@ def test_edit(request, pk):
     return _test_form(request, get_content(request, Test, pk, manage=True))
 
 
-def _new_question_forms(data=None, files=None):
-    qform = QuestionForm(data, prefix="q")
-    formset = OptionFormSet(data, prefix="opt", initial=None if data else [{}, {}, {}, {}])
+def _new_question_forms(user, data=None):
+    qform = QuestionForm(data, prefix="q", user=user)
+    formset = OptionFormSet(data, prefix="opt", initial=None if data else [{}, {}, {}, {}], form_kwargs={"user": user})
     return qform, formset
 
 
@@ -124,9 +146,9 @@ def _builder_context(request, test, qform=None, formset=None):
     user = request.user
     questions = list(test.questions.select_related("media__thumbnail").prefetch_related("options__media").order_by("order", "pk"))
     if qform is None:
-        qform, formset = _new_question_forms()
+        qform, formset = _new_question_forms(user)
     linked = _linked_feedback(test)
-    stats = TestAttempt.objects.filter(test=test, submitted_at__isnull=False).aggregate(
+    stats = TestAttempt.objects.filter(people_q(user), test=test, submitted_at__isnull=False).aggregate(
         n=Count("pk"), takers=Count("user", distinct=True), passers=Count("user", filter=Q(passed=True), distinct=True))
     assign_form = None
     can_edit = can_manage_content_for(user, test.project)
@@ -147,8 +169,10 @@ def _builder_context(request, test, qform=None, formset=None):
         "can_edit": can_edit,
         "stats": stats,
         "pass_rate": pct(stats["passers"], stats["takers"]),
-        "assigned_count": test.assignments.count(),
+        "assigned_count": test.assignments.filter(people_q(user)).count(),
         "assign_form": assign_form,
+        # Questions added now are appended to attempts that are still open (they count towards the score).
+        "open_attempts": test.attempts.filter(submitted_at__isnull=True).count() if test.is_published else 0,
         "qtypes": QuestionType.choices,
     }
 
@@ -168,10 +192,12 @@ def _save_question(test, qform, options, question=None):
     q.save()
     existing = {o.pk: o for o in q.options.all()}
     if q.qtype == QuestionType.TRUE_FALSE:
-        by_text = {o.text.strip().lower(): o for o in existing.values()}
-        if set(by_text) == {"true", "false"} and len(existing) == 2:
+        # Keep existing True/False options (in either language) and only flip the correct answer —
+        # attempts store the chosen option ids.
+        by_key = {tf_key(o.text): o for o in existing.values()}
+        if set(by_key) == {"true", "false"} and len(existing) == 2:
             for opt in options:
-                o = by_text[opt["text"].lower()]
+                o = by_key[opt["tf"]]
                 if o.is_correct != opt["is_correct"]:
                     o.is_correct = opt["is_correct"]
                     o.save(update_fields=["is_correct"])
@@ -197,7 +223,7 @@ def question_create(request, pk):
     test = get_content(request, Test, pk, manage=True, select=("project",))
     if request.method != "POST":
         return redirect(reverse("backoffice:test_builder", args=[test.pk]) + "#add-question")
-    qform, formset = _new_question_forms(request.POST)
+    qform, formset = _new_question_forms(request.user, request.POST)
     options = clean_question(qform, formset)
     if options is not None:
         q = _save_question(test, qform, options)
@@ -219,8 +245,8 @@ def question_edit(request, pk):
     options = list(question.options.select_related("media").order_by("order", "pk"))
     initial = [{"id": o.pk, "text": o.text, "media": o.media_id, "is_correct": o.is_correct} for o in options]
     if request.method == "POST":
-        qform = QuestionForm(request.POST, instance=question, prefix="q")
-        formset = OptionFormSet(request.POST, prefix="opt", initial=initial)
+        qform = QuestionForm(request.POST, instance=question, prefix="q", user=request.user)
+        formset = OptionFormSet(request.POST, prefix="opt", initial=initial, form_kwargs={"user": request.user})
         cleaned = clean_question(qform, formset)
         if cleaned is not None:
             _save_question(test, qform, cleaned, question)
@@ -229,10 +255,10 @@ def question_edit(request, pk):
             return redirect(reverse("backoffice:test_builder", args=[test.pk]) + f"#q-{question.pk}")
         messages.error(request, "The question was not saved — please fix the highlighted problems.")
     else:
-        qform = QuestionForm(instance=question, prefix="q")
+        qform = QuestionForm(instance=question, prefix="q", user=request.user)
         if question.qtype == QuestionType.TRUE_FALSE:
             initial = [{}, {}]
-        formset = OptionFormSet(prefix="opt", initial=initial)
+        formset = OptionFormSet(prefix="opt", initial=initial, form_kwargs={"user": request.user})
     position = list(test.questions.order_by("order", "pk").values_list("pk", flat=True)).index(question.pk) + 1
     return render(request, "backoffice/tests/question_form.html", {
         "page_title": f"Edit question {position}",

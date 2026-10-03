@@ -306,9 +306,10 @@ def feedback_recipients(request, pk):
 # ── Linked test ─────────────────────────────────────────────────────────────
 
 def _create_test_for(request, fb):
+    # Employees see the test title and description in the portal, so they are written in Bangla.
     test = Test.objects.create(
-        title=f"Feedback {fb.display_number} check — {fb.topic}"[:200], kind=TestKind.FEEDBACK, project=fb.project,
-        description=f"A short check after feedback {fb.display_number}: {fb.topic}.", passing_score=80, attempt_limit=2,
+        title=f"ফিডব্যাক {fb.display_number} যাচাই — {fb.topic}"[:200], kind=TestKind.FEEDBACK, project=fb.project,
+        description=f"ফিডব্যাক {fb.display_number} দেখার পর ছোট একটা যাচাই: {fb.topic}", passing_score=80, attempt_limit=2,
         created_by=request.user,
     )
     fb.test = test
@@ -355,14 +356,19 @@ def feedback_test_link(request, pk):
 
 # ── Global tracking ─────────────────────────────────────────────────────────
 
-@permission_required_code("content.manage")
-def feedback_tracking(request):
-    user = request.user
-    base = project_scope(
+def tracking_base(user):
+    """Deliveries shown on the tracking page (also the dashboard's "Unseen feedback" figure)."""
+    return project_scope(
         FeedbackRecipient.objects.filter(feedback__status__in=[ContentStatus.PUBLISHED, ContentStatus.ARCHIVED],
                                          user__in=employee_scope(user)),
         user, field="feedback__project",
-    ).select_related("user", "feedback__project", "feedback__team", "feedback__test")
+    )
+
+
+@permission_required_code("content.manage")
+def feedback_tracking(request):
+    user = request.user
+    base = tracking_base(user).select_related("user", "feedback__project", "feedback__team", "feedback__test")
     rows = tracking_rows(base)
     f = {k: request.GET.get(k, "").strip() for k in ("q", "employee", "project", "feedback", "date_from", "date_to", "state", "score_min", "score_max")}
     if f["project"].isdigit():

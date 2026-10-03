@@ -126,6 +126,15 @@ def test_state(user, test: Test, attempts=None) -> TestState:
 
 # ── Attempts ────────────────────────────────────────────────────────────────
 
+# Answers that arrive later than this after the time limit are not accepted (network / clock slack).
+DEADLINE_GRACE_SECONDS = 120
+
+
+def is_past_deadline(attempt: TestAttempt, when=None) -> bool:
+    deadline = attempt_deadline(attempt)
+    return bool(deadline and (when or timezone.now()) > deadline + timezone.timedelta(seconds=DEADLINE_GRACE_SECONDS))
+
+
 def attempt_deadline(attempt: TestAttempt):
     if not attempt.test.time_limit_min:
         return None
@@ -165,17 +174,16 @@ def submit_attempt(attempt: TestAttempt, selections: dict) -> TestAttempt:
     attempt = TestAttempt.objects.select_for_update().select_related("test").get(pk=attempt.pk)
     if attempt.submitted_at:
         return attempt
+    now = timezone.now()
+    late = is_past_deadline(attempt, now)
+    if late:  # the time limit is enforced here, not only in the browser: late answers don't count
+        selections = {}
     result = grade(attempt_questions(attempt), selections)
-    attempt.submitted_at = timezone.now()
+    attempt.submitted_at = now
     attempt.score = result["score"]
     attempt.points_earned = result["earned"]
     attempt.points_total = result["total"]
     attempt.passed = result["score"] >= attempt.test.passing_score
-    deadline = attempt_deadline(attempt)
-    attempt.data = {
-        **attempt.data,
-        "answers": result["answers"],
-        "late": bool(deadline and attempt.submitted_at > deadline + timezone.timedelta(minutes=2)),
-    }
+    attempt.data = {**attempt.data, "answers": result["answers"], "late": late}
     attempt.save()
     return attempt

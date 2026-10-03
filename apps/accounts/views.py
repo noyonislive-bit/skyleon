@@ -14,7 +14,9 @@ from . import services
 from .forms import LoginForm, SignupForm, StyledPasswordResetForm, StyledSetPasswordForm
 from .models import Role, User, UserStatus
 
-LOGIN_LIMIT, LOGIN_WINDOW = 10, 15 * 60
+# Failed sign-ins are limited per (IP, account) and, more loosely, per IP — so one office behind a
+# shared IP is not locked out by a single person, and guessing many accounts from one IP is still capped.
+LOGIN_LIMIT, LOGIN_IP_LIMIT, LOGIN_WINDOW = 5, 30, 15 * 60
 
 
 def _safe_next(request, fallback):
@@ -24,26 +26,44 @@ def _safe_next(request, fallback):
     return fallback
 
 
+def login_keys(request) -> tuple[str, str]:
+    ip = ratelimit.client_ip(request)
+    ident = str(request.POST.get("identifier") or "").strip().lower()[:150]
+    return f"login:{ip}:{ident}", f"login-ip:{ip}"
+
+
+def login_locked(request) -> bool:
+    account_key, ip_key = login_keys(request)
+    return ratelimit.is_limited(account_key, LOGIN_LIMIT) or ratelimit.is_limited(ip_key, LOGIN_IP_LIMIT)
+
+
+def login_failed(request) -> None:
+    account_key, ip_key = login_keys(request)
+    ratelimit.hit(account_key, LOGIN_LIMIT, LOGIN_WINDOW)
+    ratelimit.hit(ip_key, LOGIN_IP_LIMIT, LOGIN_WINDOW)
+
+
 def login_view(request, portal="employee"):
     if request.user.is_authenticated:
         return redirect("accounts:after_login")
-    ip = ratelimit.client_ip(request)
+    template = "accounts/client_login.html" if portal == "client" else "accounts/login.html"
+    if request.method == "POST" and login_locked(request):
+        # Locked: the password is not checked at all (so the answer can't reveal whether it was right).
+        login_failed(request)
+        form = LoginForm(request, initial={"identifier": request.POST.get("identifier", "")})
+        lockout = ("Too many sign-in attempts. Please wait 15 minutes and try again." if portal == "client"
+                   else "অনেকবার ভুল চেষ্টা হয়েছে। ১৫ মিনিট পর আবার চেষ্টা করুন।")
+        return render(request, template, {"form": form, "lockout": lockout, "next": request.POST.get("next", "")}, status=429)
     form = LoginForm(request, data=request.POST or None)
     if request.method == "POST":
-        key = f"login:{ip}"
-        if ratelimit.is_limited(key, LOGIN_LIMIT):
-            form.add_error(None, "Too many sign-in attempts. Please wait 15 minutes and try again." if portal == "client"
-                           else "অনেকবার ভুল চেষ্টা হয়েছে। ১৫ মিনিট পর আবার চেষ্টা করুন।")
-        elif form.is_valid():
+        if form.is_valid():
             user = form.user
             login(request, user)
-            ratelimit.reset(key)
+            ratelimit.reset(login_keys(request)[0])
             if not form.cleaned_data.get("remember"):
                 request.session.set_expiry(0)
             return redirect(_safe_next(request, reverse("accounts:after_login")))
-        else:
-            ratelimit.hit(key, LOGIN_LIMIT, LOGIN_WINDOW)
-    template = "accounts/client_login.html" if portal == "client" else "accounts/login.html"
+        login_failed(request)
     return render(request, template, {"form": form, "next": request.GET.get("next", "")})
 
 
@@ -57,7 +77,11 @@ def after_login(request):
 
 @require_POST
 def logout_view(request):
+    is_client = getattr(request.user, "role", None) == Role.CLIENT
     logout(request)
+    if is_client:
+        messages.success(request, "You have been signed out.")
+        return redirect("accounts:client_login")
     messages.success(request, "আপনি লগআউট করেছেন।")
     return redirect("accounts:login")
 

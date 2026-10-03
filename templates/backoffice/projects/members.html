@@ -34,7 +34,7 @@
         <tbody>
         {% for m in members %}
           <tr>
-            <td class="min-w-48">{% include "backoffice/components/person.html" with u=m.user link=True %}</td>
+            <td class="min-w-48">{% include "backoffice/components/person.html" with u=m.user link=m.can_view %}</td>
             <td>
               {% if m.can_manage %}
                 <form method="post" action="{% url 'backoffice:member_update' m.pk %}" class="flex gap-1.5" data-autosubmit>{% csrf_token %}

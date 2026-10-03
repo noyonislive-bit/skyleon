@@ -19,7 +19,7 @@ from apps.training.models import OnboardingStep, OnboardingStepType, Tutorial, T
 from apps.training.services import onboarding_matrix, step_rule
 
 from ..forms import AddMembersForm, GuidelineForm, MemberUpdateForm, OnboardingStepForm, ProjectForm, TeamForm
-from ..helpers import get_project, pct, staff_projects
+from ..helpers import employee_scope, get_project, pct, staff_projects
 from ..stats import training_by_user
 
 TABS = [
@@ -31,16 +31,24 @@ TABS = [
     ("content", "Content", "backoffice:project_content"),
 ]
 
+# Employees read these steps in the portal, so the defaults are in Bangla (docs/BANGLA_STYLE.md).
 DEFAULT_STEPS = [
-    (OnboardingStepType.WELCOME, "Welcome & project introduction", "Meet the project, its goal and how work flows."),
-    (OnboardingStepType.GUIDELINE_VIDEO, "Project guidelines video", "Watch the walkthrough of the project guidelines."),
-    (OnboardingStepType.TUTORIAL, "Annotation tutorial", "Learn the annotation technique step by step."),
-    (OnboardingStepType.EXAMPLES, "Examples of correct work", "Study accepted examples before you start."),
-    (OnboardingStepType.COMMON_MISTAKES, "Common mistakes", "Avoid the most frequent rejection reasons."),
-    (OnboardingStepType.QA_GUIDELINES, "QA / review guidelines", "Understand how reviewers score your work."),
-    (OnboardingStepType.TEST, "Training test", "Pass the project training test."),
-    (OnboardingStepType.QUALIFICATION, "Final qualification", "Your project manager reviews a sample and qualifies you."),
+    (OnboardingStepType.WELCOME, "স্বাগতম ও প্রজেক্ট পরিচিতি", "প্রজেক্টটি কী নিয়ে, এর লক্ষ্য কী আর কাজ কীভাবে এগোয় — শুরুতেই জেনে নিন।"),
+    (OnboardingStepType.GUIDELINE_VIDEO, "প্রজেক্ট গাইডলাইন ভিডিও", "প্রজেক্টের গাইডলাইন ধাপে ধাপে বুঝিয়ে দেওয়া ভিডিওটি দেখুন।"),
+    (OnboardingStepType.TUTORIAL, "অ্যানোটেশন টিউটোরিয়াল", "অ্যানোটেশনের কৌশল ধাপে ধাপে শিখে নিন।"),
+    (OnboardingStepType.EXAMPLES, "সঠিক কাজের উদাহরণ", "কাজ শুরুর আগে যেসব কাজ accept হয়েছে, সেই উদাহরণগুলো ভালো করে দেখে নিন।"),
+    (OnboardingStepType.COMMON_MISTAKES, "সাধারণ ভুলগুলো", "যেসব কারণে কাজ সবচেয়ে বেশি reject হয়, সেগুলো জেনে নিন আর এড়িয়ে চলুন।"),
+    (OnboardingStepType.QA_GUIDELINES, "QA / রিভিউ গাইডলাইন", "রিভিউয়াররা আপনার কাজ কীভাবে যাচাই করে স্কোর দেন, তা বুঝে নিন।"),
+    (OnboardingStepType.TEST, "ট্রেনিং টেস্ট", "প্রজেক্টের ট্রেনিং টেস্টে পাস করুন।"),
+    (OnboardingStepType.QUALIFICATION, "চূড়ান্ত কোয়ালিফিকেশন", "আপনার প্রজেক্ট ম্যানেজার আপনার কাজের একটি নমুনা দেখে আপনাকে কোয়ালিফাই করবেন।"),
 ]
+
+
+def _visible_people(user, people):
+    """Ids of the given accounts whose employee page the viewer may open (staff members are out of a PM's scope)."""
+    if not has_permission(user, "employees.view"):
+        return set()
+    return set(employee_scope(user).filter(pk__in=[p.pk for p in people]).values_list("pk", flat=True))
 
 
 def _can_edit_project(user, project):
@@ -119,7 +127,7 @@ def project_list(request):
 
 @permission_required_code("projects.create")
 def project_create(request):
-    form = ProjectForm(request.POST or None)
+    form = ProjectForm(request.POST or None, user=request.user)
     if request.method == "POST" and form.is_valid():
         project = form.save()
         audit.log(request, "project.create", project, code=project.code)
@@ -135,7 +143,7 @@ def project_create(request):
 @permission_required_code("projects.manage")
 def project_edit(request, pk):
     project = get_project(request, pk, manage=True)
-    form = ProjectForm(request.POST or None, instance=project)
+    form = ProjectForm(request.POST or None, instance=project, user=request.user)
     if request.method == "POST" and form.is_valid():
         form.save()
         audit.log(request, "project.edit", project, fields=list(form.changed_data))
@@ -206,7 +214,13 @@ def project_members(request, pk):
             audit.log(request, "project.member_add", project, users=[u.pk for u in d["users"]], role=d["role"])
             messages.success(request, f"Added {len(d['users'])} member(s) to {project.name}. Their project training is now assigned.")
             return redirect("backoffice:project_members", pk=project.pk)
-        messages.error(request, "Select at least one person to add.")
+        if not request.POST.getlist("users"):
+            messages.error(request, "Select at least one person to add.")
+        elif form.has_error("users"):
+            messages.error(request, "Some of the selected people can't be added — they are already members, not active, "
+                                    "or outside the people you manage. Nobody was added.")
+        else:
+            messages.error(request, "Nobody was added — please correct the errors below.")
     members = list(project.members.select_related("user", "team", "qualified_by").order_by("team__name", "user__name"))
     team_filter = request.GET.get("team", "")
     if team_filter == "none":
@@ -214,6 +228,7 @@ def project_members(request, pk):
     elif team_filter.isdigit():
         members = [m for m in members if m.team_id == int(team_filter)]
     users = [m.user for m in members]
+    visible = _visible_people(user, users)
     matrix = onboarding_matrix(project, users)
     training = training_by_user([u.pk for u in users], only_project=project)
     team_choices = [("", "No team")] + [(t.pk, t.name) for t in project.teams.all()]
@@ -223,6 +238,7 @@ def project_members(request, pk):
         m.form = MemberUpdateForm(initial={"role": m.role, "team": m.team_id}, project=project, prefix=f"m{m.pk}")
         m.form.fields["team"].widget.choices = team_choices  # render without one query per row
         m.can_manage = can_edit and (m.user.role == Role.EMPLOYEE or has_permission(user, "staff.manage"))
+        m.can_view = m.user_id in visible
     return render(request, "backoffice/projects/members.html", _ctx(
         request, project, "members", members=members, form=form, teams=project.teams.all(), team_filter=team_filter,
     ))
@@ -244,8 +260,9 @@ def project_teams(request, pk):
             messages.success(request, f"Team “{team.name}” created.")
             return redirect("backoffice:project_teams", pk=project.pk)
     teams = list(project.teams.select_related("lead").annotate(n=Count("members")))
+    lead_choices = TeamForm.lead_choices(project) if teams else None
     for t in teams:
-        t.form = TeamForm(instance=t, project=project, prefix=f"t{t.pk}")
+        t.form = TeamForm(instance=t, project=project, prefix=f"t{t.pk}", lead_choices=lead_choices)
     unassigned = project.members.filter(team__isnull=True).count()
     return render(request, "backoffice/projects/teams.html", _ctx(request, project, "teams", teams=teams, form=form, unassigned=unassigned))
 
@@ -292,7 +309,7 @@ def project_guidelines(request, pk):
 
 
 def _guideline_form(request, project, guideline=None):
-    form = GuidelineForm(request.POST or None, instance=guideline,
+    form = GuidelineForm(request.POST or None, instance=guideline, user=request.user,
                          initial=None if guideline else {"order": project.guidelines.count() + 1, "version": "1.0"})
     if request.method == "POST" and form.is_valid():
         obj = form.save(commit=False)

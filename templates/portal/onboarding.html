@@ -137,6 +137,9 @@
               </div>
               {% endif %}
 
+              {% if item.rule == "guideline" and not item.done %}
+              <p class="text-xs text-slate-500">{% icon "info" class="inline h-3 w-3" %} গাইডলাইনটি খুলে পুরোটা পড়ুন, তারপর সেখানে “এই ভার্সনটি পড়েছি” চাপলে এই ধাপটি নিজে থেকেই সম্পন্ন হবে।</p>
+              {% endif %}
               {% if item.rule == "manual" and not item.done %}
               <form method="post" action="{% url 'portal:onboarding_complete_step' step.pk %}" class="pt-1">{% csrf_token %}
                 <button type="submit" class="btn btn-success btn-sm">{% icon "check" class="h-3.5 w-3.5" %} সম্পন্ন হিসেবে চিহ্নিত করুন</button>

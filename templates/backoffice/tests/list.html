@@ -8,8 +8,10 @@
     <select name="project" class="select" aria-label="Project"><option value="">All projects</option><option value="global"{% if filters.project == "global" %} selected{% endif %}>Company-wide</option>{% for p in projects %}<option value="{{ p.pk }}"{% if filters.project == p.pk|stringformat:"s" %} selected{% endif %}>{{ p.code }} · {{ p.name }}</option>{% endfor %}</select>
     <select name="kind" class="select" aria-label="Kind"><option value="">All kinds</option>{% for v, l in kinds %}<option value="{{ v }}"{% if filters.kind == v %} selected{% endif %}>{{ l }}</option>{% endfor %}</select>
     <select name="status" class="select" aria-label="Status"><option value="">Any status</option>{% for v, l in statuses %}<option value="{{ v }}"{% if filters.status == v %} selected{% endif %}>{{ l }}</option>{% endfor %}</select>
-    {% if filters.q or filters.project or filters.kind or filters.status %}<a href="{% url 'backoffice:test_list' %}" class="btn btn-ghost btn-sm sm:!w-auto">Reset</a>{% endif %}
+    <select name="pending" class="select" aria-label="Assignments"><option value="">All tests</option><option value="1"{% if filters.pending == "1" %} selected{% endif %}>Assignments without a pass</option></select>
+    {% if filters.q or filters.project or filters.kind or filters.status or filters.pending %}<a href="{% url 'backoffice:test_list' %}" class="btn btn-ghost btn-sm sm:!w-auto">Reset</a>{% endif %}
   </form>
+  {% if pending_total is not None %}<p class="border-b border-slate-100 px-5 py-3 text-sm text-slate-600"><span class="font-semibold text-slate-900">{{ pending_total }}</span> assignment{{ pending_total|pluralize }} of published tests without a pass yet.</p>{% endif %}
   {% if page.object_list %}
   <div class="table-wrap">
     <table class="table">
@@ -22,7 +24,7 @@
           <td>{% if t.project %}<span class="bo-chip"><span class="dot h-1.5 w-1.5" style="background: {{ t.project.color }}"></span>{{ t.project.code }}</span>{% else %}<span class="bo-chip">Company-wide</span>{% endif %}</td>
           <td>{% status_badge t.status t.get_status_display %}</td>
           <td class="num bo-num">{% if t.question_count %}{{ t.question_count }}{% else %}<span class="text-amber-700">0</span>{% endif %}</td>
-          <td class="num bo-num">{{ t.assigned }}</td>
+          <td class="num bo-num">{{ t.assigned }}{% if t.pending %}<span class="block text-[11px] font-normal text-amber-700">{{ t.pending }} pending</span>{% endif %}</td>
           <td class="num bo-num">{{ t.attempt_count }}</td>
           <td class="w-36">{% if t.takers %}{% include "backoffice/components/meter.html" with value=t.pass_rate done=t.passers total=t.takers unit="passed" %}{% else %}<span class="bo-muted">—</span>{% endif %}</td>
           <td><div class="bo-row-actions"><a href="{% url 'backoffice:test_results' t.pk %}" class="bo-icon-btn" title="Results">{% icon "bar-chart-3" class="h-4 w-4" %}</a><a href="{% url 'backoffice:test_builder' t.pk %}" class="bo-icon-btn" title="Questions">{% icon "chevron-right" class="h-4 w-4" %}</a></div></td>

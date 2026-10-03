@@ -1,10 +1,12 @@
 """Forms used by the admin panel. Business rules stay in the services."""
 
+import re
 import uuid
 
 from django import forms
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
+from django.utils import timezone
 from django.utils.text import slugify
 
 from apps.accounts.forms import ProfileForm
@@ -21,8 +23,10 @@ from apps.training.models import OnboardingStep, Tutorial, TutorialCategory
 from apps.website.models import ApplicationStatus, ContactMessage, JobApplication, LeadStatus, QuoteRequest
 
 from .helpers import assignable_employees, assignable_people, can_target_project, staff_projects
+from .media import can_attach_asset
 
 DATETIME_FORMATS = ["%Y-%m-%dT%H:%M", "%Y-%m-%d %H:%M", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d"]
+COLOR_RE = re.compile(r"^#[0-9a-fA-F]{6}$")
 
 
 def date_widget():
@@ -36,12 +40,21 @@ def datetime_widget():
 # ── Custom fields / widgets ─────────────────────────────────────────────────
 
 class MediaAssetField(forms.Field):
-    """Hidden input holding a MediaAsset UUID, filled by static/js/uploader.js."""
+    """
+    Hidden input holding a MediaAsset UUID, filled by static/js/uploader.js.
+
+    Only accepts files the user may attach: their own uploads, files already attached to
+    content in their scope, or the field's current (saved) value. The form binds the user with
+    `bind_media_fields(form, user)`; an unbound field accepts nothing but the current value.
+    """
 
     widget = forms.HiddenInput
+    NOT_FOUND = "The uploaded file was not found or is not ready yet — please upload it again."
 
     def __init__(self, *, kinds=(MediaKind.VIDEO,), **kwargs):
         self.kinds = tuple(kinds)
+        self.user = None
+        self.current = None  # pk of the saved asset — always allowed
         kwargs.setdefault("required", False)
         super().__init__(**kwargs)
 
@@ -60,9 +73,25 @@ class MediaAssetField(forms.Field):
         except ValueError:
             raise ValidationError("Invalid file reference.")
         asset = MediaAsset.objects.filter(pk=pk, kind__in=self.kinds, status=MediaStatus.READY).first()
-        if asset is None:
-            raise ValidationError("The uploaded file was not found or is not ready yet — please upload it again.")
+        if asset is None or not self.allowed(asset):
+            raise ValidationError(self.NOT_FOUND)
         return asset
+
+    def allowed(self, asset) -> bool:
+        if self.current is not None and str(asset.pk) == str(self.current):
+            return True
+        return can_attach_asset(self.user, asset)
+
+
+def bind_media_fields(form, user):
+    """Tell every MediaAssetField of `form` who is editing and which asset is already saved."""
+    for name, field in form.fields.items():
+        if isinstance(field, MediaAssetField):
+            field.user = user
+            current = form.initial.get(name)
+            if current is None and getattr(form, "instance", None) is not None and form.instance.pk:
+                current = getattr(form.instance, f"{name}_id", None)
+            field.current = current.pk if isinstance(current, MediaAsset) else current
 
 
 class ParentSelect(forms.Select):
@@ -80,11 +109,15 @@ class ParentSelect(forms.Select):
         return option
 
 
+def person_label(obj):
+    ident = obj.employee_id or obj.email
+    role = "" if obj.role == Role.EMPLOYEE else f" · {obj.get_role_display()}"
+    return f"{obj.name} · {ident}{role}"
+
+
 class PersonLabelMixin:
     def label_from_instance(self, obj):
-        ident = obj.employee_id or obj.email
-        role = "" if obj.role == Role.EMPLOYEE else f" · {obj.get_role_display()}"
-        return f"{obj.name} · {ident}{role}"
+        return person_label(obj)
 
 
 class PersonChoiceField(PersonLabelMixin, forms.ModelChoiceField):
@@ -145,7 +178,17 @@ class EmployeeEditForm(ProfileForm):
     class Meta(ProfileForm.Meta):
         fields = ["name", "email", "phone", "location", "title", "bio"]
 
+    def __init__(self, *args, user, **kwargs):
+        super().__init__(*args, **kwargs)
+        # The email is the login: changing it and then sending a password link would hand the
+        # account to whoever owns the new address, so only super admins may change it.
+        if not has_permission(user, "staff.manage"):
+            self.fields["email"].disabled = True
+            self.fields["email"].help_text = "Only a super admin can change the email address."
+
     def clean_email(self):
+        if self.fields["email"].disabled:
+            return self.instance.email
         email = self.cleaned_data["email"].strip().lower()
         if User.objects.filter(email__iexact=email).exclude(pk=self.instance.pk).exists():
             raise ValidationError("Another account already uses this email.")
@@ -285,14 +328,24 @@ class ProjectForm(StyledFormMixin, forms.ModelForm):
         }
         help_texts = {"slug": "Used in portal URLs. Leave empty to generate from the name."}
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, user, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["slug"].required = False
         self.fields["slug"].widget.attrs.pop("required", None)
         self.fields["organization"].empty_label = "No client organisation"
+        # The client organisation decides which client accounts see the project (client portal).
+        if not has_permission(user, "staff.manage"):
+            self.fields["organization"].disabled = True
+            self.fields["organization"].help_text = "Only a super admin can change the client organisation."
 
     def clean_code(self):
         return self.cleaned_data["code"].strip().upper()
+
+    def clean_color(self):
+        color = (self.cleaned_data.get("color") or "").strip()
+        if not COLOR_RE.match(color):
+            raise ValidationError("Use a hex colour like #088650.")
+        return color.lower()
 
     def clean_slug(self):
         slug = slugify(self.cleaned_data.get("slug") or self.cleaned_data.get("name") or "")[:120]
@@ -316,10 +369,17 @@ class TeamForm(StyledFormMixin, forms.ModelForm):
         model = Team
         fields = ["name", "lead"]
 
-    def __init__(self, *args, project, **kwargs):
+    def __init__(self, *args, project, lead_choices=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.project = project
         self.fields["lead"].queryset = User.objects.filter(memberships__project=project).order_by("name")
+        if lead_choices is not None:  # pre-rendered once per page instead of one query per team row
+            self.fields["lead"].widget.choices = lead_choices
+
+    @staticmethod
+    def lead_choices(project):
+        people = User.objects.filter(memberships__project=project).order_by("name")
+        return [("", "No lead")] + [(u.pk, person_label(u)) for u in people]
 
     def clean_name(self):
         name = self.cleaned_data["name"].strip()
@@ -336,6 +396,10 @@ class GuidelineForm(StyledFormMixin, forms.ModelForm):
         fields = ["title", "version", "order", "content", "document"]
         widgets = {"content": forms.Textarea(attrs={"rows": 14, "class": "font-mono text-[13px]"})}
         help_texts = {"version": "Bump the version when rules change — employees are asked to acknowledge again."}
+
+    def __init__(self, *args, user, **kwargs):
+        super().__init__(*args, **kwargs)
+        bind_media_fields(self, user)
 
 
 class OnboardingStepForm(StyledFormMixin, forms.ModelForm):
@@ -385,12 +449,19 @@ class TutorialForm(StyledFormMixin, forms.ModelForm):
         set_project_field(self.fields["project"], user, allow_global=can_manage_content_for(user, None),
                           global_label="Company-wide (all employees)")
         self.fields["category"].empty_label = "No category"
+        bind_media_fields(self, user)
 
     def clean_project(self):
         project = self.cleaned_data.get("project")
         if not can_manage_content_for(self.user, project):
             raise ValidationError("You can't manage content for this audience.")
         return project
+
+    def clean_video(self):
+        video = self.cleaned_data.get("video")
+        if video is None and self.instance.pk and self.instance.is_published:
+            raise ValidationError("A published tutorial needs a video. Unpublish first or choose another video.")
+        return video
 
 
 class CategoryForm(StyledFormMixin, forms.ModelForm):
@@ -430,6 +501,14 @@ class FeedbackForm(StyledFormMixin, forms.ModelForm):
         self.fields["team"].queryset = Team.objects.filter(project__in=self.fields["project"].queryset).order_by("name")
         self.fields["team"].label_from_instance = lambda t: t.name
         self.fields["team"].empty_label = "Whole project"
+        bind_media_fields(self, user)
+        # Once feedback has been delivered, its audience is fixed: recipients, their tracking rows and
+        # the linked test all belong to that project / team.
+        self.audience_locked = bool(self.instance.pk and (self.instance.is_published or self.instance.recipients.exists()))
+        if self.audience_locked:
+            for name in ("project", "team"):
+                self.fields[name].disabled = True
+            self.fields["project"].help_text = "Fixed once the feedback has been published."
 
     def clean(self):
         data = super().clean()
@@ -438,6 +517,9 @@ class FeedbackForm(StyledFormMixin, forms.ModelForm):
             self.add_error("project", "You can't manage feedback for this project.")
         if team and project and team.project_id != project.pk:
             self.add_error("team", "This team belongs to another project.")
+        test = self.instance.test if self.instance.pk and self.instance.test_id else None
+        if test is not None and project and test.project_id != project.pk:
+            self.add_error("project", f"The linked test “{test.title}” belongs to another project — unlink it first.")
         return data
 
 
@@ -456,11 +538,25 @@ class TestForm(StyledFormMixin, forms.ModelForm):
         set_project_field(self.fields["project"], user, allow_global=can_manage_content_for(user, None),
                           global_label="Company-wide")
         self.fields["passing_score"].widget.attrs.update(min=1, max=100)
+        self.fields["attempt_limit"].widget.attrs.update(min=1)
+        self.fields["time_limit_min"].widget.attrs.update(min=1)
 
     def clean_passing_score(self):
         value = self.cleaned_data["passing_score"]
         if not 1 <= value <= 100:
             raise ValidationError("Enter a percentage between 1 and 100.")
+        return value
+
+    def clean_attempt_limit(self):
+        value = self.cleaned_data.get("attempt_limit")
+        if value is not None and value < 1:
+            raise ValidationError("Allow at least one attempt, or leave it empty for unlimited attempts.")
+        return value
+
+    def clean_time_limit_min(self):
+        value = self.cleaned_data.get("time_limit_min")
+        if value is not None and value < 1:
+            raise ValidationError("Use at least 1 minute, or leave it empty for no time limit.")
         return value
 
     def clean_project(self):
@@ -481,13 +577,31 @@ class QuestionForm(StyledFormMixin, forms.ModelForm):
         widgets = {"prompt": forms.Textarea(attrs={"rows": 3}), "explanation": forms.Textarea(attrs={"rows": 2})}
         labels = {"qtype": "Question type", "explanation": "Explanation (shown after submission)"}
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, user, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["points"].widget.attrs.update(min=1, max=100)
+        bind_media_fields(self, user)
         if self.instance.pk and self.instance.qtype == QuestionType.TRUE_FALSE and not self.is_bound:
             correct = next((o for o in self.instance.options.all() if o.is_correct), None)
             if correct:
-                self.initial["tf_answer"] = "true" if correct.text.strip().lower() == "true" else "false"
+                self.initial["tf_answer"] = tf_key(correct.text) or "false"
+
+    def clean_points(self):
+        points = self.cleaned_data.get("points")
+        if points is None or not 1 <= points <= 100:
+            raise ValidationError("Give the question between 1 and 100 points.")
+        return points
+
+
+# True / False options are shown to employees, so new ones are written in Bangla. Older
+# questions may still have English "True" / "False" options — both spellings are recognised.
+TF_TEXT = {"true": "সত্য", "false": "মিথ্যা"}
+_TF_KEYS = {"true": "true", "সত্য": "true", "false": "false", "মিথ্যা": "false"}
+
+
+def tf_key(text) -> str | None:
+    """'true' / 'false' for a True/False option text in either language, else None."""
+    return _TF_KEYS.get((text or "").strip().lower())
 
 
 class OptionForm(StyledFormMixin, forms.Form):
@@ -495,6 +609,10 @@ class OptionForm(StyledFormMixin, forms.Form):
     text = forms.CharField(max_length=500, required=False, widget=forms.TextInput(attrs={"placeholder": "Answer text"}))
     media = MediaAssetField(kinds=(MediaKind.IMAGE,))
     is_correct = forms.BooleanField(required=False, label="Correct")
+
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        bind_media_fields(self, user)
 
 
 OptionFormSet = forms.formset_factory(OptionForm, extra=0, can_delete=True, max_num=12, validate_max=True)
@@ -512,8 +630,8 @@ def clean_question(qform: QuestionForm, formset) -> list[dict] | None:
         if answer not in ("true", "false"):
             qform.add_error("tf_answer", "Choose whether the statement is true or false.")
             return None
-        return [{"id": None, "text": "True", "media": None, "is_correct": answer == "true"},
-                {"id": None, "text": "False", "media": None, "is_correct": answer == "false"}]
+        return [{"id": None, "tf": key, "text": TF_TEXT[key], "media": None, "is_correct": answer == key}
+                for key in ("true", "false")]
     if not ok_o:
         return None
     options, errors = [], []
@@ -598,6 +716,18 @@ class MeetingForm(StyledFormMixin, forms.ModelForm):
         if not can_target_project(self.user, project):
             raise ValidationError("Choose one of your projects.")
         return project
+
+    def clean_duration_min(self):
+        value = self.cleaned_data.get("duration_min")
+        if value is None or not 5 <= value <= 600:
+            raise ValidationError("Use a duration between 5 and 600 minutes.")
+        return value
+
+    def clean_starts_at(self):
+        value = self.cleaned_data.get("starts_at")
+        if value and not self.instance.pk and value <= timezone.now():
+            raise ValidationError("Choose a time in the future.")
+        return value
 
     def clean(self):
         data = super().clean()

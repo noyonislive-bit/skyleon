@@ -40,7 +40,6 @@
       });
     });
   };
-  const clearDraft = () => { try { window.localStorage.removeItem(storageKey); } catch (_) { /* ignore */ } };
 
   // Progress -----------------------------------------------------------------
   const counter = document.querySelector("[data-answered-count]");
@@ -78,7 +77,8 @@
     if (submitting) return;
     submitting = true;
     if (auto && autoField) autoField.value = "1";
-    clearDraft();
+    // The draft is kept until the result page confirms the submission (portal.js clears it there),
+    // so answers survive a failed submit (expired session, network error).
     form.querySelectorAll("[data-submit]").forEach((b) => {
       b.disabled = true;
       b.textContent = "জমা হচ্ছে…";

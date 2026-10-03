@@ -27,3 +27,23 @@ class OutboxTests(TestCase):
         u = User.objects.create_user("b@example.com", "pw-Strong-1", name="B", status=UserStatus.SUSPENDED)
         notify([u], NotificationType.SYSTEM, "Hello")
         self.assertFalse(Notification.objects.exists())
+
+    def test_subject_newlines_are_removed(self):
+        """A CR/LF typed into a public form must not make the mail library refuse the alert."""
+        from .services import queue_email
+
+        msg = queue_email("x@example.com", "Hello\nBcc: evil@example.com", "contact_confirmation",
+                          {"msg": type("M", (), {"name": "N"})()})
+        self.assertEqual(msg.subject, "Hello Bcc: evil@example.com")
+        self.assertEqual(deliver(), (1, 0))
+
+    def test_claimed_message_is_not_sent_twice(self):
+        from django.utils import timezone
+
+        from .services import queue_email
+
+        msg = queue_email("y@example.com", "Hi", "contact_confirmation", {"msg": type("M", (), {"name": "N"})()})
+        EmailMessage.objects.filter(pk=msg.pk).update(locked_until=timezone.now() + timezone.timedelta(minutes=5))
+        self.assertEqual(deliver(), (0, 0))  # another sender holds it
+        self.assertEqual(len(mail.outbox), 0)
+

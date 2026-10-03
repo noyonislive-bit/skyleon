@@ -28,7 +28,7 @@
   </dl>
 </section>
 
-<div class="mt-6 grid gap-6 xl:grid-cols-3">
+<div class="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-3">
   <div class="min-w-0 space-y-6 xl:col-span-2">
     {% if project.description %}
     <section class="card">
@@ -68,7 +68,7 @@
         <a href="{% url 'portal:training' %}?project={{ project.slug }}" class="text-xs font-semibold text-brand-600 hover:text-brand-700">সব →</a>
       </div>
       {% if tutorials %}
-      <div class="grid gap-4 p-5 sm:grid-cols-2">
+      <div class="grid grid-cols-1 gap-4 p-5 sm:grid-cols-2">
         {% for t in tutorials %}{% include "portal/includes/tutorial_card.html" with t=t %}{% endfor %}
       </div>
       {% else %}

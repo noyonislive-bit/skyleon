@@ -1,5 +1,7 @@
 """Account lifecycle: signup, approval, invitations, suspension."""
 
+from typing import NamedTuple
+
 from django.contrib.auth.tokens import default_token_generator
 from django.db import transaction
 from django.urls import reverse
@@ -103,21 +105,60 @@ def create_account(*, email, name, role=Role.EMPLOYEE, invited_by=None, approve=
     return user
 
 
+class ConversionRefused(Exception):
+    """A job application can't be linked to the account that already uses its email (str(exc) explains why)."""
+
+
+class Conversion(NamedTuple):
+    user: User
+    created: bool  # a new account was created (False = linked to an existing one)
+    invited: bool  # a password-setup email was queued
+
+
+def application_account(application) -> User | None:
+    """The account that already uses the application's email address, if any."""
+    return User.objects.filter(email__iexact=application.email).first()
+
+
+def conversion_problem(user: User) -> str | None:
+    """Why an existing account can't be linked to a job application (None = it can be linked as-is)."""
+    if user.role != Role.EMPLOYEE:
+        return (f"An account with this email already exists and it is a {user.get_role_display()} account, "
+                "not an employee — it was not changed.")
+    if user.status == UserStatus.SUSPENDED:
+        return ("An employee account with this email already exists and it is suspended — reactivate it from the "
+                "employee page first if this person should work with us again.")
+    return None
+
+
 @transaction.atomic
-def convert_application(application, by: User) -> User:
+def convert_application(application, by: User) -> Conversion:
+    """
+    Turn a job application into an employee account and mark the application approved.
+
+    A new account is created (active, next employee ID) and gets a password-setup email. If an
+    account with the same email already exists it is linked as it is: its role and status are never
+    changed and no email is sent. Suspended accounts and non-employee accounts (staff, clients) are
+    refused with ConversionRefused.
+    """
     from apps.website.models import ApplicationStatus
 
-    existing = User.objects.filter(email__iexact=application.email).first()
-    user = existing or create_account(
-        email=application.email, name=application.full_name, invited_by=by, phone=application.phone or "",
-        location=application.location or "", skills=application.skills or [],
-    )
-    if existing and existing.status != UserStatus.ACTIVE:
-        approve_user(existing, by)
-    application.user = user
+    existing = application_account(application)
+    if existing is not None:
+        problem = conversion_problem(existing)
+        if problem:
+            raise ConversionRefused(problem)
+        result = Conversion(existing, created=False, invited=False)
+    else:
+        user = create_account(
+            email=application.email, name=application.full_name, invited_by=by, phone=application.phone or "",
+            location=application.location or "", skills=application.skills or [],
+        )
+        result = Conversion(user, created=True, invited=True)
+    application.user = result.user
     application.status = ApplicationStatus.APPROVED
     application.save(update_fields=["user", "status", "updated_at"])
-    return user
+    return result
 
 
 def change_role(user: User, role: str) -> User:

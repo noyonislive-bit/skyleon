@@ -65,7 +65,7 @@ def project_detail(request, slug):
 
     tutorials = list(
         annotate_progress(scope.tutorials().filter(project=project), user)
-        .select_related("category", "video", "video__thumbnail")
+        .select_related("category", "project", "video", "video__thumbnail")
         .order_by("-published_at")[:12]
     )
     feedback = list(

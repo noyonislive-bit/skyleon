@@ -7,18 +7,19 @@ and computes coverage. A video only counts as watched when the merged coverage
 reaches VIDEO_COMPLETION_THRESHOLD — clicking "complete" is not possible.
 
 To stop crafted requests from faking a full watch, accepted coverage is capped twice:
-  * per heartbeat: by the wall-clock time since the previous heartbeat (2× playback
-    speed plus a small jitter tolerance; a one-off grace applies to the first heartbeat), and
-  * in total: by the wall-clock time since the video was first opened (2× speed + grace),
-so firing many requests quickly cannot accumulate coverage either.
+  * per heartbeat: by the wall-clock time since the previous heartbeat (or, for the first
+    one, since the video page was opened) at the maximum playback speed plus a small
+    jitter tolerance, and
+  * in total: by the wall-clock time since the video was first opened,
+so firing many requests quickly cannot accumulate coverage. There is no up-front grace:
+coverage can never run ahead of real time × MAX_PLAYBACK_RATE.
 """
 
 from dataclasses import dataclass
 from datetime import datetime
 
 MAX_PLAYBACK_RATE = 2.0
-GRACE_SECONDS = 15.0  # one-off allowance for the first heartbeat
-JITTER_SECONDS = 2.0  # per-heartbeat tolerance for network / timer jitter
+JITTER_SECONDS = 2.0  # tolerance for network / timer jitter
 MAX_RANGES = 200
 
 
@@ -130,15 +131,15 @@ def apply_heartbeat(
     reported = normalize_ranges(reported_ranges, duration)
     fresh = subtract(reported, existing)
 
+    since_first = max(0.0, (now - first_viewed_at).total_seconds()) if first_viewed_at is not None else 0.0
     if last_heartbeat_at is None:
-        budget = GRACE_SECONDS * MAX_PLAYBACK_RATE
+        budget = (since_first + JITTER_SECONDS) * MAX_PLAYBACK_RATE
     else:
         elapsed = max(0.0, (now - last_heartbeat_at).total_seconds())
         budget = (elapsed + JITTER_SECONDS) * MAX_PLAYBACK_RATE
     # Absolute ceiling: total coverage can never exceed what could have been played since first view.
     if first_viewed_at is not None:
-        since_first = max(0.0, (now - first_viewed_at).total_seconds())
-        ceiling = (since_first + GRACE_SECONDS) * MAX_PLAYBACK_RATE
+        ceiling = (since_first + JITTER_SECONDS) * MAX_PLAYBACK_RATE
         budget = max(0.0, min(budget, ceiling - total(existing)))
     accepted = trim_to_budget(fresh, budget)
 

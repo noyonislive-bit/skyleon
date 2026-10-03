@@ -4,6 +4,11 @@
   const $ = (sel, root = document) => root.querySelector(sel);
   const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
+  // A submitted test: drop its local answer draft (kept until now in case the submit failed).
+  $$("[data-clear-test-draft]").forEach((el) => {
+    try { window.localStorage.removeItem("skyleon:test-attempt:" + el.dataset.clearTestDraft); } catch (_) { /* ignore */ }
+  });
+
   // Notification dropdown ---------------------------------------------------
   // The bell is a normal link to the notifications page; with JS it opens a
   // panel whose content is fetched (HTML fragment) the first time it opens.
@@ -22,6 +27,7 @@
       loaded = true;
       try {
         const res = await fetch(panel.dataset.src, { credentials: "same-origin", headers: { "X-Requested-With": "fetch" } });
+        if (res.redirected && /\/login\//.test(res.url)) { window.location.href = res.url; return; } // session expired
         if (!res.ok) throw new Error(res.statusText);
         panel.innerHTML = await res.text();
         $$("[data-next-here]", panel).forEach((input) => (input.value = window.location.pathname + window.location.search));

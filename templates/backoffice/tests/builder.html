@@ -76,6 +76,7 @@
     <section class="card scroll-mt-24" id="add-question">
       <div class="card-header"><div><h2 class="card-title">Add a question</h2><p class="mt-0.5 text-xs text-slate-500">Multiple choice (one or several answers) or true / false — optionally with an image or a video.</p></div></div>
       <div class="card-body">
+        {% if open_attempts %}<div class="alert alert-warning mb-5">{% icon "alert-triangle" class="mt-0.5 h-4 w-4 shrink-0" %}<p>{{ open_attempts }} employee attempt{{ open_attempts|pluralize }} {{ open_attempts|pluralize:"is,are" }} in progress right now. A question added now is shown to {{ open_attempts|pluralize:"it,them" }} too and counts towards the score — consider adding questions when nobody is taking the test.</p></div>{% endif %}
         {% url 'backoffice:question_create' test.pk as create_url %}
         {% include "backoffice/tests/_question_form.html" with action=create_url submit_label="Add question" another=True %}
       </div>

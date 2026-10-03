@@ -98,6 +98,10 @@ class EmailMessage(models.Model):
     attempts = models.PositiveSmallIntegerField(default=0)
     last_error = models.TextField(blank=True)
     sent_at = models.DateTimeField(null=True, blank=True)
+    reply_to = models.EmailField(blank=True)
+    # Set while a sender (the request or the cron job) is delivering this message, so two
+    # senders never send the same email twice.
+    locked_until = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
 
     class Meta:

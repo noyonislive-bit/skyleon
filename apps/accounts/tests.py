@@ -31,11 +31,18 @@ class AuthFlowTests(TestCase):
         self.assertEqual(r.status_code, 302)
 
     def test_wrong_password_rejected_and_rate_limited(self):
-        for _ in range(10):
+        for _ in range(5):
             r = self.client.post(reverse("accounts:login"), {"identifier": "worker@example.com", "password": "nope"})
             self.assertContains(r, "পাসওয়ার্ড ভুল হয়েছে")  # employee login is in Bangla
+        # Locked: even the right password is not checked, so the answer can't reveal it.
         r = self.client.post(reverse("accounts:login"), {"identifier": "worker@example.com", "password": "S3cure-pass!"})
-        self.assertContains(r, "অনেকবার ভুল চেষ্টা হয়েছে")
+        self.assertContains(r, "অনেকবার ভুল চেষ্টা হয়েছে", status_code=429)
+        self.assertNotContains(r, "পাসওয়ার্ড ভুল হয়েছে", status_code=429)
+        self.assertNotIn("_auth_user_id", self.client.session)
+        # A spoofed X-Forwarded-For header doesn't reset the limit.
+        r = self.client.post(reverse("accounts:login"), {"identifier": "worker@example.com", "password": "S3cure-pass!"},
+                             HTTP_X_FORWARDED_FOR="203.0.113.9")
+        self.assertEqual(r.status_code, 429)
 
     def test_suspended_user_cannot_login_and_is_logged_out(self):
         self.client.force_login(self.user)
@@ -77,6 +84,31 @@ class AuthFlowTests(TestCase):
         self.assertRedirects(r, reverse("accounts:password_reset_done"))
         self.assertEqual(len(mail.outbox), 1)
         self.assertIn("/password/set/", mail.outbox[0].body)
+
+    def test_password_reset_for_invited_user_goes_through_outbox(self):
+        from apps.comms.models import EmailMessage
+
+        User.objects.create_user("invited@example.com", None, name="Invited", status=UserStatus.ACTIVE)
+        self.client.post(reverse("accounts:password_reset"), {"email": "invited@example.com"})
+        msg = EmailMessage.objects.get(to="invited@example.com", template="password_reset")
+        self.assertIn("/password/set/", msg.text)
+        self.assertIn("Skyloon AI", msg.subject)
+
+    def test_client_area_redirects_to_client_login(self):
+        r = self.client.get("/client/")
+        self.assertTrue(r["Location"].startswith(reverse("accounts:client_login")))
+
+    def test_oversized_request_is_refused(self):
+        r = self.client.post(reverse("accounts:login"), data=b"x", content_type="text/plain", CONTENT_LENGTH=str(500 * 1024 * 1024))
+        self.assertEqual(r.status_code, 413)
+
+    def test_csrf_failure_page_is_branded(self):
+        from django.test import Client
+
+        c = Client(enforce_csrf_checks=True)
+        r = c.post(reverse("accounts:login"), {"identifier": "a", "password": "b"})
+        self.assertEqual(r.status_code, 403)
+        self.assertContains(r, "পেজের মেয়াদ শেষ হয়ে গেছে", status_code=403)
 
     def test_create_account_sends_invite(self):
         admin = User.objects.create_superuser("root@example.com", "x-Strong-123")

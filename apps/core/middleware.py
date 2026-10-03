@@ -1,4 +1,25 @@
+from django.conf import settings
+from django.http import HttpResponse
 from django.utils import translation
+
+
+class RequestSizeLimitMiddleware:
+    """Refuse oversized request bodies before Django reads them (and writes uploads to temp files),
+    so nobody can fill the disk through the public upload forms. Large videos use chunked uploads."""
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        try:
+            length = int(request.META.get("CONTENT_LENGTH") or 0)
+        except ValueError:
+            length = 0
+        if length > settings.MAX_REQUEST_BODY_MB * 1024 * 1024:
+            return HttpResponse(f"Request too large (max {settings.MAX_REQUEST_BODY_MB} MB).", status=413,
+                                content_type="text/plain; charset=utf-8")
+        return self.get_response(request)
+
 
 # Paths whose pages are read by employees → Bangla. Everything else (public website,
 # admin panel, client portal) stays English.

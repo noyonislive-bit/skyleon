@@ -16,11 +16,13 @@ from apps.training.services import assign_tutorial, publish_tutorial
 from ..forms import AssignPeopleForm, CategoryForm, TutorialForm
 from ..helpers import (
     assignable_employees,
+    can_edit_content,
     day_end,
     employee_scope,
     get_content,
     paginate,
     pct,
+    people_q,
     redirect_back,
     staff_projects,
 )
@@ -43,15 +45,16 @@ def tutorial_list(request):
         qs = qs.filter(status=f["status"])
     if f["cadence"] in Cadence.values:
         qs = qs.filter(cadence=f["cadence"])
+    people = people_q(user, "progress__user")  # same people as the tutorial's tracking page
     qs = qs.annotate(
-        assigned=Count("progress", filter=Q(progress__assigned=True)),
-        completed=Count("progress", filter=Q(progress__assigned=True, progress__status=ProgressStatus.COMPLETED)),
-        viewers=Count("progress", filter=Q(progress__first_viewed_at__isnull=False)),
+        assigned=Count("progress", filter=people & Q(progress__assigned=True)),
+        completed=Count("progress", filter=people & Q(progress__assigned=True, progress__status=ProgressStatus.COMPLETED)),
+        viewers=Count("progress", filter=people & Q(progress__first_viewed_at__isnull=False)),
     ).order_by("-created_at")
     page = paginate(request, qs)
     for t in page:
         t.completion = pct(t.completed, t.assigned)
-        t.can_edit = can_manage_content_for(user, t.project)
+        t.can_edit = can_edit_content(user, t.project_id)
     return render(request, "backoffice/tutorials/list.html", {
         "page_title": "Tutorials",
         "page_subtitle": "Training videos — onboarding, daily and weekly training, reference material.",

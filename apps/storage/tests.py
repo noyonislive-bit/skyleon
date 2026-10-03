@@ -61,6 +61,25 @@ class StorageTests(TestCase):
         self.client.force_login(self.employee)
         self.assertEqual(self.client.get(url.replace("t=", "t=x")).status_code, 404)
 
+    def test_unsafe_files_are_downloaded_in_a_sandbox(self):
+        """An uploaded XML/HTML file must never render as a page on our origin (stored XSS)."""
+        xml = SimpleUploadedFile("নমুনা-ডেটা.xml", b'<html xmlns="http://www.w3.org/1999/xhtml"><script>alert(1)</script></html>',
+                                 content_type="application/xml")
+        asset = store_uploaded_file(xml, purpose="quote")
+        url = media_url(asset, None)
+        r = self.client.get(url)
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r["Content-Type"], "application/octet-stream")
+        self.assertTrue(r["Content-Disposition"].startswith("attachment;"))
+        self.assertIn("filename*=utf-8''", r["Content-Disposition"])  # Bangla name, properly encoded
+        self.assertIn("sandbox", r["Content-Security-Policy"])
+        self.assertEqual(r["X-Content-Type-Options"], "nosniff")
+
+    def test_browser_mime_type_is_ignored(self):
+        self.client.force_login(self.trainer)
+        r = self.post_json(reverse("storage:upload_init"), {"filename": "clip.mp4", "size": 8, "mime_type": "text/html", "kind": "video", "purpose": "tutorial"})
+        self.assertEqual(MediaAsset.objects.get(pk=r.json()["id"]).mime_type, "video/mp4")
+
     def test_employees_cannot_upload(self):
         self.client.force_login(self.employee)
         r = self.post_json(reverse("storage:upload_init"), {"filename": "a.mp4", "size": 10, "kind": "video"})

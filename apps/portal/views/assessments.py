@@ -10,6 +10,7 @@ from apps.assessments.services import (
     AttemptError,
     attempt_deadline,
     attempt_questions,
+    is_past_deadline,
     start_attempt,
     submit_attempt,
     test_state,
@@ -22,7 +23,6 @@ from ..scope import attempts_by_test, portal_view
 from ..templatetags.portal_tags import choice_bn
 
 TABS = [("pending", "বাকি"), ("completed", "সম্পন্ন"), ("all", "সব")]
-DEADLINE_GRACE_SECONDS = 120  # matches the "late" tolerance in assessments.services.submit_attempt
 
 # assessments.services.start_attempt raises AttemptError with English texts (shared with the admin panel);
 # employees see these Bangla versions.
@@ -182,6 +182,9 @@ def test_take(request, attempt_id):
     if attempt.is_submitted:
         return redirect("portal:result_detail", attempt_id=attempt.pk)
     test = attempt.test
+    if not test.is_published or not request.portal.tests().filter(pk=test.pk).exists():
+        messages.error(request, "এই টেস্টটি এখন আর আপনার জন্য খোলা নেই।")
+        return redirect("portal:tests")
     deadline = attempt_deadline(attempt)
     now = timezone.now()
 
@@ -191,12 +194,14 @@ def test_take(request, attempt_id):
             values = request.POST.getlist(f"q_{q.pk}")
             if values:
                 selections[str(q.pk)] = values
-        submit_attempt(attempt, selections)
-        if request.POST.get("auto") == "1":
+        attempt = submit_attempt(attempt, selections)
+        if attempt.data.get("late"):
+            messages.warning(request, "সময়সীমা পার হওয়ার পর উত্তর জমা হয়েছে, তাই উত্তরগুলো গণনা করা হয়নি।")
+        elif request.POST.get("auto") == "1":
             messages.info(request, "সময় শেষ — আপনার উত্তরগুলো নিজে থেকেই জমা হয়ে গেছে।")
         return redirect("portal:result_detail", attempt_id=attempt.pk)
 
-    if deadline and now > deadline + timezone.timedelta(seconds=DEADLINE_GRACE_SECONDS):
+    if is_past_deadline(attempt, now):
         submit_attempt(attempt, {})
         messages.warning(request, "এই চেষ্টার সময় আগেই শেষ হয়ে গিয়েছিল, তাই উত্তর ছাড়াই জমা হয়ে গেছে।")
         return redirect("portal:result_detail", attempt_id=attempt.pk)
@@ -221,10 +226,12 @@ def result_detail(request, attempt_id):
     if not attempt.is_submitted:
         return redirect("portal:test_take", attempt_id=attempt.pk)
     test = attempt.test
-    reveal = test.reveal_answers
-    questions = build_questions(attempt, user, reveal=reveal)
     all_attempts = list(TestAttempt.objects.filter(test=test, user=user).order_by("-attempt_number"))
     state = test_state(user, test, attempts=all_attempts)
+    # Correct answers are shown only once they can't be used for a retake: after a pass or the last attempt.
+    reveal = test.reveal_answers and state.status in ("passed", "locked")
+    reveal_later = test.reveal_answers and not reveal
+    questions = build_questions(attempt, user, reveal=reveal)
     visible = scope.tests().filter(pk=test.pk).exists()
     _, gate = feedback_gate(scope, test) if visible else (None, None)
     fb = getattr(test, "feedback", None)
@@ -233,6 +240,7 @@ def result_detail(request, attempt_id):
         "test": test,
         "questions": questions,
         "reveal": reveal,
+        "reveal_later": reveal_later,
         "state": state,
         "badge": state_badge(state),
         "can_retake": visible and test.is_published and state.can_attempt and not gate,

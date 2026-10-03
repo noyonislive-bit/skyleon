@@ -1,8 +1,10 @@
+import math
+
 from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
 
-from apps.accounts.permissions import scoped_project_ids
+from apps.accounts.permissions import can_manage_content_for, scoped_project_ids
 from apps.core.choices import ContentStatus
 
 from .models import AttemptStatus, PracticeAttempt, PracticeTask
@@ -18,11 +20,15 @@ def visible_tasks(user):
 
 
 def manageable_tasks(user):
+    """Tasks the staff member may edit: their projects' tasks, plus company-wide ones if they may
+    manage company-wide content (super admins, trainers) — never rows whose pages would 404."""
     ids = scoped_project_ids(user)
     qs = PracticeTask.objects.select_related("project", "video")
     if ids is None:
         return qs
-    return qs.filter(Q(project__isnull=True) | Q(project_id__in=ids))
+    if can_manage_content_for(user, None):
+        return qs.filter(Q(project__isnull=True) | Q(project_id__in=ids))
+    return qs.filter(project_id__in=ids)
 
 
 def task_range(task: PracticeTask) -> tuple[float, float]:
@@ -37,20 +43,50 @@ def get_draft(task: PracticeTask, user) -> PracticeAttempt:
     return draft or PracticeAttempt.objects.create(task=task, user=user)
 
 
-def save_draft(attempt: PracticeAttempt, clips, time_spent: int | None = None) -> PracticeAttempt:
+MAX_TIME_SPENT = 24 * 3600
+
+
+def coerce_seconds(value) -> int | None:
+    """Client-reported seconds ("timeSpent") → int clamped to 0…MAX_TIME_SPENT, or None if not a finite number."""
+    if value is None or isinstance(value, bool):
+        return None
+    try:
+        number = float(value)
+    except (TypeError, ValueError, OverflowError):
+        return None
+    if not math.isfinite(number):
+        return None
+    return int(max(0.0, min(number, MAX_TIME_SPENT)))
+
+
+def _record_time(attempt: PracticeAttempt, time_spent) -> None:
+    """
+    The tool reports the active time of the current page session (it starts at 0 on every load),
+    so the attempt keeps the longest session rather than adding the reports up — repeated autosaves
+    of one session would otherwise be counted many times. Time from earlier sessions of the same
+    draft is therefore not added (a known under-count, never an over-count).
+    """
+    seconds = coerce_seconds(time_spent)
+    if seconds is not None:
+        attempt.time_spent_sec = max(attempt.time_spent_sec or 0, seconds)
+
+
+def save_draft(attempt: PracticeAttempt, clips, time_spent=None) -> PracticeAttempt:
+    """Autosave. `clips` must be a list of [start, end] pairs; anything else leaves the saved clips untouched."""
     lo, hi = task_range(attempt.task)
-    attempt.clips = [list(c) for c in clean_clips(clips, lo, hi)]
-    if time_spent is not None:
-        attempt.time_spent_sec = max(attempt.time_spent_sec, min(int(time_spent), 24 * 3600))
+    if isinstance(clips, list):
+        attempt.clips = [list(c) for c in clean_clips(clips, lo, hi)]
+    _record_time(attempt, time_spent)
     attempt.save(update_fields=["clips", "time_spent_sec", "updated_at"])
     return attempt
 
 
 @transaction.atomic
-def submit(attempt: PracticeAttempt, clips, time_spent: int | None = None) -> PracticeAttempt:
+def submit(attempt: PracticeAttempt, clips, time_spent=None) -> PracticeAttempt:
+    """Score and submit. If `clips` is not a list, the last autosaved clips are submitted."""
     task = attempt.task
     lo, hi = task_range(task)
-    user_clips = clean_clips(clips, lo, hi)
+    user_clips = clean_clips(clips if isinstance(clips, list) else attempt.clips, lo, hi)
     ref = clean_clips(task.reference_clips, lo, hi)
     metrics = score_attempt(user_clips, ref, lo, hi, task.tolerance_sec)
     attempt.clips = [list(c) for c in user_clips]
@@ -59,8 +95,7 @@ def submit(attempt: PracticeAttempt, clips, time_spent: int | None = None) -> Pr
     attempt.passed = metrics["score"] >= task.passing_score
     attempt.status = AttemptStatus.SUBMITTED
     attempt.submitted_at = timezone.now()
-    if time_spent is not None:
-        attempt.time_spent_sec = max(attempt.time_spent_sec, min(int(time_spent), 24 * 3600))
+    _record_time(attempt, time_spent)
     attempt.save()
     return attempt
 

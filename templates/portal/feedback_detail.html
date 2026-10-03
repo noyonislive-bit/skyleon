@@ -43,7 +43,7 @@
   </ol>
 </header>
 
-<div class="mt-6 grid gap-6 xl:grid-cols-3">
+<div class="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-3">
   <div class="min-w-0 space-y-6 xl:col-span-2">
     {% if fb.video_id %}
     <section aria-labelledby="video-title">
@@ -66,9 +66,9 @@
             <span class="inline-flex items-center gap-2 rounded-lg bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-800 ring-1 ring-emerald-200">{% icon "thumbs-up" class="h-4 w-4" %} আপনি “বুঝেছি” জানিয়েছেন · {{ recipient.acknowledged_at|date:"j M · H:i" }}</span>
           {% else %}
             <form method="post" action="{% url 'portal:feedback_ack' fb.number %}">{% csrf_token %}
-              <button type="submit" class="btn btn-primary">{% icon "thumbs-up" class="h-4 w-4" %} বুঝেছি</button>
+              <button type="submit" class="btn btn-primary" {% if fb.video_id and not recipient.watched_at %}disabled data-unlock-on-complete{% endif %}>{% icon "thumbs-up" class="h-4 w-4" %} বুঝেছি</button>
             </form>
-            <p class="text-xs text-slate-500">এখন থেকে এমন কাজ কীভাবে করবেন তা বুঝে থাকলে চাপুন।</p>
+            <p class="text-xs text-slate-500">{% if fb.video_id and not recipient.watched_at %}<span data-hide-when-complete>আগে উপরের ভিডিওটি দেখুন — তারপর বোতামটি চালু হবে। </span>{% endif %}এখন থেকে এমন কাজ কীভাবে করবেন তা বুঝে থাকলে চাপুন।</p>
           {% endif %}
         </div>
       </div>

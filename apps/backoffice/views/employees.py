@@ -259,7 +259,7 @@ def _managed_employee(request, pk):
 @permission_required_code("employees.manage")
 def employee_edit(request, pk):
     employee = _managed_employee(request, pk)
-    form = EmployeeEditForm(request.POST or None, instance=employee)
+    form = EmployeeEditForm(request.POST or None, instance=employee, user=request.user)
     if request.method == "POST" and form.is_valid():
         form.save()
         audit.log(request, "employee.edit", employee, fields=list(form.changed_data))
@@ -302,7 +302,11 @@ def employee_role(request, pk):
     if employee.pk == request.user.pk:
         raise PermissionDenied
     form = RoleForm(request.POST)
-    if form.is_valid() and form.cleaned_data["role"] != employee.role:
+    if not form.is_valid():
+        messages.error(request, "Choose a valid role.")
+    elif form.cleaned_data["role"] == employee.role:
+        messages.info(request, f"{employee.name} already has the role {employee.get_role_display()} — nothing changed.")
+    else:
         old = employee.role
         change_role(employee, form.cleaned_data["role"])
         audit.log(request, "employee.role", employee, old=old, new=employee.role)

@@ -1,12 +1,14 @@
 from datetime import timedelta
 
+from django.contrib import messages
 from django.db import transaction
 from django.db.models import Case, IntegerField, Q, Value, When
 from django.http import JsonResponse
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.formats import date_format
+from django.views.decorators.http import require_POST
 
 from apps.core.choices import ProgressStatus
 from apps.training.models import (
@@ -127,6 +129,26 @@ def tutorial_detail(request, pk):
         "new_since": timezone.now() - timedelta(days=NEW_DAYS),
         "crumbs": crumbs(("ট্রেনিং", reverse("portal:training")), (tutorial.title, None)),
     })
+
+
+@require_POST
+@portal_view
+def tutorial_complete(request, pk):
+    """Text-only tutorials (no video) are completed by the employee after reading them.
+    Tutorials with a video can only be completed by actually watching it."""
+    tutorial = get_object_or_404(request.portal.tutorials(), pk=pk)
+    if tutorial.video_id:
+        messages.error(request, "ভিডিওসহ ট্রেনিং ভিডিওটি দেখলেই নিজে থেকে সম্পন্ন হয়।")
+        return redirect("portal:tutorial_detail", pk=tutorial.pk)
+    progress = get_or_create_progress(tutorial, request.user)
+    if not progress.is_completed:
+        now = timezone.now()
+        progress.status, progress.completed_at, progress.percent = ProgressStatus.COMPLETED, now, 100
+        progress.first_viewed_at = progress.first_viewed_at or now
+        progress.last_viewed_at = now
+        progress.save(update_fields=["status", "completed_at", "percent", "first_viewed_at", "last_viewed_at"])
+        messages.success(request, "ট্রেনিংটি সম্পন্ন হিসেবে রেকর্ড হয়েছে।")
+    return redirect("portal:tutorial_detail", pk=tutorial.pk)
 
 
 @portal_api

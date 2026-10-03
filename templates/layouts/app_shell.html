@@ -16,10 +16,10 @@
   <aside id="app-sidebar" class="fixed inset-y-0 left-0 z-40 flex w-64 -translate-x-full flex-col bg-ink-900 transition-transform duration-200 lg:translate-x-0" data-sidebar>
     <div class="flex h-16 shrink-0 items-center justify-between gap-3 border-b border-white/5 px-5">
       <a href="{% block home_url %}/{% endblock %}" class="flex items-center gap-2">{% include "components/logo.html" with dark=True %}</a>
-      <button type="button" class="rounded-md p-1.5 text-slate-400 hover:bg-white/5 hover:text-white lg:hidden" data-sidebar-close aria-label="Close menu">{% icon "x" class="h-5 w-5" %}</button>
+      <button type="button" class="rounded-md p-1.5 text-slate-400 hover:bg-white/5 hover:text-white lg:hidden" data-sidebar-close aria-label="{% bn "মেনু বন্ধ করুন" "Close menu" %}">{% icon "x" class="h-5 w-5" %}</button>
     </div>
     <div class="px-5 pt-4"><span class="font-mono text-[10.5px] tracking-[0.16em] text-accent-300 uppercase">{% block shell_label %}{% endblock %}</span></div>
-    <nav class="flex-1 space-y-0.5 overflow-y-auto px-3 pt-2 pb-6" aria-label="Main">
+    <nav class="flex-1 space-y-0.5 overflow-y-auto px-3 pt-2 pb-6" aria-label="{% bn "প্রধান মেনু" "Main" %}">
       {% block sidebar_nav %}{% endblock %}
     </nav>
     <div class="border-t border-white/5 p-3">
@@ -27,7 +27,7 @@
         {% include "components/avatar.html" with user=request.user size="h-9 w-9 text-xs" %}
         <div class="min-w-0 flex-1">
           <p class="truncate text-sm font-medium text-white">{{ request.user.name }}</p>
-          <p class="truncate text-xs text-slate-400">{{ request.user.employee_id|default:request.user.get_role_display }}</p>
+          <p class="truncate text-xs text-slate-400">{% if request.user.employee_id %}{{ request.user.employee_id }}{% else %}{% account_menu as am %}{{ am.role }}{% endif %}</p>
         </div>
         <form method="post" action="{% url 'accounts:logout' %}">{% csrf_token %}
           <button type="submit" class="rounded-md p-1.5 text-slate-400 hover:bg-white/5 hover:text-white" title="{% if LANGUAGE_CODE == 'bn' %}লগআউট{% else %}Sign out{% endif %}" aria-label="{% if LANGUAGE_CODE == 'bn' %}লগআউট{% else %}Sign out{% endif %}">{% icon "log-out" class="h-4 w-4" %}</button>
@@ -39,7 +39,7 @@
 
   <!-- Top bar -->
   <header class="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-slate-200 bg-white/85 px-4 backdrop-blur sm:px-6 lg:px-8">
-    <button type="button" class="-ml-1 rounded-md p-2 text-slate-500 hover:bg-slate-100 lg:hidden" data-sidebar-open aria-label="Open menu">{% icon "menu" class="h-5 w-5" %}</button>
+    <button type="button" class="-ml-1 rounded-md p-2 text-slate-500 hover:bg-slate-100 lg:hidden" data-sidebar-open aria-label="{% bn "মেনু খুলুন" "Open menu" %}">{% icon "menu" class="h-5 w-5" %}</button>
     <div class="min-w-0 flex-1 truncate text-sm text-slate-500">{% block breadcrumbs %}{% endblock %}</div>
     <div class="flex items-center gap-2">{% block topbar_actions %}{% endblock %}{% include "components/account_menu.html" %}</div>
   </header>

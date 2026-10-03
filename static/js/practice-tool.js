@@ -242,12 +242,15 @@
     if (cur < hi - 0.05) gaps.push([cur, hi]);
     return gaps;
   }
+  // Every uncovered part, not just first start → last end (that would hide the clips in between).
+  function gapList(gaps, max = 3) {
+    const parts = gaps.slice(0, max).map((g) => mmss(g[0]) + "–" + mmss(g[1]));
+    return parts.join(", ") + (gaps.length > max ? T(" (আরও " + (gaps.length - max) + "টি)", " (+" + (gaps.length - max) + " more)") : "");
+  }
   function renderUncovered() {
     const gaps = uncoveredRanges();
     uncoveredEl.classList.toggle("is-done", gaps.length === 0);
-    uncoveredEl.textContent = gaps.length
-      ? "Hands present but uncovered: " + mmss(gaps[0][0]) + "–" + mmss(gaps[gaps.length - 1][1])
-      : "";
+    uncoveredEl.textContent = gaps.length ? "Hands present but uncovered: " + gapList(gaps) : "";
   }
   function updatePlayhead() {
     const x = xOf(now());
@@ -480,7 +483,18 @@
       keepalive: !!keepalive,
       headers: { "Content-Type": "application/json", "X-CSRFToken": window.skyleon ? window.skyleon.csrfToken() : "" },
       body: JSON.stringify(body),
-    }).then((r) => r.json().then((j) => { if (!r.ok) throw new Error(j.error || r.statusText); return j; }));
+    }).then((r) => {
+      // Session expired: the server answers with the login page (HTML), not JSON.
+      if (r.redirected || !(r.headers.get("Content-Type") || "").includes("json")) {
+        const e = new Error("session"); e.kind = "session"; throw e;
+      }
+      return r.json().then((j) => { if (!r.ok) { const e = new Error(j.error || ""); e.kind = "server"; throw e; } return j; });
+    }, () => { const e = new Error("network"); e.kind = "network"; throw e; });
+  }
+  function errorText(err) {
+    if (err && err.kind === "session") return T("লগইনের মেয়াদ শেষ হয়ে গেছে — পেজটি রিলোড করে আবার লগইন করুন।", "Your session has expired — reload the page and sign in again.");
+    if (err && err.kind === "network") return T("ইন্টারনেট কানেকশন পাওয়া যাচ্ছে না।", "No internet connection.");
+    return T("সার্ভারে সমস্যা হয়েছে, একটু পরে আবার চেষ্টা করুন।", "Server error — please try again.") ;
   }
   let saveTimer = 0;
   function scheduleSave() {
@@ -494,7 +508,7 @@
     clearTimeout(saveTimer);
     return post(data.urls.save, { clips: clipsPayload(), timeSpent: Math.floor(activeMs / 1000) }, keepalive)
       .then(() => { state.dirty = false; saveStatus.textContent = T("সব সেভ হয়েছে", "All changes saved"); })
-      .catch(() => { saveStatus.textContent = T("সেভ হয়নি — ইন্টারনেট কানেকশন দেখুন", "Not saved — check your connection"); });
+      .catch((err) => { saveStatus.textContent = T("সেভ হয়নি — ", "Not saved — ") + errorText(err); });
   }
   window.addEventListener("pagehide", () => saveNow(true));
   window.addEventListener("beforeunload", (e) => {
@@ -507,7 +521,7 @@
     if (state.open !== null) { toast(T("আগে খোলা ক্লিপটা শেষ করুন (N চাপুন), অথবা Delete চেপে বাতিল করুন।", "Finish the open clip first (press N), or press Delete to cancel it.")); return; }
     if (!state.clips.length) { toast(T("জমা দেওয়ার আগে অন্তত একটা ক্লিপ বানান।", "Create at least one clip before submitting.")); return; }
     const gaps = uncoveredRanges();
-    if (MODE === "practice" && gaps.length && !window.confirm(T("হাত দেখা যাচ্ছে এমন কিছু অংশ এখনো ক্লিপের বাইরে আছে (" + mmss(gaps[0][0]) + "–" + mmss(gaps[gaps.length - 1][1]) + ")। তবুও জমা দেবেন?", "Hands-present time is still uncovered (" + mmss(gaps[0][0]) + "–" + mmss(gaps[gaps.length - 1][1]) + "). Submit anyway?"))) return;
+    if (MODE === "practice" && gaps.length && !window.confirm(T("হাত দেখা যাচ্ছে এমন কিছু অংশ এখনো ক্লিপের বাইরে আছে (" + gapList(gaps) + ")। তবুও জমা দেবেন?", "Hands-present time is still uncovered (" + gapList(gaps) + "). Submit anyway?"))) return;
     state.busy = true;
     video.pause();
     post(data.urls.submit, { clips: clipsPayload(), timeSpent: Math.floor(activeMs / 1000) })
@@ -521,7 +535,7 @@
         }
         showResult(res, goNext);
       })
-      .catch((err) => toast(T("জমা দেওয়া যায়নি: ", "Could not submit: ") + err.message))
+      .catch((err) => toast(T("জমা দেওয়া যায়নি: ", "Could not submit: ") + errorText(err)))
       .finally(() => (state.busy = false));
   }
   function showResult(res, goNext) {
@@ -532,7 +546,7 @@
     $("[data-result-body]").innerHTML =
       '<div class="pt-score"><div class="pt-score-ring" style="--p:' + Math.round(res.score) + ";--ring-color:" + (pass ? "#1f6e58" : "#c2410c") + '"><span>' + Math.round(res.score) + "%</span></div>" +
       "<div><span class=\"pt-pill " + (pass ? "is-pass" : "is-fail") + "\">" + (pass ? T("পাস", "Passed") : T("এখনো পাস হয়নি", "Not passed yet")) + "</span>" +
-      '<p style="margin:8px 0 0">' + T("পাস নম্বর: ", "Passing score: ") + res.passingScore + "% · " + (m.clip_count || 0) + T("টি ক্লিপ", " clips") + (m.reference_count ? T(" (রেফারেন্সে: " + m.reference_count + "টি)", " (reference: " + m.reference_count + ")") : "") + "</p></div></div>" +
+      '<p style="margin:8px 0 0">' + T("পাস মার্ক: ", "Passing score: ") + res.passingScore + "% · " + (m.clip_count || 0) + T("টি ক্লিপ", " clips") + (m.reference_count ? T(" (রেফারেন্সে: " + m.reference_count + "টি)", " (reference: " + m.reference_count + ")") : "") + "</p></div></div>" +
       '<div class="pt-metrics">' + metric(m.boundary_f1, T("শুরু/শেষের নির্ভুলতা", "Boundary accuracy")) + metric(m.mean_iou, T("ক্লিপ মিল (IoU)", "Clip overlap (IoU)")) + metric(m.coverage, T("কভারেজ", "Coverage")) + "</div>" +
       (issues ? '<ul class="pt-issues">' + issues + "</ul>" : '<p style="margin:14px 0 0;color:#146c4b">' + T("কোনো ভুল পাওয়া যায়নি — দারুণ কাজ!", "No issues found — great work!") + "</p>");
     const foot = $("[data-result-foot]");
@@ -559,7 +573,7 @@
     const reason = (root.querySelector("input[name=pt-reason]:checked") || {}).value || "other";
     post(data.urls.taskError, { reason, comment: $("[data-error-comment]").value })
       .then(() => { closeModal($("#pt-task-error")); toast(T("টাস্ক এরর পাঠানো হয়েছে। আপনার ট্রেইনার এটা দেখবেন।", "Task error reported. Your trainer will review it.")); })
-      .catch(() => toast(T("রিপোর্ট পাঠানো যায়নি।", "Could not send the report.")));
+      .catch((err) => toast(T("রিপোর্ট পাঠানো যায়নি: ", "Could not send the report: ") + errorText(err)));
   }
 
   // ── Modals ─────────────────────────────────────────────────────────────

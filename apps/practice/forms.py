@@ -1,4 +1,7 @@
+import math
+
 from django import forms
+from django.db.models import Q
 
 from apps.core.forms import StyledFormMixin
 from apps.projects.models import Project
@@ -18,7 +21,12 @@ def parse_time(value: str) -> float:
         raise ValueError("bad time")
     total = 0.0
     for p in parts:
-        total = total * 60 + float(p)
+        number = float(p)
+        if not math.isfinite(number) or number < 0:
+            raise ValueError("bad time")
+        total = total * 60 + number
+    if not math.isfinite(total):
+        raise ValueError("bad time")
     return total
 
 
@@ -43,6 +51,23 @@ class TimeField(forms.CharField):
             raise forms.ValidationError("Enter seconds (e.g. 75) or mm:ss (e.g. 01:15).")
 
 
+def video_choices(user, current=None):
+    """
+    READY videos the user may pick for a practice task: videos of tutorials / feedback / practice
+    tasks in their project scope (company-wide content included), videos they uploaded themselves,
+    and the task's current video. Never every file in storage (CVs, other projects' videos …).
+    """
+    qs = MediaAsset.objects.filter(kind=MediaKind.VIDEO, status=MediaStatus.READY)
+    if user is None:
+        return qs.filter(pk=current) if current else qs.none()
+    from apps.backoffice.media import content_assets_q
+
+    cond = content_assets_q(user)
+    if current:
+        cond |= Q(pk=current)
+    return qs.filter(cond).order_by("-created_at")
+
+
 class PracticeTaskForm(StyledFormMixin, forms.ModelForm):
     range_start = TimeField(label="Hands present from", required=False)
     range_end = TimeField(label="Hands present until", required=False, help_text="Empty = end of video")
@@ -61,7 +86,8 @@ class PracticeTaskForm(StyledFormMixin, forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields["project"].queryset = projects if projects is not None else Project.objects.all()
         self.fields["project"].empty_label = "All employees (company-wide)"
-        self.fields["video"].queryset = MediaAsset.objects.filter(kind=MediaKind.VIDEO, status=MediaStatus.READY).order_by("-created_at")
+        self.fields["video"].queryset = video_choices(user, current=self.instance.video_id if self.instance else None)
+        self.fields["passing_score"].widget.attrs.update(min=1, max=100)
         self.fields["video"].label_from_instance = lambda a: f"{a.original_name or a.pk} · {int(a.duration_sec or 0) // 60:02d}:{int(a.duration_sec or 0) % 60:02d}"
         if self.instance and self.instance.pk:
             self.initial.setdefault("range_start", self.instance.range_start)
@@ -81,6 +107,12 @@ class PracticeTaskForm(StyledFormMixin, forms.ModelForm):
         if tol is not None and not (0 < tol <= 10):
             self.add_error("tolerance_sec", "Use a value between 0.05 and 10 seconds.")
         return data
+
+    def clean_passing_score(self):
+        value = self.cleaned_data.get("passing_score")
+        if value is None or not 1 <= value <= 100:
+            raise forms.ValidationError("Enter a percentage between 1 and 100.")
+        return value
 
 
 class ToolSettingsForm(StyledFormMixin, forms.Form):

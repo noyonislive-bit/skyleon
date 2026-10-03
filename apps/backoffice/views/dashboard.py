@@ -1,21 +1,23 @@
 from collections import defaultdict
 
-from django.db.models import Avg, Count, Exists, ExpressionWrapper, F, FloatField, OuterRef, Q
+from django.db.models import Avg, Count, ExpressionWrapper, F, FloatField, Q
 from django.shortcuts import render
 from django.utils import timezone
 
 from apps.accounts.decorators import staff_required
 from apps.accounts.models import Role, User, UserStatus
 from apps.accounts.permissions import has_permission, project_scope
-from apps.assessments.models import TestAssignment, TestAttempt
+from apps.assessments.models import TestAttempt
 from apps.comms.models import Meeting
 from apps.core.choices import ContentStatus, ProgressStatus
-from apps.feedback.models import Feedback, FeedbackRecipient
+from apps.feedback.models import Feedback
 from apps.projects.models import ProjectMember, ProjectStatus
 from apps.training.models import TutorialProgress
 from apps.website.models import ApplicationStatus, JobApplication, QuoteRequest
 
-from ..helpers import employee_scope, pct, staff_projects
+from ..helpers import employee_scope, pct, people_q, staff_projects
+from .assessments import pending_assignments
+from .feedback import tracking_base
 
 
 @staff_required
@@ -38,30 +40,27 @@ def dashboard(request):
         user, field="tutorial__project",
     ).aggregate(total=Count("pk"), done=Count("pk", filter=Q(status=ProgressStatus.COMPLETED)))
 
-    recipients = project_scope(
-        FeedbackRecipient.objects.filter(feedback__status=ContentStatus.PUBLISHED, user__status=UserStatus.ACTIVE),
-        user, field="feedback__project",
-    ).aggregate(total=Count("pk"), unseen=Count("pk", filter=Q(first_viewed_at__isnull=True)))
+    can_content = has_permission(user, "content.manage")
+    recipients = {"total": 0, "unseen": 0}
+    tests_pending = 0
+    if can_content:
+        # Same definitions as the pages the tiles link to.
+        recipients = tracking_base(user).aggregate(total=Count("pk"), unseen=Count("pk", filter=Q(first_viewed_at__isnull=True)))
+        tests_pending = pending_assignments(user).count()
 
-    passed = TestAttempt.objects.filter(test=OuterRef("test"), user=OuterRef("user"), passed=True)
-    tests_pending = project_scope(
-        TestAssignment.objects.filter(test__status=ContentStatus.PUBLISHED, user__status=UserStatus.ACTIVE),
-        user, field="test__project",
-    ).filter(~Exists(passed)).count()
-
-    attempts = project_scope(TestAttempt.objects.filter(submitted_at__isnull=False), user, field="test__project")
+    attempts = project_scope(TestAttempt.objects.filter(submitted_at__isnull=False), user, field="test__project").filter(people_q(user))
     score = attempts.aggregate(avg=Avg("score"), n=Count("pk"), passed=Count("pk", filter=Q(passed=True)))
 
     tiles = [
         {"label": "Total employees", "value": people["total"], "meta": "All employee accounts", "icon": "users",
-         "url": "backoffice:employee_list", "show": has_permission(user, "employees.view")},
+         "url": "backoffice:employee_list", "query": "?role=employee", "show": has_permission(user, "employees.view")},
         {"label": "Active employees", "value": people["active"], "meta": f"{pct(people['active'], people['total']) or 0}% of all accounts",
-         "icon": "user-check", "url": "backoffice:employee_list", "query": "?status=active", "show": has_permission(user, "employees.view")},
+         "icon": "user-check", "url": "backoffice:employee_list", "query": "?status=active&role=employee", "show": has_permission(user, "employees.view")},
         {"label": "New applicants", "value": JobApplication.objects.filter(status=ApplicationStatus.NEW).count()
          if has_permission(user, "applicants.manage") else 0, "meta": "Careers applications to review", "icon": "briefcase",
          "url": "backoffice:applicant_list", "query": "?status=new", "show": has_permission(user, "applicants.manage")},
         {"label": "Pending approvals", "value": people["pending"], "meta": "Signups waiting for approval", "icon": "clock",
-         "url": "backoffice:employee_list", "query": "?status=pending", "show": has_permission(user, "employees.manage"),
+         "url": "backoffice:employee_list", "query": "?status=pending&role=employee", "show": has_permission(user, "employees.manage"),
          "tone": "warning" if people["pending"] else ""},
         {"label": "Active projects", "value": projects.filter(status=ProjectStatus.ACTIVE).count(),
          "meta": "Assigned to you" if not user.is_super_admin else "Across the company", "icon": "folder-open",
@@ -70,10 +69,10 @@ def dashboard(request):
          "meta": f"{training['done']} of {training['total']} required videos watched", "icon": "graduation-cap",
          "url": "backoffice:training_progress", "show": has_permission(user, "reports.view")},
         {"label": "Unseen feedback", "value": recipients["unseen"], "meta": f"of {recipients['total']} feedback deliveries",
-         "icon": "eye-off", "url": "backoffice:feedback_tracking", "query": "?state=unseen", "show": has_permission(user, "content.manage"),
+         "icon": "eye-off", "url": "backoffice:feedback_tracking", "query": "?state=unseen", "show": can_content,
          "tone": "warning" if recipients["unseen"] else ""},
         {"label": "Tests pending", "value": tests_pending, "meta": "Assignments without a pass", "icon": "clipboard-list",
-         "url": "backoffice:test_list", "show": has_permission(user, "content.manage")},
+         "url": "backoffice:test_list", "query": "?pending=1", "show": can_content},
         {"label": "Average test score", "value": f"{score['avg']:.0f}%" if score["avg"] is not None else "—",
          "meta": f"{score['n']} submitted attempts · {pct(score['passed'], score['n']) or 0}% passed", "icon": "target",
          "url": "backoffice:reports", "show": has_permission(user, "reports.view")},

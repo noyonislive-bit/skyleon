@@ -117,12 +117,14 @@ def step_rule(step: OnboardingStep) -> str:
         return "test"
     if step.step_type == OnboardingStepType.QUALIFICATION:
         return "qualification"
+    if step.guideline_id:
+        return "guideline"  # done when the employee has acknowledged the CURRENT version
     return "manual"
 
 
 def _status_maps(user_ids, steps):
     from apps.assessments.models import TestAttempt
-    from apps.projects.models import ProjectMember
+    from apps.projects.models import GuidelineAck, ProjectMember
 
     tutorial_ids = {s.tutorial_id for s in steps if s.tutorial_id}
     test_ids = {s.test_id for s in steps if s.test_id}
@@ -148,11 +150,18 @@ def _status_maps(user_ids, steps):
         (c.user_id, c.step_id): c.completed_at
         for c in OnboardingCompletion.objects.filter(user_id__in=user_ids, step__in=steps)
     }
-    return completed_tutorials, passed_tests, qualified, manual
+    current_version = {s.guideline_id: s.guideline.version for s in steps if s.guideline_id}
+    acked = {
+        (a.user_id, a.guideline_id): a.acknowledged_at
+        for a in GuidelineAck.objects.filter(user_id__in=user_ids, guideline_id__in=current_version).only(
+            "user_id", "guideline_id", "version", "acknowledged_at")
+        if a.version == current_version.get(a.guideline_id)
+    }
+    return completed_tutorials, passed_tests, qualified, manual, acked
 
 
 def step_done_at(step, user_id, maps):
-    completed_tutorials, passed_tests, qualified, manual = maps
+    completed_tutorials, passed_tests, qualified, manual, acked = maps
     rule = step_rule(step)
     if rule == "tutorial":
         return completed_tutorials.get((user_id, step.tutorial_id))
@@ -160,6 +169,8 @@ def step_done_at(step, user_id, maps):
         return passed_tests.get((user_id, step.test_id))
     if rule == "qualification":
         return qualified.get((user_id, step.project_id))
+    if rule == "guideline":
+        return acked.get((user_id, step.guideline_id))
     return manual.get((user_id, step.pk))
 
 
@@ -199,7 +210,7 @@ def onboarding_for_user(user):
 
 def onboarding_matrix(project, users):
     """Admin view: for each user → (done, total, next_step_title) on the project's onboarding."""
-    steps = list(OnboardingStep.objects.filter(project=project).order_by("order", "pk"))
+    steps = list(OnboardingStep.objects.filter(project=project).select_related("guideline").order_by("order", "pk"))
     users = list(users)
     if not steps or not users:
         return {u.pk: {"done": 0, "total": len(steps), "next": None, "steps": []} for u in users}

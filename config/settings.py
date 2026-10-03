@@ -77,6 +77,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "apps.core.middleware.RequestSizeLimitMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -87,6 +88,7 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "apps.core.middleware.SecurityHeadersMiddleware",
     "apps.accounts.middleware.AccountStatusMiddleware",
+    "apps.comms.services.EmailDeliveryMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -186,7 +188,13 @@ SECURE_HTTPS = env_bool("SECURE_HTTPS", not DEBUG)
 SESSION_COOKIE_SECURE = SECURE_HTTPS
 CSRF_COOKIE_SECURE = SECURE_HTTPS
 SECURE_SSL_REDIRECT = env_bool("SECURE_SSL_REDIRECT", False)  # cPanel usually redirects via .htaccess
-SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+# Behind a proxy / CDN that sets X-Forwarded-Proto (e.g. Cloudflare): set BEHIND_HTTPS_PROXY=true.
+# Not trusted by default, because plain Apache/Passenger passes the header through from the client.
+if env_bool("BEHIND_HTTPS_PROXY", False):
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+# Number of trusted proxies in front of the site that append to X-Forwarded-For (0 = use REMOTE_ADDR).
+TRUSTED_PROXY_COUNT = env_int("TRUSTED_PROXY_COUNT", 0)
+CSRF_FAILURE_VIEW = "apps.core.views.csrf_failure"
 SECURE_HSTS_SECONDS = env_int("SECURE_HSTS_SECONDS", 0)
 SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
@@ -237,7 +245,9 @@ UPLOAD_CHUNK_SIZE = env_int("UPLOAD_CHUNK_SIZE", 5 * 1024 * 1024)  # local drive
 MAX_VIDEO_UPLOAD_MB = env_int("MAX_VIDEO_UPLOAD_MB", 4096)
 MAX_DOCUMENT_UPLOAD_MB = env_int("MAX_DOCUMENT_UPLOAD_MB", 15)
 
-DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
+# Whole request body (all files of one form together). Careers form: CV 10 MB + sample 10 MB.
+MAX_REQUEST_BODY_MB = env_int("MAX_REQUEST_BODY_MB", 30)
+DATA_UPLOAD_MAX_MEMORY_SIZE = max(10 * 1024 * 1024, UPLOAD_CHUNK_SIZE + 1024 * 1024)
 FILE_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024
 
 # ─── Email ──────────────────────────────────────────────────────────────────
@@ -265,15 +275,29 @@ ADMIN_NOTIFICATION_EMAILS = env_list("ADMIN_NOTIFICATION_EMAILS")
 EMPLOYEE_ID_PREFIX = env("EMPLOYEE_ID_PREFIX", "SKY")
 # A video counts as watched when at least this % of it has actually been played.
 VIDEO_COMPLETION_THRESHOLD = env_int("VIDEO_COMPLETION_THRESHOLD", 90)
-CRON_SECRET = env("CRON_SECRET")
-
 # ─── Logging ────────────────────────────────────────────────────────────────
+# Console (Passenger's stderr.log) always; plus a rotating file when LOG_FILE is set
+# (e.g. /home/cpuser/logs/skyloon.log — outside public_html). Server errors are emailed
+# to ERROR_EMAILS when set. 404s and "invalid host" noise are kept out of the error log.
 
+LOG_FILE = env("LOG_FILE", "")
+ADMINS = [("Admin", e) for e in env_list("ERROR_EMAILS")]
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
     "formatters": {"simple": {"format": "[{asctime}] {levelname} {name}: {message}", "style": "{"}},
-    "handlers": {"console": {"class": "logging.StreamHandler", "formatter": "simple"}},
-    "root": {"handlers": ["console"], "level": "INFO" if not DEBUG else "INFO"},
-    "loggers": {"django.db.backends": {"level": "WARNING"}},
+    "filters": {"require_debug_false": {"()": "django.utils.log.RequireDebugFalse"}},
+    "handlers": {
+        "console": {"class": "logging.StreamHandler", "formatter": "simple"},
+        "mail_admins": {"class": "django.utils.log.AdminEmailHandler", "level": "ERROR",
+                        "filters": ["require_debug_false"], "include_html": False},
+        **({"file": {"class": "logging.handlers.RotatingFileHandler", "filename": LOG_FILE, "maxBytes": 5 * 1024 * 1024,
+                     "backupCount": 5, "encoding": "utf-8", "formatter": "simple"}} if LOG_FILE else {}),
+    },
+    "root": {"handlers": ["console"] + (["file"] if LOG_FILE else []), "level": "INFO"},
+    "loggers": {
+        "django.db.backends": {"level": "WARNING"},
+        "django.request": {"handlers": ["mail_admins"] if ADMINS else [], "level": "ERROR"},
+        "django.security.DisallowedHost": {"handlers": [], "level": "ERROR", "propagate": False},
+    },
 }

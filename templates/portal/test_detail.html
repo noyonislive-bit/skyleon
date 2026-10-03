@@ -2,7 +2,7 @@
 {% load portal_tags %}
 {% block browser_title %}{{ test.title }}{% endblock %}
 {% block content %}
-<div class="grid gap-6 xl:grid-cols-3">
+<div class="grid grid-cols-1 gap-6 xl:grid-cols-3">
   <div class="space-y-6 xl:col-span-2">
     <section class="card overflow-hidden">
       <div class="relative overflow-hidden bg-ink-900 px-6 py-7 text-slate-300">
@@ -22,7 +22,7 @@
       </dl>
       <div class="card-body">
         {% if test.description %}<div class="prose-content">{{ test.description|markdown }}</div>{% endif %}
-        <ul class="mt-4 grid gap-2 text-sm text-slate-600 sm:grid-cols-2">
+        <ul class="mt-4 grid grid-cols-1 gap-2 text-sm text-slate-600 sm:grid-cols-2">
           <li class="flex gap-2">{% icon "check" class="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" %} জমা দিলেই স্কোর নিজে থেকে হিসাব হয়ে যাবে।</li>
           <li class="flex gap-2">{% icon "check" class="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" %} একাধিক উত্তরের প্রশ্নে সবগুলো সঠিক অপশন বাছতে হবে।</li>
           {% if test.time_limit_min %}<li class="flex gap-2">{% icon "timer" class="mt-0.5 h-4 w-4 shrink-0 text-amber-500" %} শুরু করলেই টাইমার চালু হবে; সময় শেষ হলে উত্তর নিজে থেকেই জমা হয়ে যাবে।</li>{% endif %}

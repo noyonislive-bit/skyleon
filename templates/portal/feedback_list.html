@@ -1,7 +1,7 @@
 {% extends "portal/base.html" %}
 {% load portal_tags %}
 {% block content %}
-<div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+<div class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
   <div class="stat {% if counts.new %}ring-amber-300 bg-amber-50/60{% endif %}">
     <div class="flex items-center justify-between"><p class="stat-label">এখনো দেখেননি</p><span class="{% if counts.new %}text-amber-500{% else %}text-slate-400{% endif %}">{% icon "mail-open" class="h-4 w-4" %}</span></div>
     <p class="stat-value">{{ counts.new }}</p>

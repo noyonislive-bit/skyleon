@@ -56,7 +56,7 @@
   <section class="card">
     <div class="card-header">
       <h2 class="card-title">Pending approvals</h2>
-      <a href="{% url 'backoffice:employee_list' %}?status=pending" class="text-xs font-medium text-brand-600 hover:text-brand-700">View all</a>
+      <a href="{% url 'backoffice:employee_list' %}?status=pending&amp;role=employee" class="text-xs font-medium text-brand-600 hover:text-brand-700">View all</a>
     </div>
     {% if pending_users %}
       <ul class="bo-list">

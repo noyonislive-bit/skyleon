@@ -4,7 +4,7 @@
 {% block content %}
 <div class="guide-bn" lang="bn">
   {% if rows %}
-  <div class="grid gap-5 lg:grid-cols-2">
+  <div class="grid grid-cols-1 gap-5 lg:grid-cols-2">
     {% for r in rows %}{% with g=r.guide %}
     <article class="card g-card g-accent-{{ g.accent }}">
       <div class="g-hero-bar" aria-hidden="true"></div>
@@ -48,7 +48,7 @@
 
   <div class="card mt-6 p-5 sm:p-6">
     <h2 class="text-sm font-semibold text-slate-900">কীভাবে পড়বেন</h2>
-    <ol class="mt-4 grid gap-4 sm:grid-cols-3">
+    <ol class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
       <li class="flex gap-3"><span class="g-how-num">১</span><p class="g-how-text"><strong>অধ্যায় ধরে পড়ুন।</strong> বাম পাশের সূচিপত্র থেকে যেকোনো ধাপে সরাসরি যাওয়া যায়।</p></li>
       <li class="flex gap-3"><span class="g-how-num">২</span><p class="g-how-text"><strong>ভিডিও দেখুন, নিয়ম মিলিয়ে নিন।</strong> প্রতিটি ধাপের পাশে মূল ভিডিওর ঠিক সেই অংশ আর কোন বোতামে কী হয় তা দেওয়া আছে — লেখা আর ভিডিও একই কাজ দেখায়। লাল কার্ডের Task Error উদাহরণগুলো বিশেষভাবে মনে রাখুন।</p></li>
       <li class="flex gap-3"><span class="g-how-num">৩</span><p class="g-how-text"><strong>বুঝলে “বুঝেছি” চাপুন।</strong> এতে আপনার অগ্রগতি সেভ হয়, পরে ঠিক সেখান থেকেই শুরু করতে পারবেন।</p></li>

@@ -13,6 +13,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from apps.accounts.models import Role, User, UserStatus
+from apps.training.services import onboarding_for_user
 from apps.assessments.models import (
     Question,
     QuestionOption,
@@ -240,7 +241,13 @@ class HeartbeatTests(PortalTestBase):
         past = timezone.now() - timedelta(seconds=seconds)
         TutorialProgress.objects.filter(tutorial=self.tut_a, user=self.emp).update(last_heartbeat_at=past, first_viewed_at=past)
 
+    def open_and_watch(self, seconds):
+        """Open the tutorial page, then pretend `seconds` of real time have passed."""
+        self.c.get(reverse("portal:tutorial_detail", args=[self.tut_a.pk]))
+        self.rewind(seconds)
+
     def test_heartbeat_records_progress(self):
+        self.open_and_watch(15)
         resp = self.hb(self.url(), {"duration": 100, "position": 10, "ranges": [[0, 10]]})
         self.assertEqual(resp.status_code, 200)
         data = resp.json()
@@ -273,13 +280,13 @@ class HeartbeatTests(PortalTestBase):
         data = self.hb(self.url(), {"duration": 100, "position": 100, "ranges": [[0, 100]]}).json()
         self.assertFalse(data["completed"])
         watched = data["watched_seconds"]
-        self.assertLessEqual(watched, (4 + 15) * 2 + 0.5)  # service ceiling: 2× (time since first view + grace)
+        self.assertLessEqual(watched, (4 + 2) * 2 + 0.5)  # service ceiling: 2× (time since first view + jitter)
         # 8 s after the first view the total still cannot run ahead of 2× wall-clock time.
         now = timezone.now()
         rows.update(last_heartbeat_at=now - timedelta(seconds=4), first_viewed_at=now - timedelta(seconds=8))
         data = self.hb(self.url(), {"duration": 100, "position": 100, "ranges": [[0, 100]]}).json()
         self.assertFalse(data["completed"])
-        self.assertLessEqual(data["watched_seconds"], (8 + 15) * 2 + 0.5)
+        self.assertLessEqual(data["watched_seconds"], (8 + 2) * 2 + 0.5)
 
     def test_real_viewing_completes(self):
         self.hb(self.url(), {"duration": 100, "position": 30, "ranges": [[0, 30]]})
@@ -292,6 +299,7 @@ class HeartbeatTests(PortalTestBase):
         self.assertContains(resp, "তারিখে রেকর্ড হয়েছে")
 
     def test_stored_duration_wins_over_client(self):
+        self.open_and_watch(15)
         data = self.hb(self.url(), {"duration": 10, "position": 10, "ranges": [[0, 10]]}).json()
         self.assertAlmostEqual(data["percent"], 10, delta=0.5)  # 10 s of the stored 100 s, not 100 %
 
@@ -340,6 +348,12 @@ class FeedbackTests(PortalTestBase):
         self.assertIsNotNone(self.rec_text.watched_at)
 
     def test_acknowledge(self):
+        # A feedback video must be watched before "বুঝেছি" counts.
+        self.c.post(reverse("portal:feedback_ack", args=[self.fb_a.number]))
+        self.rec_a.refresh_from_db()
+        self.assertIsNone(self.rec_a.acknowledged_at)
+        self.rec_a.watched_at = timezone.now()
+        self.rec_a.save(update_fields=["watched_at"])
         self.c.post(reverse("portal:feedback_ack", args=[self.fb_a.number]))
         self.rec_a.refresh_from_db()
         self.assertIsNotNone(self.rec_a.acknowledged_at)
@@ -425,6 +439,35 @@ class TestFlowTests(PortalTestBase):
         attempt.refresh_from_db()
         self.assertIsNotNone(attempt.submitted_at)
 
+    def test_late_answers_are_not_counted(self):
+        """The time limit is enforced on the server, not only by the countdown in the browser."""
+        Test.objects.filter(pk=self.test_a.pk).update(time_limit_min=1)
+        _, attempt = self.start(self.test_a)
+        TestAttempt.objects.filter(pk=attempt.pk).update(started_at=timezone.now() - timedelta(minutes=30))
+        self.c.post(reverse("portal:test_take", args=[attempt.pk]), data=correct_answers(self.test_a))
+        attempt.refresh_from_db()
+        self.assertTrue(attempt.data["late"])
+        self.assertFalse(attempt.passed)
+        self.assertEqual(attempt.score, 0)
+
+    def test_answers_revealed_only_after_pass_or_last_attempt(self):
+        _, a1 = self.start(self.test_a)
+        self.c.post(reverse("portal:test_take", args=[a1.pk]), data={})
+        resp = self.c.get(reverse("portal:result_detail", args=[a1.pk]))
+        self.assertNotContains(resp, "A is right")  # a retake is still possible
+        self.assertContains(resp, "সঠিক উত্তরগুলো দেখা যাবে")
+        _, a2 = self.start(self.test_a)
+        self.c.post(reverse("portal:test_take", args=[a2.pk]), data={})
+        self.assertContains(self.c.get(reverse("portal:result_detail", args=[a2.pk])), "A is right")  # no attempts left
+
+    def test_unpublished_test_attempt_cannot_continue(self):
+        _, attempt = self.start(self.test_a)
+        Test.objects.filter(pk=self.test_a.pk).update(status="draft")
+        resp = self.c.post(reverse("portal:test_take", args=[attempt.pk]), data=correct_answers(self.test_a))
+        self.assertRedirects(resp, reverse("portal:tests"), fetch_redirect_response=False)
+        attempt.refresh_from_db()
+        self.assertIsNone(attempt.submitted_at)
+
     def test_timed_attempt_shows_countdown(self):
         Test.objects.filter(pk=self.test_a.pk).update(time_limit_min=15)
         _, attempt = self.start(self.test_a)
@@ -469,7 +512,8 @@ class OnboardingTests(PortalTestBase):
 
     def test_completed_track_shows_celebration(self):
         OnboardingCompletion.objects.create(step=self.step1, user=self.emp)
-        OnboardingCompletion.objects.create(step=self.step3, user=self.emp)
+        # Step 3 is linked to a guideline: it is done by acknowledging the current version.
+        GuidelineAck.objects.create(guideline=self.guideline, user=self.emp, version="2.0")
         TutorialProgress.objects.filter(tutorial=self.tut_a, user=self.emp).update(
             status=ProgressStatus.COMPLETED, completed_at=timezone.now(), percent=100
         )
@@ -477,6 +521,17 @@ class OnboardingTests(PortalTestBase):
         self.assertEqual(resp.context["overall_percent"], 100)
         self.assertContains(resp, "অনবোর্ডিং সম্পন্ন")
         self.assertNotContains(resp, "সম্পন্ন হিসেবে চিহ্নিত করুন")
+
+    def test_guideline_step_needs_current_version_ack(self):
+        GuidelineAck.objects.create(guideline=self.guideline, user=self.emp, version="1.0")  # old version
+        items = {i["step"].pk: i for sec in onboarding_for_user(self.emp) for i in sec["steps"]}
+        self.assertEqual(items[self.step3.pk]["rule"], "guideline")
+        self.assertIsNone(items[self.step3.pk]["done_at"])
+        r = self.c.post(reverse("portal:onboarding_complete_step", args=[self.step3.pk]))  # can't tick it by hand
+        self.assertFalse(OnboardingCompletion.objects.filter(step=self.step3, user=self.emp).exists())
+        GuidelineAck.objects.filter(guideline=self.guideline, user=self.emp).update(version="2.0")
+        items = {i["step"].pk: i for sec in onboarding_for_user(self.emp) for i in sec["steps"]}
+        self.assertIsNotNone(items[self.step3.pk]["done_at"])
 
     def test_guideline_ack_records_version(self):
         self.c.post(reverse("portal:guideline_ack", args=["alpha", self.guideline.pk]))

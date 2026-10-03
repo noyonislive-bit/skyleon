@@ -9,14 +9,14 @@ from django.utils import formats, timezone, translation
 from django.views.decorators.http import require_POST
 
 from apps.accounts.decorators import permission_required_code
-from apps.accounts.permissions import project_scope
+from apps.accounts.permissions import has_permission, project_scope
 from apps.comms.models import Announcement, EmailMessage, EmailStatus, Meeting, MeetingInvite, NotificationType
 from apps.comms.services import deliver, notify
 from apps.core import audit
 from apps.core.audience import active_employees, project_audience
 
 from ..forms import AnnouncementForm, MeetingForm
-from ..helpers import can_target_project, paginate, portal_link, staff_projects
+from ..helpers import can_target_project, employee_scope, paginate, portal_link, staff_projects
 
 
 def _excerpt(text, n=180):
@@ -206,6 +206,11 @@ def meeting_edit(request, pk):
 def meeting_detail(request, pk):
     meeting = _get_meeting(request, pk)
     invites = list(meeting.invites.select_related("user").order_by("user__name"))
+    visible = set()
+    if has_permission(request.user, "employees.view"):
+        visible = set(employee_scope(request.user).filter(pk__in=[i.user_id for i in invites]).values_list("pk", flat=True))
+    for i in invites:
+        i.can_view = i.user_id in visible  # staff invitees are outside a PM's / trainer's people area
     return render(request, "backoffice/comms/meeting_detail.html", {
         "page_title": None,
         "crumbs": [("Meetings", reverse("backoffice:meeting_list")), (meeting.title, None)],

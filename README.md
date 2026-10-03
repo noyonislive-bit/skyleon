@@ -146,7 +146,7 @@ npm run build:css      # or: npm run watch:css
 
 ```bash
 python manage.py test apps          # unit + integration tests (MySQL test database)
-python manage.py check --deploy     # production settings check (with DEBUG=false)
+python manage.py collectstatic --noinput && python manage.py check --deploy   # production check (DEBUG=false)
 ```
 
 ---

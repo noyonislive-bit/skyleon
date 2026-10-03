@@ -12,6 +12,7 @@ from django.views.decorators.http import require_POST
 
 from apps.accounts.decorators import permission_required_code
 from apps.accounts.permissions import can_manage_content_for, has_permission, scoped_project_ids
+from apps.backoffice.helpers import people_q, redirect_back
 from apps.core import audit
 from apps.core.choices import ContentStatus
 from apps.projects.models import Project
@@ -39,11 +40,13 @@ def _projects_for(user):
 
 @permission_required_code("content.manage")
 def manage_list(request):
-    tasks = services.manageable_tasks(request.user).annotate(
-        n_attempts=Count("attempts", filter=Q(attempts__status=AttemptStatus.SUBMITTED)),
-        n_people=Count("attempts__user", filter=Q(attempts__status=AttemptStatus.SUBMITTED), distinct=True),
-        avg_score=Avg("attempts__score", filter=Q(attempts__status=AttemptStatus.SUBMITTED)),
-        n_passed=Count("attempts__user", filter=Q(attempts__passed=True), distinct=True),
+    user = request.user
+    submitted = Q(attempts__status=AttemptStatus.SUBMITTED) & people_q(user, "attempts__user")
+    tasks = services.manageable_tasks(user).annotate(
+        n_attempts=Count("attempts", filter=submitted),
+        n_people=Count("attempts__user", filter=submitted, distinct=True),
+        avg_score=Avg("attempts__score", filter=submitted),
+        n_passed=Count("attempts__user", filter=submitted & Q(attempts__passed=True), distinct=True),
     ).select_related("video__thumbnail")
     return render(request, "practice/manage/list.html", {
         "tasks": tasks, "can_settings": has_permission(request.user, "settings.manage"),
@@ -56,7 +59,7 @@ def manage_list(request):
 @permission_required_code("content.manage")
 def task_form(request, pk=None):
     task = _task_or_404(request, pk) if pk else None
-    form = PracticeTaskForm(request.POST or None, instance=task, projects=_projects_for(request.user))
+    form = PracticeTaskForm(request.POST or None, instance=task, user=request.user, projects=_projects_for(request.user))
     if request.method == "POST" and form.is_valid():
         if not can_manage_content_for(request.user, form.cleaned_data.get("project")):
             form.add_error("project", "You can only create practice tasks for your own projects.")
@@ -70,6 +73,7 @@ def task_form(request, pk=None):
             return redirect("practice:manage_edit", pk=obj.pk)
     return render(request, "practice/manage/form.html", {
         "form": form, "task": task,
+        "attempt_count": task.attempts.filter(status=AttemptStatus.SUBMITTED).count() if task else 0,
         "page_title": f"Edit · {task.title}" if task else "New practice task",
         "crumbs": [("Practice lab", reverse("practice:manage")), (task.title if task else "New task", "")],
     })
@@ -94,13 +98,16 @@ def publish(request, pk):
             messages.success(request, "Practice task published.")
     task.save(update_fields=["status", "published_at", "updated_at"])
     audit.log(request, "practice.publish", task, status=task.status)
-    return redirect(request.POST.get("next") or reverse("practice:manage"))
+    return redirect_back(request, reverse("practice:manage"))
 
 
 @permission_required_code("content.manage")
 @require_POST
 def delete(request, pk):
     task = _task_or_404(request, pk)
+    if task.attempts.filter(status=AttemptStatus.SUBMITTED).exists():
+        messages.error(request, "Employees have submitted this task — unpublish it instead of deleting, so their results are kept.")
+        return redirect("practice:manage_edit", pk=task.pk)
     audit.log(request, "practice.delete", task, title=task.title)
     task.delete()
     messages.success(request, "Practice task deleted.")
@@ -136,9 +143,12 @@ def reference_save(request, pk):
     try:
         data = json.loads(request.body or b"{}")
     except ValueError:
-        data = {}
+        data = None
+    clips = data.get("clips") if isinstance(data, dict) else None
+    if not isinstance(clips, list):  # never wipe the reference because of a malformed request
+        return JsonResponse({"ok": False, "error": "clips must be a list of [start, end] pairs."}, status=400)
     lo, hi = services.task_range(task)
-    task.reference_clips = [list(c) for c in clean_clips(data.get("clips"), lo, hi)]
+    task.reference_clips = [list(c) for c in clean_clips(clips, lo, hi)]
     task.save(update_fields=["reference_clips", "updated_at"])
     audit.log(request, "practice.reference", task, clips=len(task.reference_clips))
     return JsonResponse({"ok": True, "reference": True, "clips": task.reference_clips,
@@ -148,8 +158,9 @@ def reference_save(request, pk):
 @permission_required_code("content.manage")
 def results(request, pk):
     task = _task_or_404(request, pk)
+    in_scope = people_q(request.user)
     attempts = (
-        PracticeAttempt.objects.filter(task=task, status=AttemptStatus.SUBMITTED)
+        PracticeAttempt.objects.filter(in_scope, task=task, status=AttemptStatus.SUBMITTED)
         .select_related("user").order_by("user__name", "-submitted_at")
     )
     people = {}
@@ -161,7 +172,7 @@ def results(request, pk):
         row["passed"] = row["passed"] or bool(a.passed)
         if a.task_error and not row["task_error"]:
             row["task_error"] = a.task_error
-    errors = PracticeAttempt.objects.filter(task=task).exclude(task_error={}).select_related("user").order_by("-updated_at")[:20]
+    errors = PracticeAttempt.objects.filter(in_scope, task=task).exclude(task_error={}).select_related("user").order_by("-updated_at")[:20]
     return render(request, "practice/manage/results.html", {
         "task": task, "people": sorted(people.values(), key=lambda r: r["user"].name), "errors": errors,
         "page_title": f"Results · {task.title}",
@@ -173,6 +184,8 @@ def results(request, pk):
 def attempt_detail(request, attempt_id):
     attempt = get_object_or_404(PracticeAttempt.objects.select_related("task", "user"), pk=attempt_id, status=AttemptStatus.SUBMITTED)
     _task_or_404(request, attempt.task_id)
+    if not PracticeAttempt.objects.filter(people_q(request.user), pk=attempt.pk).exists():
+        raise Http404
     ctx = result_context(attempt, back_url=reverse("practice:manage_results", args=[attempt.task_id]))
     ctx["staff_view"] = True
     ctx["page_title"] = f"{attempt.user.name} · {attempt.task.title}"

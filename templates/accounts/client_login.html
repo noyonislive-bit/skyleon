@@ -12,6 +12,7 @@
   {% include "components/form_errors.html" %}
   {% include "components/field.html" with field=form.identifier label="Email" %}
   {% include "components/field.html" with field=form.password %}
+  <p class="-mt-2 text-right text-sm"><a href="{% url 'accounts:password_reset' %}" class="font-medium text-brand-600 hover:text-brand-700">Forgot password?</a></p>
   <button type="submit" class="btn btn-primary w-full py-3">Sign in</button>
 </form>
 <div class="mt-8 rounded-lg bg-slate-50 p-4 text-sm text-slate-600 ring-1 ring-slate-200">

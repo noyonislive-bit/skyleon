@@ -25,10 +25,10 @@
     <section class="vp-card" aria-label="Video Preview">
       <header class="vp-header">
         <span class="vp-title">Video Preview</span>
-        <div class="vp-zoom" role="group" aria-label="Timeline zoom">
-          <button type="button" data-action="zoom_out" aria-label="Zoom out">-</button>
+        <div class="vp-zoom" role="group" aria-label="{% bn "টাইমলাইন জুম" "Timeline zoom" %}">
+          <button type="button" data-action="zoom_out" aria-label="{% bn "জুম আউট" "Zoom out" %}">-</button>
           <span class="vp-zoom-label" data-zoom-label>100%</span>
-          <button type="button" data-action="zoom_in" aria-label="Zoom in">+</button>
+          <button type="button" data-action="zoom_in" aria-label="{% bn "জুম ইন" "Zoom in" %}">+</button>
           <button type="button" class="vp-fit" data-action="zoom_fit">Fit</button>
         </div>
       </header>
@@ -36,7 +36,7 @@
       <div class="vp-body">
         <div class="vp-stage" data-stage>
           <video data-video playsinline preload="auto"></video>
-          <button type="button" class="vp-play" data-action="play_pause" aria-label="Play">
+          <button type="button" class="vp-play" data-action="play_pause" aria-label="{% bn "চালান / থামান" "Play" %}">
             <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.14v13.72a1 1 0 0 0 1.52.85l10.6-6.86a1 1 0 0 0 0-1.7L9.52 4.29A1 1 0 0 0 8 5.14Z"/></svg>
           </button>
           <div class="vp-stage-msg" data-stage-msg>{% bn "ভিডিওটা লোড করা যায়নি।" "The video could not be loaded." %}</div>
@@ -50,7 +50,7 @@
             <button type="button" class="vp-link" data-open="#pt-shortcuts">Shortcuts</button>
             <button type="button" class="vp-link" data-action="speed" data-speed-label>Speed 1x</button>
             <label class="vp-source">Source
-              <select data-source aria-label="Video source"><option value="auto">Auto</option><option value="original">Original</option></select>
+              <select data-source aria-label="{% bn "ভিডিওর উৎস" "Video source" %}"><option value="auto">Auto</option><option value="original">Original</option></select>
             </label>
             <label class="vp-loop"><input type="checkbox" data-loop> Loop Current Segment (L)</label>
           </div>
@@ -64,7 +64,7 @@
               <div class="vp-tl-inner" data-inner>
                 <div class="vp-ruler" data-ruler></div>
                 <div class="vp-track" data-track></div>
-                <div class="vp-playhead" data-playhead><div class="vp-playhead-handle" data-playhead-handle title="Drag to scrub"></div><div class="vp-playhead-line"></div></div>
+                <div class="vp-playhead" data-playhead><div class="vp-playhead-handle" data-playhead-handle title="{% bn "টেনে ভিডিওর জায়গা বদলান" "Drag to scrub" %}"></div><div class="vp-playhead-line"></div></div>
               </div>
             </div>
           </div>

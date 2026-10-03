@@ -10,11 +10,17 @@
   <div class="flex flex-wrap gap-2">
     <a href="mailto:{{ app.email }}?subject={{ 'Your application at '|add:brand.name|urlencode }}" class="btn btn-secondary btn-sm">{% icon "mail" class="h-4 w-4" %} Email</a>
     {% if app.user_id %}
-      <a href="{% url 'backoffice:employee_detail' app.user_id %}" class="btn btn-primary btn-sm">{% icon "user" class="h-4 w-4" %} Open employee</a>
-    {% elif app.status != "rejected" %}
+      {% if linked_visible %}<a href="{% url 'backoffice:employee_detail' app.user_id %}" class="btn btn-primary btn-sm">{% icon "user" class="h-4 w-4" %} Open employee</a>{% endif %}
+    {% elif app.status != "rejected" and not existing_problem %}
+      {% if existing %}
+      <form method="post" action="{% url 'backoffice:applicant_convert' app.pk %}" data-confirm="Link this application to the existing account of {{ existing.name }}? The account is not changed and no email is sent.">{% csrf_token %}
+        <button class="btn btn-success btn-sm">{% icon "link" class="h-4 w-4" %} Approve &amp; link existing account</button>
+      </form>
+      {% else %}
       <form method="post" action="{% url 'backoffice:applicant_convert' app.pk %}" data-confirm="Create an employee account for {{ app.full_name }} and email them a password-setup link?">{% csrf_token %}
         <button class="btn btn-success btn-sm">{% icon "user-plus" class="h-4 w-4" %} Approve &amp; create employee account</button>
       </form>
+      {% endif %}
     {% endif %}
   </div>
 </div>
@@ -65,7 +71,12 @@
       <button class="btn btn-primary w-full">Save</button>
     </form>
     {% if app.user_id %}
-    <div class="alert alert-success">{% icon "check-circle-2" class="mt-0.5 h-4 w-4 shrink-0" %}<p>An employee account was created from this application: <a class="font-semibold underline" href="{% url 'backoffice:employee_detail' app.user_id %}">{{ app.user.employee_id|default:app.user.email }}</a>.</p></div>
+    <div class="alert alert-success">{% icon "check-circle-2" class="mt-0.5 h-4 w-4 shrink-0" %}<p>This application is linked to the employee account {% if linked_visible %}<a class="font-semibold underline" href="{% url 'backoffice:employee_detail' app.user_id %}">{{ app.user.employee_id|default:app.user.email }}</a>{% else %}<span class="font-semibold">{{ app.user.employee_id|default:app.user.email }}</span>{% endif %}.</p></div>
+    {% elif existing %}
+    <div class="alert {% if existing_problem %}alert-error{% else %}alert-warning{% endif %}">{% icon "alert-triangle" class="mt-0.5 h-4 w-4 shrink-0" %}<div>
+      <p>An account with this email already exists ({{ existing.get_role_display }} · {{ existing.get_status_display }}){% if existing_visible %}: <a class="font-semibold underline" href="{% url 'backoffice:employee_detail' existing.pk %}">{{ existing.employee_id|default:existing.email }}</a>{% endif %}.</p>
+      {% if existing_problem %}<p class="mt-1">{{ existing_problem }}</p>{% else %}<p class="mt-1">Approving links the application to that account. Its role and status are not changed and no email is sent.</p>{% endif %}
+    </div></div>
     {% else %}
     <div class="rounded-xl bg-slate-50 p-4 text-xs leading-5 text-slate-600 ring-1 ring-slate-200">
       <strong class="text-slate-800">Approve &amp; create employee account</strong> creates an active account with the next employee ID, copies phone, location and skills, marks the application approved and emails a secure password-setup link.

@@ -13,6 +13,7 @@ from functools import wraps
 from django.contrib.auth.views import redirect_to_login
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import redirect
+from django.urls import reverse
 
 from .models import UserStatus
 from .permissions import has_permission
@@ -21,6 +22,8 @@ from .permissions import has_permission
 def _deny(request, code):
     user = request.user
     if not user.is_authenticated:
+        if request.path.startswith("/client/"):
+            return redirect_to_login(request.get_full_path(), login_url=reverse("accounts:client_login"))
         return redirect_to_login(request.get_full_path())
     if user.status == UserStatus.PENDING:
         return redirect("accounts:pending")

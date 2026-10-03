@@ -83,6 +83,7 @@ def message_list(request):
     if status in LeadStatus.values:
         qs = qs.filter(status=status)
     if wants_csv(request):
+        audit.log(request, "messages.export", None, count=qs.count())
         return csv_response("contact-messages", ["ID", "Received", "Name", "Email", "Company", "Phone", "Subject", "Message", "Status"], (
             [m.pk, m.created_at, m.name, m.email, m.company, m.phone, m.subject, m.message, m.get_status_display()] for m in qs.iterator()
         ))

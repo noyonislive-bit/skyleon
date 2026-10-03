@@ -12,11 +12,13 @@ they are delivered at the end of the request; anything that fails is retried by
 """
 
 import logging
+import threading
 from collections.abc import Iterable
 
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives, get_connection
 from django.db import transaction
+from django.db.models import Q
 from django.template.loader import render_to_string
 from django.utils import timezone, translation
 
@@ -61,48 +63,114 @@ def _render_email(template: str, context: dict) -> tuple[str, str]:
     return html, text
 
 
-def queue_email(to: str, subject: str, template: str, context: dict | None = None) -> EmailMessage | None:
+# Emails sent during a web request are delivered after the transaction commits, all over one
+# SMTP connection; at most this many — the rest (e.g. a big announcement) go out with the cron job,
+# so a slow or unreachable mail server can't hold a page for long.
+IMMEDIATE_SEND_MAX = 10
+LOCK_SECONDS = 300
+_pending = threading.local()
+
+
+def clean_subject(subject: str) -> str:
+    """Single line (a CR/LF from user input would make the mail library refuse the message)."""
+    return " ".join(str(subject or "").split())[:300]
+
+
+def queue_email(to: str, subject: str, template: str, context: dict | None = None, *, reply_to: str = "") -> EmailMessage | None:
     if not to:
         return None
+    subject = clean_subject(subject)
     html, text = render_email(template, {"subject": subject, **(context or {})})
-    msg = EmailMessage.objects.create(to=to, subject=subject[:300], html=html, text=text, template=template)
+    msg = EmailMessage.objects.create(to=to, subject=subject, html=html, text=text, template=template,
+                                      reply_to=reply_to if reply_to and "\n" not in reply_to else "")
     if settings.EMAIL_SEND_IMMEDIATELY:
-        transaction.on_commit(lambda: deliver([msg.pk]))
+        _schedule_delivery(msg.pk)
     return msg
 
 
-def send_email(to, subject: str, template: str, context: dict | None = None):
+def _schedule_delivery(pk: int) -> None:
+    ids = getattr(_pending, "ids", None)
+    if ids is not None:  # inside a web request: EmailDeliveryMiddleware sends them all at the end
+        ids.append(pk)
+        return
+    transaction.on_commit(lambda: deliver([pk]))  # management commands / shell
+
+
+class EmailDeliveryMiddleware:
+    """Collects the emails queued while handling a request and delivers them once the view has
+    finished (and its transaction committed): one SMTP connection, at most IMMEDIATE_SEND_MAX
+    messages; anything else stays in the outbox for `process_emails`."""
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        _pending.ids = []
+        try:
+            response = self.get_response(request)
+        finally:
+            ids, _pending.ids = _pending.ids, None
+        if ids:
+            try:
+                deliver(ids[:IMMEDIATE_SEND_MAX])
+            except Exception:  # never turn a sent page into an error because of email
+                logger.exception("Immediate email delivery failed; the cron job will retry")
+        return response
+
+
+def send_email(to, subject: str, template: str, context: dict | None = None, *, reply_to: str = ""):
     recipients = [to] if isinstance(to, str) else list(to)
-    return [queue_email(r, subject, template, context) for r in recipients if r]
+    return [queue_email(r, subject, template, context, reply_to=reply_to) for r in recipients if r]
 
 
-def notify_admins(subject: str, template: str, context: dict | None = None):
-    return send_email(site_settings.admin_notification_emails(), subject, template, context)
+def notify_admins(subject: str, template: str, context: dict | None = None, *, reply_to: str = ""):
+    return send_email(site_settings.admin_notification_emails(), subject, template, context, reply_to=reply_to)
+
+
+def _claim(ids) -> list[int]:
+    """Lock each pending message for this sender (atomic per row); returns the ids we own."""
+    now = timezone.now()
+    owned = []
+    for pk in ids:
+        got = EmailMessage.objects.filter(pk=pk, status=EmailStatus.PENDING).filter(
+            Q(locked_until__isnull=True) | Q(locked_until__lt=now)
+        ).update(locked_until=now + timezone.timedelta(seconds=LOCK_SECONDS))
+        if got:
+            owned.append(pk)
+    return owned
 
 
 def deliver(ids: Iterable[int] | None = None, limit: int = 50) -> tuple[int, int]:
-    """Deliver pending emails. Returns (sent, failed)."""
+    """Deliver pending emails (all of them, or the given ids). Returns (sent, failed)."""
     qs = EmailMessage.objects.filter(status=EmailStatus.PENDING, attempts__lt=MAX_ATTEMPTS)
     if ids is not None:
         qs = qs.filter(pk__in=list(ids))
-    batch = list(qs.order_by("created_at")[:limit])
+    candidates = list(qs.order_by("created_at").values_list("pk", flat=True)[:limit])
+    owned = _claim(candidates)
+    batch = list(EmailMessage.objects.filter(pk__in=owned).order_by("created_at"))
     if not batch:
         return 0, 0
     sent = failed = 0
     try:
         connection = get_connection(fail_silently=False)
         connection.open()
-    except Exception as exc:  # SMTP down — leave everything pending for the cron retry
+    except Exception as exc:  # SMTP down — count the attempt, keep the messages for the cron retry
         logger.warning("Email connection failed: %s", exc)
-        EmailMessage.objects.filter(pk__in=[m.pk for m in batch]).update(last_error=str(exc)[:1000])
+        for msg in batch:
+            msg.attempts += 1
+            msg.last_error = str(exc)[:1000]
+            msg.locked_until = None
+            if msg.attempts >= MAX_ATTEMPTS:
+                msg.status = EmailStatus.FAILED
+            msg.save(update_fields=["attempts", "last_error", "locked_until", "status"])
         return 0, len(batch)
     try:
         for msg in batch:
             msg.attempts += 1
             try:
                 email = EmailMultiAlternatives(
-                    subject=msg.subject, body=msg.text, from_email=settings.DEFAULT_FROM_EMAIL,
-                    to=[msg.to], connection=connection,
+                    subject=clean_subject(msg.subject), body=msg.text, from_email=settings.DEFAULT_FROM_EMAIL,
+                    to=[msg.to], reply_to=[msg.reply_to] if msg.reply_to else None, connection=connection,
                 )
                 email.attach_alternative(msg.html, "text/html")
                 email.send()
@@ -116,7 +184,8 @@ def deliver(ids: Iterable[int] | None = None, limit: int = 50) -> tuple[int, int
                 if msg.attempts >= MAX_ATTEMPTS:
                     msg.status = EmailStatus.FAILED
                 failed += 1
-            msg.save(update_fields=["status", "attempts", "sent_at", "last_error"])
+            msg.locked_until = None
+            msg.save(update_fields=["status", "attempts", "sent_at", "last_error", "locked_until"])
     finally:
         try:
             connection.close()

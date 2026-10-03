@@ -2,7 +2,7 @@
 {% load portal_tags %}
 {% block content %}
 {% include "portal/includes/profile_tabs.html" %}
-<div class="grid gap-6 xl:grid-cols-2">
+<div class="grid grid-cols-1 gap-6 xl:grid-cols-2">
   <section class="card" aria-labelledby="h-training">
     <div class="card-header"><h2 id="h-training" class="card-title flex items-center gap-2">{% icon "graduation-cap" class="h-4 w-4 text-slate-400" %} ট্রেনিংয়ের ইতিহাস</h2><span class="badge badge-neutral">{{ training|length }}টি সম্পন্ন</span></div>
     {% if training %}

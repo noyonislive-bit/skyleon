@@ -13,7 +13,7 @@ from apps.assessments.models import TestAssignment
 from apps.assessments.services import test_state
 from apps.storage.models import MediaStatus
 from apps.storage.services import media_url
-from apps.training.progress import GRACE_SECONDS, MAX_PLAYBACK_RATE
+from apps.training.progress import JITTER_SECONDS, MAX_PLAYBACK_RATE
 
 from .scope import attempts_by_test
 
@@ -49,7 +49,12 @@ def safe_internal_path(link: str, request) -> str | None:
 
 
 def trusted_duration(asset, reported) -> float | None:
-    """The stored asset duration wins; otherwise accept the client's value bounded to 6 h."""
+    """The asset's stored duration — never the browser's word for it.
+
+    Staff uploads and MP4 links store the duration measured in the staff member's browser. For the
+    rare asset without one (e.g. some HLS links) the first viewer's reported duration is stored once
+    and then used for everybody, so it can't be changed per request afterwards.
+    """
     if asset is not None and asset.duration_sec:
         return float(asset.duration_sec)
     try:
@@ -58,7 +63,12 @@ def trusted_duration(asset, reported) -> float | None:
         return None
     if not math.isfinite(value) or value <= 0:
         return None
-    return min(value, MAX_CLIENT_DURATION)
+    value = min(value, MAX_CLIENT_DURATION)
+    if asset is not None:
+        type(asset).objects.filter(pk=asset.pk, duration_sec__isnull=True).update(duration_sec=value)
+        asset.refresh_from_db(fields=["duration_sec"])
+        return float(asset.duration_sec or value)
+    return value
 
 
 # ── Tracked video player ─────────────────────────────────────────────────────
@@ -78,7 +88,7 @@ def heartbeat_allowed(row, now) -> bool:
         return False
     first = row.first_viewed_at
     if first is not None:
-        ceiling = max(0.0, (now - first).total_seconds()) * MAX_PLAYBACK_RATE + GRACE_SECONDS * MAX_PLAYBACK_RATE
+        ceiling = (max(0.0, (now - first).total_seconds()) + JITTER_SECONDS) * MAX_PLAYBACK_RATE
         if (row.watched_seconds or 0) >= ceiling:
             return False
     return True

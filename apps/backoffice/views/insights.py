@@ -5,6 +5,7 @@ from django.shortcuts import render
 
 from apps.accounts.decorators import permission_required_code
 from apps.accounts.models import Role, User, UserStatus
+from apps.core import audit
 from apps.core.choices import ContentStatus, ProgressStatus
 from apps.projects.models import ProjectMember
 from apps.training.models import Tutorial, TutorialProgress
@@ -141,6 +142,7 @@ def reports(request):
     if f["sort"] in sorters:
         rows.sort(key=sorters[f["sort"]])
     if wants_csv(request):
+        audit.log(request, "reports.export", None, employees=len(rows), project=project.code if project else None)
         return csv_response("employee-report", [
             "Employee", "Employee ID", "Email", "Status", "Projects", "Training completion %", "Required tutorials done",
             "Required tutorials total", "Feedback received", "Feedback watched", "Feedback watched %", "Feedback tests passed",

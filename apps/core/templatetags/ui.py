@@ -23,6 +23,16 @@ from apps.core.markdown import render_markdown
 register = template.Library()
 
 
+@register.filter
+def meta_desc(text, limit=160):
+    """Meta description no longer than search engines show (~160 chars), cut at a word boundary."""
+    text = " ".join(str(text or "").split())
+    if len(text) <= limit:
+        return text
+    cut = text[: limit - 1].rsplit(" ", 1)[0].rstrip(",;:—-")
+    return cut + "…"
+
+
 @register.simple_tag
 def bn(bangla, english=""):
     """Pick the Bangla or the English text for the active area language:

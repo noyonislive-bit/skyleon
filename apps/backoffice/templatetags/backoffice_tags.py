@@ -153,10 +153,25 @@ def _resolve_asset(value):
     return MediaAsset.objects.select_related("thumbnail").filter(pk=pk).first()
 
 
+def _field_asset(field):
+    """
+    The asset to show in an upload widget — never a raw posted id that wasn't validated:
+    unbound form → the saved value; bound form → the validated value, or (when that field
+    failed validation) the saved value again.
+    """
+    form = field.form
+    if not form.is_bound:
+        return _resolve_asset(field.value())
+    cleaned = getattr(form, "cleaned_data", None) or {}
+    if field.name in cleaned and not field.errors:
+        return _resolve_asset(cleaned[field.name])
+    return _resolve_asset(form.get_initial_for_field(field.field, field.name))
+
+
 @register.inclusion_tag("backoffice/components/uploader.html", takes_context=True)
 def uploader(context, field, kind="video", purpose="", compact=False, external=None, note=True):
     request = context.get("request")
-    asset = _resolve_asset(field.value())
+    asset = _field_asset(field)
     user = request.user if request else None
     url = media_url(asset, user) if asset and user else ""
     thumb = ""

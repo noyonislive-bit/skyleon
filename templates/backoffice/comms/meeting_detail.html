@@ -28,7 +28,7 @@
   </section>
   <section class="card min-w-0">
     <div class="card-header"><h2 class="card-title">Invitees</h2><span class="text-xs text-slate-500">{{ invites|length }}</span></div>
-    {% if invites %}<ul class="bo-list max-h-[28rem] overflow-y-auto">{% for i in invites %}<li class="px-5 py-2.5">{% include "backoffice/components/person.html" with u=i.user link=True %}</li>{% endfor %}</ul>
+    {% if invites %}<ul class="bo-list max-h-[28rem] overflow-y-auto">{% for i in invites %}<li class="px-5 py-2.5">{% include "backoffice/components/person.html" with u=i.user link=i.can_view %}</li>{% endfor %}</ul>
     {% else %}<p class="px-5 py-4 text-sm text-slate-500">Nobody invited.</p>{% endif %}
   </section>
 </div>

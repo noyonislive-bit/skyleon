@@ -139,8 +139,9 @@ class S3Backend(BaseBackend):
 
     def read_url(self, asset, user, *, download=False, ttl=None) -> str:
         params = {"Bucket": self.bucket, "Key": asset.storage_key}
-        if download:
-            params["ResponseContentDisposition"] = f'attachment; filename="{asset.original_name or "file"}"'
+        content_type, disposition = serving_headers(asset, download=download)
+        params["ResponseContentType"] = content_type
+        params["ResponseContentDisposition"] = disposition
         return self.client.generate_presigned_url(
             "get_object", Params=params, ExpiresIn=ttl or settings.MEDIA_URL_TTL_SECONDS
         )
@@ -158,3 +159,26 @@ def get_backend(name: str | None = None) -> BaseBackend:
 
 def guess_mime(filename: str, fallback="application/octet-stream") -> str:
     return mimetypes.guess_type(filename)[0] or fallback
+
+
+# Types a browser may render inline from our origin. Anything else (HTML, SVG, XML, JSON,
+# office files, archives …) is always served as an attachment with a neutral type, so an
+# uploaded file can never run script on the site.
+INLINE_SAFE_TYPES = {"image/png", "image/jpeg", "image/gif", "image/webp", "application/pdf", "text/plain"}
+
+
+def is_inline_safe(mime: str) -> bool:
+    mime = (mime or "").split(";")[0].strip().lower()
+    return mime in INLINE_SAFE_TYPES or mime.startswith(("video/", "audio/")) or mime in (
+        "application/x-mpegurl", "application/vnd.apple.mpegurl")
+
+
+def serving_headers(asset, *, download=False) -> tuple[str, str]:
+    """(content_type, content_disposition) for serving a stored file safely."""
+    from django.utils.http import content_disposition_header
+
+    mime = asset.mime_type or "application/octet-stream"
+    safe = is_inline_safe(mime)
+    attachment = download or not safe
+    name = os.path.basename(asset.original_name or asset.storage_key or "file") or "file"
+    return (mime if safe else "application/octet-stream"), content_disposition_header(attachment, name)

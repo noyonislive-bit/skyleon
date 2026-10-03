@@ -57,3 +57,34 @@ msgstr "ইমেইল"
 
 msgid "name"
 msgstr "নাম"
+
+msgid "This field is required."
+msgstr "এই ঘরটি পূরণ করতে হবে।"
+
+#, python-format
+msgid "Ensure this value has at most %(limit_value)d character (it has %(show_value)d)."
+msgid_plural "Ensure this value has at most %(limit_value)d characters (it has %(show_value)d)."
+msgstr[0] "সর্বোচ্চ %(limit_value)d অক্ষর লেখা যাবে (এখন আছে %(show_value)d)।"
+msgstr[1] "সর্বোচ্চ %(limit_value)d অক্ষর লেখা যাবে (এখন আছে %(show_value)d)।"
+
+#, python-format
+msgid "Ensure this value has at least %(limit_value)d character (it has %(show_value)d)."
+msgid_plural "Ensure this value has at least %(limit_value)d characters (it has %(show_value)d)."
+msgstr[0] "কমপক্ষে %(limit_value)d অক্ষর লিখতে হবে (এখন আছে %(show_value)d)।"
+msgstr[1] "কমপক্ষে %(limit_value)d অক্ষর লিখতে হবে (এখন আছে %(show_value)d)।"
+
+msgid "Enter a valid date."
+msgstr "সঠিক তারিখ লিখুন।"
+
+msgid "Enter a whole number."
+msgstr "একটি পূর্ণ সংখ্যা লিখুন।"
+
+msgid "Enter a valid URL."
+msgstr "সঠিক লিংক (URL) লিখুন।"
+
+#, python-format
+msgid "Select a valid choice. %(value)s is not one of the available choices."
+msgstr "সঠিক একটি অপশন বেছে নিন। %(value)s তালিকায় নেই।"
+
+msgid "The submitted file is empty."
+msgstr "জমা দেওয়া ফাইলটি খালি।"

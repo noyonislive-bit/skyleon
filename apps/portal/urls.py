@@ -19,6 +19,7 @@ urlpatterns = [
     # Training
     path("training/", views.training, name="training"),
     path("training/<int:pk>/", views.tutorial_detail, name="tutorial_detail"),
+    path("training/<int:pk>/complete/", views.tutorial_complete, name="tutorial_complete"),
     # Feedback
     path("feedback/", views.feedback_list, name="feedback"),
     path("feedback/<int:number>/", views.feedback_detail, name="feedback_detail"),

@@ -102,7 +102,8 @@ def feedback_detail(request, number):
     recipient = _recipient_or_404(scope, number)
     fb = recipient.feedback
     was_new = recipient.first_viewed_at is None
-    mark_opened(recipient, has_video=bool(fb.video_id and fb.video and fb.video.is_ready))
+    # A video that is still processing (or failed) still has to be watched later — opening the page is not enough.
+    mark_opened(recipient, has_video=bool(fb.video_id))
 
     player = None
     if fb.video_id:
@@ -139,6 +140,9 @@ def feedback_detail(request, number):
 @portal_view
 def feedback_ack(request, number):
     recipient = _recipient_or_404(request.portal, number)
+    if recipient.feedback.video_id and not recipient.watched_at:
+        messages.error(request, "আগে ফিডব্যাকের ভিডিওটি দেখুন, তারপর “বুঝেছি” চাপুন।")
+        return redirect("portal:feedback_detail", number=number)
     if not recipient.acknowledged_at:
         recipient.acknowledged_at = timezone.now()
         recipient.save(update_fields=["acknowledged_at"])

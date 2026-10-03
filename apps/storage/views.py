@@ -1,5 +1,4 @@
 import json
-import os
 import re
 
 from django.conf import settings
@@ -7,11 +6,11 @@ from django.core import signing
 from django.core.exceptions import ValidationError
 from django.http import FileResponse, Http404, HttpResponse, JsonResponse, StreamingHttpResponse
 from django.shortcuts import get_object_or_404, redirect
-from django.views.decorators.http import require_GET, require_POST
+from django.views.decorators.http import require_GET, require_POST, require_safe
 
 from apps.accounts.permissions import has_permission
 
-from .backends import SIGNING_SALT, get_backend
+from .backends import SIGNING_SALT, get_backend, serving_headers
 from .models import MediaAsset, MediaKind, MediaProvider, MediaStatus
 from .services import create_external, create_pending_upload, media_url
 
@@ -140,14 +139,23 @@ def asset_info(request, asset_id):
 
 @require_GET
 def preview(request, asset_id):
-    """Staff-only: redirect to a fresh signed URL (used by the admin panel)."""
+    """Staff-only: redirect to a fresh signed URL (used by the admin panel).
+
+    Access follows the object the file is attached to (applicant files → applicants.manage,
+    quote attachments → leads.manage, training content → the content's project must be in
+    the viewer's scope); see apps.backoffice.media.can_view_asset.
+    """
+    from apps.backoffice.media import can_view_asset
+
     if not (_can_upload(request.user) or has_permission(request.user, "applicants.manage") or has_permission(request.user, "leads.manage")):
         raise Http404
     asset = get_object_or_404(MediaAsset, pk=asset_id, status=MediaStatus.READY)
+    if not can_view_asset(request.user, asset):
+        raise Http404
     return redirect(media_url(asset, request.user, download=request.GET.get("download") == "1"))
 
 
-@require_GET
+@require_safe
 def stream(request, asset_id):
     """Serve a locally stored file with a signed token and HTTP Range support (video seeking)."""
     token = request.GET.get("t", "")
@@ -164,9 +172,7 @@ def stream(request, asset_id):
     if not path.exists():
         raise Http404
     size = path.stat().st_size
-    content_type = asset.mime_type or "application/octet-stream"
-    download = request.GET.get("download") == "1"
-    disposition = f'{"attachment" if download else "inline"}; filename="{os.path.basename(asset.original_name or path.name)}"'
+    content_type, disposition = serving_headers(asset, download=request.GET.get("download") == "1")
 
     range_header = request.headers.get("Range", "")
     match = RANGE_RE.match(range_header) if range_header else None
@@ -174,9 +180,7 @@ def stream(request, asset_id):
         response = FileResponse(open(path, "rb"), content_type=content_type)
         response["Content-Length"] = str(size)
         response["Accept-Ranges"] = "bytes"
-        response["Content-Disposition"] = disposition
-        response["Cache-Control"] = "private, max-age=3600"
-        return response
+        return _media_headers(response, disposition)
 
     start_s, end_s = match.groups()
     if start_s == "":
@@ -206,6 +210,13 @@ def stream(request, asset_id):
     response["Content-Length"] = str(end - start + 1)
     response["Content-Range"] = f"bytes {start}-{end}/{size}"
     response["Accept-Ranges"] = "bytes"
+    return _media_headers(response, disposition)
+
+
+def _media_headers(response, disposition):
     response["Content-Disposition"] = disposition
     response["Cache-Control"] = "private, max-age=3600"
+    response["X-Content-Type-Options"] = "nosniff"
+    # Even if a file is opened directly, it runs in an opaque sandbox without access to the site.
+    response["Content-Security-Policy"] = "sandbox; default-src 'none'; img-src 'self'; media-src 'self'; style-src 'unsafe-inline'"
     return response

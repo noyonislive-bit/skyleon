@@ -3,7 +3,7 @@
 {% block content %}
 {% include "portal/includes/profile_tabs.html" %}
 {% with u=request.user %}
-<div class="grid gap-6 xl:grid-cols-3">
+<div class="grid grid-cols-1 gap-6 xl:grid-cols-3">
   <!-- Identity -->
   <aside class="space-y-6">
     <section class="card overflow-hidden">
@@ -52,7 +52,7 @@
       <form method="post" class="card-body" novalidate>{% csrf_token %}
         <input type="hidden" name="action" value="profile">
         {% include "components/form_errors.html" with form=profile_form %}
-        <div class="grid gap-5 sm:grid-cols-2">
+        <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
           {% include "components/field.html" with field=profile_form.name %}
           {% include "components/field.html" with field=profile_form.title %}
           {% include "components/field.html" with field=profile_form.phone %}
@@ -73,7 +73,7 @@
       <form method="post" class="card-body" novalidate>{% csrf_token %}
         <input type="hidden" name="action" value="password">
         {% include "components/form_errors.html" with form=password_form %}
-        <div class="grid gap-5 sm:grid-cols-2">
+        <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
           {% include "components/field.html" with field=password_form.old_password class="sm:col-span-2" %}
           {% include "components/field.html" with field=password_form.new_password1 %}
           {% include "components/field.html" with field=password_form.new_password2 %}

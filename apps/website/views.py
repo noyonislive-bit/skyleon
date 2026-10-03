@@ -11,7 +11,7 @@ from django.http import Http404, HttpResponse
 from django.shortcuts import redirect, render
 from django.template.loader import render_to_string
 from django.urls import NoReverseMatch, reverse
-from django.views.decorators.http import require_GET
+from django.views.decorators.http import require_safe
 
 from apps.comms.services import absolute_url, notify_admins, send_email
 from apps.core import ratelimit, site_settings
@@ -340,8 +340,9 @@ def quote(request):
                         )
                         label = f"{q.name}{f' ({q.company})' if q.company else ''} · {q.project_type}"
                         notify_admins(f"New quote request: {label}", "quote_admin",
-                                      {"quote": q, "review_url": _review_url("backoffice:lead_detail", q.pk)})
-                        send_email(q.email, "We've received your request", "quote_confirmation", {"quote": q})
+                                      {"quote": q, "review_url": _review_url("backoffice:lead_detail", q.pk)}, reply_to=q.email)
+                        send_email(q.email, "We've received your request", "quote_confirmation", {"quote": q},
+                                   reply_to=site_settings.company().get("email", ""))
                     return redirect("website:quote_thanks")
     else:
         form = QuoteForm(initial={
@@ -388,8 +389,9 @@ def contact(request):
                         subject=d.get("subject", ""), message=d["message"], ip_address=_ip(request),
                     )
                     notify_admins(f"New contact message: {m.subject or m.name}", "contact_admin",
-                                  {"msg": m, "review_url": _review_url("backoffice:message_detail", m.pk)})
-                    send_email(m.email, f"Thanks for contacting {BRAND}", "contact_confirmation", {"msg": m})
+                                  {"msg": m, "review_url": _review_url("backoffice:message_detail", m.pk)}, reply_to=m.email)
+                    send_email(m.email, f"Thanks for contacting {BRAND}", "contact_confirmation", {"msg": m},
+                               reply_to=site_settings.company().get("email", ""))
                 return redirect("website:contact_thanks")
     else:
         form = ContactForm()
@@ -443,8 +445,10 @@ def careers(request):
                             ip_address=_ip(request),
                         )
                         notify_admins(f"New job application: {app.full_name} · {app.location}", "application_admin",
-                                      {"application": app, "review_url": _review_url("backoffice:applicant_detail", app.pk)})
-                        send_email(app.email, "Application received", "application_confirmation", {"application": app})
+                                      {"application": app, "review_url": _review_url("backoffice:applicant_detail", app.pk)},
+                                      reply_to=app.email)
+                        send_email(app.email, "Application received", "application_confirmation", {"application": app},
+                                   reply_to=site_settings.company().get("careers_email") or site_settings.company().get("email", ""))
                     return redirect("website:careers_thanks")
     else:
         form = ApplicationForm()
@@ -474,7 +478,7 @@ def careers_thanks(request):
 # ─── robots.txt & sitemap.xml ───────────────────────────────────────────────
 
 
-@require_GET
+@require_safe
 def robots_txt(request):
     lines = [
         "User-agent: *",
@@ -503,7 +507,7 @@ class _AppSite:
         self.name = self.domain
 
 
-@require_GET
+@require_safe
 def sitemap_xml(request):
     site = _AppSite()
     urls = []
