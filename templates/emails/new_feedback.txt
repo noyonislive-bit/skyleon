@@ -1,0 +1,12 @@
+{% autoescape off %}Hi {{ user.first_name }},
+
+New QA feedback for {{ feedback.project.name }}:
+{{ feedback.display_number }} - {{ feedback.topic }}
+{% if feedback.summary %}{{ feedback.summary }}
+{% endif %}{% if feedback.video_id %}Please watch the feedback video{% else %}Please read the feedback{% endif %}{% if feedback.test_id %} and complete the short test{% endif %}.
+{% if link %}
+Open feedback: {{ link }}{% endif %}
+
+— The {{ brand.name }} team
+{{ APP_URL }}
+{% endautoescape %}

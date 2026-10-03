@@ -1,0 +1,10 @@
+{% autoescape off %}Hi {{ user.first_name }},
+
+You have a new training module: {{ tutorial.title }}{% if tutorial.project %} ({{ tutorial.project.name }}){% endif %}.{% if tutorial.is_required %}
+This training is required.{% endif %}
+{% if link %}
+Watch the tutorial: {{ link }}{% endif %}
+
+— The {{ brand.name }} team
+{{ APP_URL }}
+{% endautoescape %}

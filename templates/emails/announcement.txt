@@ -1,0 +1,11 @@
+{% autoescape off %}Hi {{ user.first_name }},
+
+{{ announcement.title }}
+
+{{ announcement.body }}
+{% if link %}
+Open the portal: {{ link }}{% endif %}
+
+— The {{ brand.name }} team
+{{ APP_URL }}
+{% endautoescape %}

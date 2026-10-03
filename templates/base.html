@@ -1,0 +1,29 @@
+{% load static %}<!doctype html>
+<html lang="en" class="{% block html_class %}{% endblock %}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{{ brand.name }} — {{ brand.tagline }}{% endblock %}</title>
+  <meta name="description" content="{% block meta_description %}{{ brand.description }}{% endblock %}">
+  {% block meta_robots %}{% endblock %}
+  <link rel="canonical" href="{% block canonical %}{{ APP_URL }}{{ request.path }}{% endblock %}">
+  <meta property="og:site_name" content="{{ brand.name }}">
+  <meta property="og:type" content="{% block og_type %}website{% endblock %}">
+  <meta property="og:title" content="{% block og_title %}{{ brand.name }} — {{ brand.tagline }}{% endblock %}">
+  <meta property="og:description" content="{% block og_description %}{{ brand.description }}{% endblock %}">
+  <meta property="og:url" content="{{ APP_URL }}{{ request.path }}">
+  <meta property="og:image" content="{% block og_image %}{{ APP_URL }}{% static 'img/og-image.png' %}{% endblock %}">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="theme-color" content="#0a0f1c">
+  <link rel="icon" href="{% static 'img/favicon.svg' %}" type="image/svg+xml">
+  <link rel="preload" href="{% static 'fonts/Geist-Variable.woff2' %}" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+  {% block structured_data %}{% endblock %}
+  {% block head %}{% endblock %}
+</head>
+<body class="{% block body_class %}min-h-screen{% endblock %}">
+  {% block body %}{% endblock %}
+  <script src="{% static 'js/site.js' %}" defer></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,10 @@
+{% autoescape off %}New contact message from {{ msg.name }} <{{ msg.email }}>
+Subject: {{ msg.subject }}
+
+{{ msg.message }}
+{% if review_url %}
+Open in admin: {{ review_url }}{% endif %}
+
+— The {{ brand.name }} team
+{{ APP_URL }}
+{% endautoescape %}

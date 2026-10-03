@@ -1,0 +1,7 @@
+{% extends "emails/base.html" %}
+{% block content %}
+<h1 style="margin:0 0 12px;font-size:20px;line-height:28px;color:#0f172a">Welcome to {{ brand.name }}, {{ user.first_name }}!</h1>
+<p style="margin:0 0 12px;font-size:15px;line-height:24px">Your account has been approved. Your employee ID is <strong>{{ user.employee_id }}</strong> — you can sign in with it or with your email address.</p><p style="margin:0 0 12px;font-size:15px;line-height:24px">Next steps: open the portal, complete your onboarding, watch the required tutorials and take your training test.</p>{% if setup_url %}<p style="margin:0 0 12px;font-size:15px;line-height:24px">First, set your password using the secure link below (valid for 24 hours).</p>{% endif %}
+{% if setup_url %}{% include "emails/_button.html" with url=setup_url label="Set your password" %}{% else %}{% include "emails/_button.html" with url=login_url label="Open the portal" %}{% endif %}
+<p style="margin:16px 0 0;font-size:13px;color:#94a3b8">— The {{ brand.name }} team</p>
+{% endblock %}

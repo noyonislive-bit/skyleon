@@ -1,0 +1,13 @@
+{% autoescape off %}Hi {{ user.first_name }},
+
+You're invited to: {{ meeting.title }}
+When: {{ meeting.starts_at|date:'l, j F Y H:i' }} ({{ meeting.duration_min }} min)
+{% if meeting.meeting_url %}Link: {{ meeting.meeting_url }}
+{% endif %}{% if meeting.agenda %}
+{{ meeting.agenda }}{% endif %}
+{% if link %}
+View in portal: {{ link }}{% endif %}
+
+— The {{ brand.name }} team
+{{ APP_URL }}
+{% endautoescape %}

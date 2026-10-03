@@ -1,0 +1,5 @@
+{% comment %} Usage: {% include "components/progress.html" with value=72 label="Training" %} {% endcomment %}
+<div class="{{ class|default:'' }}">
+  {% if label %}<div class="mb-1.5 flex items-center justify-between text-xs"><span class="font-medium text-slate-600">{{ label }}</span><span class="font-mono text-slate-500 tabular-nums">{{ value|floatformat:0 }}%</span></div>{% endif %}
+  <div class="progress" role="progressbar" aria-valuenow="{{ value|floatformat:0 }}" aria-valuemin="0" aria-valuemax="100"><div class="progress-bar{% if value >= 100 %} is-complete{% endif %}" style="width: {{ value|floatformat:0 }}%"></div></div>
+</div>

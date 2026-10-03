@@ -1,0 +1,10 @@
+{% autoescape off %}New job application: {{ application.full_name }} <{{ application.email }}> {{ application.phone }}
+Location: {{ application.location }}
+Experience: {{ application.experience }}
+Preferred work: {{ application.preferred_work_type }}
+{% if review_url %}
+Review application: {{ review_url }}{% endif %}
+
+— The {{ brand.name }} team
+{{ APP_URL }}
+{% endautoescape %}

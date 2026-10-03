@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Django
+/staticfiles/
+/storage/
+/db.sqlite3
+/logs/
+*.log
+
+# Node (only used locally to rebuild the Tailwind CSS)
+node_modules/
+
+# Playwright / test output
+/test-results/
+/playwright-report/
+.DS_Store

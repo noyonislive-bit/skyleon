@@ -1,0 +1,8 @@
+{% autoescape off %}Hi {{ application.full_name }},
+
+Application received. Our team will review your information and contact you if your profile matches an available project.
+
+
+— The {{ brand.name }} team
+{{ APP_URL }}
+{% endautoescape %}

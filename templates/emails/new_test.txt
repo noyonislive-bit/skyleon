@@ -1,0 +1,10 @@
+{% autoescape off %}Hi {{ user.first_name }},
+
+You have a new assessment: {{ test.title }}
+Passing score: {{ test.passing_score }}%{% if test.attempt_limit %} · Attempts: {{ test.attempt_limit }}{% endif %}{% if test.time_limit_min %} · Time limit: {{ test.time_limit_min }} min{% endif %}
+{% if link %}
+Start the assessment: {{ link }}{% endif %}
+
+— The {{ brand.name }} team
+{{ APP_URL }}
+{% endautoescape %}

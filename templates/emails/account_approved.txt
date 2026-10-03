@@ -1,0 +1,13 @@
+{% autoescape off %}Hi {{ user.first_name }},
+
+Your {{ brand.name }} account has been approved.
+Employee ID: {{ user.employee_id }}
+Login: {{ login_url }}
+
+Next steps: complete your onboarding, watch the required tutorials and take your training test.
+{% if setup_url %}
+Set your password: {{ setup_url }}{% endif %}
+
+— The {{ brand.name }} team
+{{ APP_URL }}
+{% endautoescape %}

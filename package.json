@@ -1,0 +1,13 @@
+{
+  "name": "skyleon-assets",
+  "private": true,
+  "description": "Front-end build tooling only. The compiled CSS in static/css/ is committed, so the server never needs Node.js.",
+  "scripts": {
+    "build:css": "tailwindcss -i static/src/app.css -o static/css/app.css --minify",
+    "watch:css": "tailwindcss -i static/src/app.css -o static/css/app.css --watch"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.3.3",
+    "tailwindcss": "^4.3.3"
+  }
+}

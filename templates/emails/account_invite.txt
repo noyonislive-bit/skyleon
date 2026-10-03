@@ -1,0 +1,13 @@
+{% autoescape off %}Hi {{ user.first_name }},
+
+An account has been created for you on {{ brand.name }}.
+Employee ID: {{ user.employee_id|default:'-' }}
+Login email: {{ user.email }}
+
+Choose your password (valid 24 hours):
+{% if setup_url %}
+Set your password: {{ setup_url }}{% endif %}
+
+— The {{ brand.name }} team
+{{ APP_URL }}
+{% endautoescape %}

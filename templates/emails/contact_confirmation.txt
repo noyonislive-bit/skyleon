@@ -1,0 +1,8 @@
+{% autoescape off %}Hi {{ msg.name }},
+
+Thanks for your message. A member of our team will reply shortly.
+
+
+— The {{ brand.name }} team
+{{ APP_URL }}
+{% endautoescape %}

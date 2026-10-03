@@ -1,0 +1,6 @@
+{% extends "emails/base.html" %}
+{% block content %}
+<h1 style="margin:0 0 12px;font-size:20px;line-height:28px;color:#0f172a">We've received your request</h1>
+<p style="margin:0 0 12px;font-size:15px;line-height:24px">Hi {{ quote.name }}, thank you for contacting {{ brand.name }}.</p><p style="margin:0 0 12px;font-size:15px;line-height:24px">We've received your request for <strong>{{ quote.project_type }}</strong>. Our team will review your requirements and get back to you within one business day — usually with a few clarifying questions and a proposal for a pilot task.</p><p style="margin:0 0 12px;font-size:15px;line-height:24px">If you have guidelines, sample data or expected output examples, simply reply to this email.</p>
+<p style="margin:16px 0 0;font-size:13px;color:#94a3b8">— The {{ brand.name }} team</p>
+{% endblock %}

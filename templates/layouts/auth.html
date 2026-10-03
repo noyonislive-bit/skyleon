@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block meta_robots %}<meta name="robots" content="noindex">{% endblock %}
+{% block body_class %}min-h-screen bg-white{% endblock %}
+{% block body %}
+<div class="grid min-h-screen lg:grid-cols-[1.05fr_1fr]">
+  <!-- Brand panel -->
+  <div class="relative hidden overflow-hidden bg-ink-900 lg:block">
+    <div class="absolute inset-0 grid-bg"></div>
+    <div class="absolute -top-40 -left-40 h-[520px] w-[520px] rounded-full bg-brand-600/30 blur-[120px]"></div>
+    <div class="absolute -right-32 bottom-0 h-[420px] w-[420px] rounded-full bg-accent-500/20 blur-[120px]"></div>
+    <div class="relative flex h-full flex-col justify-between p-12">
+      <a href="{% url 'website:home' %}">{% include "components/logo.html" with dark=True %}</a>
+      <div class="mx-auto w-full max-w-md">
+        <!-- Mini annotation visual -->
+        <div class="card-dark overflow-hidden p-4">
+          <div class="flex items-center justify-between font-mono text-[11px] text-slate-400">
+            <span>clip_0142.mp4 · frame 318</span><span class="flex items-center gap-1.5 text-emerald-400"><span class="dot animate-pulse-soft bg-emerald-400"></span>QA passed</span>
+          </div>
+          <svg viewBox="0 0 400 220" class="mt-3 w-full rounded-lg bg-ink-800">
+            <defs><linearGradient id="tbl" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#1a2438"/><stop offset="1" stop-color="#101828"/></linearGradient></defs>
+            <rect width="400" height="220" fill="url(#tbl)"/>
+            <rect x="0" y="150" width="400" height="70" fill="#273350" opacity=".55"/>
+            <rect x="215" y="102" width="44" height="52" rx="6" fill="#64748b" opacity=".6"/>
+            <path d="M120 175 C 150 140, 180 128, 212 122 L 226 116 C 232 114, 236 120, 230 126 L 214 140 C 190 158, 160 178, 130 196 Z" fill="#cbd5e1" opacity=".35"/>
+            <rect x="196" y="96" width="74" height="66" rx="3" fill="none" stroke="#22d3ee" stroke-width="2" class="animate-dash" stroke-dasharray="6 6"/>
+            <rect x="196" y="80" width="88" height="16" rx="3" fill="#22d3ee"/><text x="202" y="92" font-family="monospace" font-size="10" fill="#05080f">cup · 0.97</text>
+            <rect x="112" y="112" width="128" height="92" rx="3" fill="none" stroke="#a3e635" stroke-width="2"/>
+            <rect x="112" y="96" width="104" height="16" rx="3" fill="#a3e635"/><text x="118" y="108" font-family="monospace" font-size="10" fill="#05080f">hand.right · 0.98</text>
+            <g fill="#f472b6"><circle cx="212" cy="122" r="3"/><circle cx="226" cy="116" r="3"/><circle cx="172" cy="150" r="3"/><circle cx="140" cy="182" r="3"/></g>
+          </svg>
+          <div class="mt-3 grid grid-cols-[repeat(12,1fr)] gap-0.5">
+            <span class="col-span-3 h-2 rounded-sm bg-label-violet/80"></span><span class="col-span-4 h-2 rounded-sm bg-label-lime/80"></span><span class="col-span-2 h-2 rounded-sm bg-label-cyan/80"></span><span class="col-span-3 h-2 rounded-sm bg-label-amber/80"></span>
+          </div>
+          <p class="mt-3 font-mono text-[11px] text-slate-400">“Right hand picks up a cup.” <span class="text-slate-500">· hand + action + object</span></p>
+        </div>
+        <h2 class="mt-8 text-2xl font-semibold tracking-tight text-white">{% block panel_title %}Training, feedback and quality — in one place.{% endblock %}</h2>
+        <p class="mt-3 text-sm leading-6 text-slate-400">{% block panel_text %}Watch project tutorials, review daily QA feedback, take assessments and track your progress.{% endblock %}</p>
+      </div>
+      <p class="font-mono text-[11px] text-slate-500">© {% now "Y" %} {{ brand.legal_name }} · Secure, role-based access</p>
+    </div>
+  </div>
+
+  <!-- Form panel -->
+  <div class="flex flex-col">
+    <div class="flex items-center justify-between p-6 lg:hidden"><a href="{% url 'website:home' %}">{% include "components/logo.html" %}</a></div>
+    <div class="flex flex-1 items-center justify-center px-6 pb-16 sm:px-12 lg:py-12">
+      <div class="w-full max-w-sm">
+        {% include "components/messages.html" with class="mb-6" %}
+        {% block content %}{% endblock %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,10 @@
+{% autoescape off %}Hi {{ user.first_name }},
+
+You have been added to the project {{ project.name }} ({{ project.code }}).
+Your onboarding, guidelines and training videos are now available in the portal.
+{% if link %}
+Open the project: {{ link }}{% endif %}
+
+— The {{ brand.name }} team
+{{ APP_URL }}
+{% endautoescape %}

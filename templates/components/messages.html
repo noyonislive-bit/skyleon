@@ -1,0 +1,11 @@
+{% if messages %}
+  <div class="space-y-2 {{ class|default:'' }}" data-messages>
+    {% for message in messages %}
+      <div class="alert {% if message.tags == 'error' %}alert-error{% elif message.tags == 'warning' %}alert-warning{% elif message.tags == 'success' %}alert-success{% else %}alert-info{% endif %}" role="status">
+        {% if message.tags == 'success' %}{% icon "check-circle-2" class="mt-0.5 h-4 w-4 shrink-0" %}{% elif message.tags == 'error' %}{% icon "alert-circle" class="mt-0.5 h-4 w-4 shrink-0" %}{% else %}{% icon "info" class="mt-0.5 h-4 w-4 shrink-0" %}{% endif %}
+        <p class="flex-1">{{ message }}</p>
+        <button type="button" class="opacity-60 hover:opacity-100" data-dismiss aria-label="Dismiss">{% icon "x" class="h-4 w-4" %}</button>
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}

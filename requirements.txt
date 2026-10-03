@@ -1,0 +1,8 @@
+# Runtime dependencies — all pure-Python or with manylinux wheels, so they install
+# cleanly inside cPanel's "Setup Python App" virtualenv (no compiler required).
+Django==5.2.17
+PyMySQL==1.2.3
+python-dotenv==1.1.1
+whitenoise==6.11.0
+Markdown==3.9
+boto3==1.40.55

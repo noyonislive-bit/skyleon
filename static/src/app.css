@@ -1,0 +1,257 @@
+/*
+ * Skyleon design system (Tailwind CSS v4).
+ * Rebuild after changing templates:  npm run build:css   (output: static/css/app.css)
+ */
+@import "tailwindcss" source(none);
+
+@source "../../templates";
+@source "../../apps";
+@source "../js";
+
+@font-face {
+  font-family: "Geist";
+  src: url("../fonts/Geist-Variable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Geist Mono";
+  src: url("../fonts/GeistMono-Variable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@theme {
+  --font-sans: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* Deep navy surfaces for hero / dark sections */
+  --color-ink-950: #05080f;
+  --color-ink-900: #0a0f1c;
+  --color-ink-800: #101828;
+  --color-ink-700: #1a2438;
+  --color-ink-600: #273350;
+
+  /* Brand — electric indigo */
+  --color-brand-50: #eef0ff;
+  --color-brand-100: #e0e3ff;
+  --color-brand-200: #c7cbff;
+  --color-brand-300: #a4a8fe;
+  --color-brand-400: #8183fa;
+  --color-brand-500: #6563f2;
+  --color-brand-600: #5146e5;
+  --color-brand-700: #4338ca;
+  --color-brand-800: #3730a3;
+  --color-brand-900: #2e2a7a;
+
+  /* Accent — annotation cyan */
+  --color-accent-300: #67e8f9;
+  --color-accent-400: #22d3ee;
+  --color-accent-500: #06b6d4;
+
+  /* Annotation label palette (used in visuals) */
+  --color-label-lime: #a3e635;
+  --color-label-amber: #fbbf24;
+  --color-label-pink: #f472b6;
+  --color-label-violet: #a78bfa;
+  --color-label-cyan: #22d3ee;
+
+  --shadow-glow: 0 0 0 1px rgb(101 99 242 / 0.25), 0 20px 60px -15px rgb(81 70 229 / 0.45);
+  --shadow-card: 0 1px 2px rgb(16 24 40 / 0.04), 0 1px 3px rgb(16 24 40 / 0.06);
+
+  --animate-fade-up: fade-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-scan: scan 4s ease-in-out infinite;
+  --animate-pulse-soft: pulse-soft 2.4s ease-in-out infinite;
+  --animate-dash: dash 1.6s linear infinite;
+  --animate-float: float 6s ease-in-out infinite;
+
+  @keyframes fade-up {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes scan {
+    0%, 100% { transform: translateY(0); opacity: 0; }
+    10% { opacity: 1; }
+    50% { transform: translateY(var(--scan-distance, 260px)); opacity: 1; }
+    60% { opacity: 0; }
+  }
+  @keyframes pulse-soft {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.45; }
+  }
+  @keyframes dash {
+    to { stroke-dashoffset: -24; }
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+  }
+}
+
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-white font-sans text-slate-700 antialiased;
+    font-feature-settings: "ss01", "cv11";
+  }
+  h1, h2, h3, h4 {
+    @apply text-slate-900;
+    text-wrap: balance;
+  }
+  p { text-wrap: pretty; }
+  ::selection { @apply bg-brand-200 text-brand-900; }
+  [x-cloak], [hidden] { display: none !important; }
+  :focus-visible { @apply outline-2 outline-offset-2 outline-brand-500; }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+  }
+}
+
+@layer components {
+  /* Layout ---------------------------------------------------------------- */
+  .container-page { @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8; }
+  .section { @apply py-20 sm:py-28; }
+  .section-tight { @apply py-14 sm:py-20; }
+  .eyebrow { @apply inline-flex items-center gap-2 font-mono text-xs font-medium tracking-[0.18em] text-brand-600 uppercase; }
+  .eyebrow-dark { @apply inline-flex items-center gap-2 font-mono text-xs font-medium tracking-[0.18em] text-accent-300 uppercase; }
+  .heading-xl { @apply text-4xl font-semibold tracking-tight text-slate-900 sm:text-5xl lg:text-6xl; letter-spacing: -0.035em; }
+  .heading-lg { @apply text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl; letter-spacing: -0.03em; }
+  .heading-md { @apply text-2xl font-semibold tracking-tight text-slate-900; letter-spacing: -0.02em; }
+  .lead { @apply text-lg leading-8 text-slate-600; }
+  .dark-surface { @apply bg-ink-900 text-slate-300; }
+  .dark-surface h1, .dark-surface h2, .dark-surface h3, .dark-surface h4 { @apply text-white; }
+  .text-gradient { @apply bg-gradient-to-r from-brand-300 via-accent-300 to-brand-200 bg-clip-text text-transparent; }
+  .grid-bg {
+    background-image:
+      linear-gradient(to right, rgb(148 163 184 / 0.08) 1px, transparent 1px),
+      linear-gradient(to bottom, rgb(148 163 184 / 0.08) 1px, transparent 1px);
+    background-size: 44px 44px;
+  }
+  .grid-bg-light {
+    background-image:
+      linear-gradient(to right, rgb(15 23 42 / 0.045) 1px, transparent 1px),
+      linear-gradient(to bottom, rgb(15 23 42 / 0.045) 1px, transparent 1px);
+    background-size: 44px 44px;
+  }
+  .reveal { opacity: 0; transform: translateY(16px); transition: opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1), transform 0.7s cubic-bezier(0.22, 1, 0.36, 1); }
+  .reveal.is-visible { opacity: 1; transform: none; }
+
+  /* Buttons --------------------------------------------------------------- */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold whitespace-nowrap transition duration-150 select-none disabled:pointer-events-none disabled:opacity-50;
+  }
+  .btn-primary { @apply bg-brand-600 text-white shadow-sm hover:bg-brand-500 active:bg-brand-700; }
+  .btn-accent { @apply bg-gradient-to-r from-brand-500 to-accent-500 text-white shadow-glow hover:brightness-110; }
+  .btn-secondary { @apply bg-white text-slate-900 shadow-card ring-1 ring-slate-200 hover:bg-slate-50 hover:ring-slate-300; }
+  .btn-ghost { @apply text-slate-600 hover:bg-slate-100 hover:text-slate-900; }
+  .btn-danger { @apply bg-red-600 text-white shadow-sm hover:bg-red-500; }
+  .btn-danger-soft { @apply bg-red-50 text-red-700 ring-1 ring-red-200 hover:bg-red-100; }
+  .btn-success { @apply bg-emerald-600 text-white shadow-sm hover:bg-emerald-500; }
+  .btn-light { @apply bg-white/10 text-white ring-1 ring-white/15 backdrop-blur hover:bg-white/15; }
+  .btn-white { @apply bg-white text-ink-900 shadow-sm hover:bg-slate-100; }
+  .btn-sm { @apply gap-1.5 rounded-md px-3 py-1.5 text-xs; }
+  .btn-lg { @apply rounded-xl px-6 py-3.5 text-base; }
+  .btn-icon { @apply h-9 w-9 p-0; }
+
+  /* Forms ----------------------------------------------------------------- */
+  .label { @apply mb-1.5 block text-sm font-medium text-slate-800; }
+  .input, .select, .textarea {
+    @apply block w-full rounded-lg border-0 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-xs ring-1 ring-slate-300 transition ring-inset placeholder:text-slate-400 focus:ring-2 focus:ring-brand-500 focus:outline-none disabled:bg-slate-50 disabled:text-slate-500;
+  }
+  .select { @apply appearance-none bg-[url("data:image/svg+xml,%3csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2020%2020'%20fill='%2364748b'%3e%3cpath%20fill-rule='evenodd'%20d='M5.23%207.21a.75.75%200%20011.06.02L10%2011.17l3.71-3.94a.75.75%200%20111.08%201.04l-4.25%204.5a.75.75%200%2001-1.08%200l-4.25-4.5a.75.75%200%2001.02-1.06z'%20clip-rule='evenodd'/%3e%3c/svg%3e")] bg-[length:1.25rem] bg-[right_0.6rem_center] bg-no-repeat pr-9; }
+  .select[multiple] { @apply bg-none pr-3; }
+  .input[aria-invalid="true"], .select[aria-invalid="true"], .textarea[aria-invalid="true"], .has-error .input, .has-error .select, .has-error .textarea { @apply ring-red-400 focus:ring-red-500; }
+  .checkbox { @apply h-4 w-4 shrink-0 cursor-pointer rounded border-slate-300 accent-brand-600; }
+  .file-input { @apply block w-full cursor-pointer rounded-lg text-sm text-slate-600 ring-1 ring-slate-300 ring-inset file:mr-4 file:cursor-pointer file:border-0 file:bg-slate-100 file:px-4 file:py-2.5 file:text-sm file:font-semibold file:text-slate-800 hover:file:bg-slate-200; }
+  .help-text { @apply mt-1.5 text-xs text-slate-500; }
+  .field-error { @apply mt-1.5 text-xs font-medium text-red-600; }
+  .choice-list > div { @apply grid gap-2 sm:grid-cols-2; }
+  .choice-list label, .choice-pill { @apply flex cursor-pointer items-center gap-2.5 rounded-lg bg-white px-3 py-2.5 text-sm text-slate-700 ring-1 ring-slate-200 transition ring-inset hover:ring-brand-300; }
+  .choice-list input { @apply h-4 w-4 accent-brand-600; }
+  .choice-list label:has(input:checked), .choice-pill:has(input:checked) { @apply bg-brand-50 text-brand-900 ring-brand-400; }
+
+  /* Surfaces -------------------------------------------------------------- */
+  .card { @apply rounded-xl bg-white shadow-card ring-1 ring-slate-200/80; }
+  .card-header { @apply flex items-center justify-between gap-4 border-b border-slate-100 px-5 py-4; }
+  .card-title { @apply text-sm font-semibold text-slate-900; }
+  .card-body { @apply p-5; }
+  .card-dark { @apply rounded-2xl bg-white/[0.03] ring-1 ring-white/10 backdrop-blur; }
+  .divider { @apply border-t border-slate-100; }
+
+  /* Badges ---------------------------------------------------------------- */
+  .badge { @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap ring-1 ring-inset; }
+  .badge-success { @apply bg-emerald-50 text-emerald-700 ring-emerald-600/20; }
+  .badge-warning { @apply bg-amber-50 text-amber-800 ring-amber-600/25; }
+  .badge-danger { @apply bg-red-50 text-red-700 ring-red-600/20; }
+  .badge-info { @apply bg-sky-50 text-sky-700 ring-sky-600/20; }
+  .badge-brand { @apply bg-brand-50 text-brand-700 ring-brand-600/20; }
+  .badge-neutral { @apply bg-slate-100 text-slate-600 ring-slate-500/15; }
+  .dot { @apply inline-block h-2 w-2 shrink-0 rounded-full; }
+
+  /* Tables ---------------------------------------------------------------- */
+  .table-wrap { @apply overflow-x-auto; }
+  .table { @apply w-full text-left text-sm; }
+  .table thead th { @apply border-b border-slate-200 bg-slate-50/70 px-4 py-2.5 text-xs font-semibold tracking-wide whitespace-nowrap text-slate-500 uppercase; }
+  .table tbody td { @apply border-b border-slate-100 px-4 py-3 align-middle text-slate-700; }
+  .table tbody tr:last-child td { @apply border-b-0; }
+  .table tbody tr:hover td { @apply bg-slate-50/60; }
+  .table .num { @apply text-right tabular-nums; }
+
+  /* Progress -------------------------------------------------------------- */
+  .progress { @apply h-2 w-full overflow-hidden rounded-full bg-slate-100; }
+  .progress-bar { @apply h-full rounded-full bg-brand-600 transition-all duration-500; }
+  .progress-bar.is-complete { @apply bg-emerald-500; }
+
+  /* Tabs ------------------------------------------------------------------ */
+  .tabs { @apply flex gap-1 overflow-x-auto border-b border-slate-200; }
+  .tab { @apply -mb-px inline-flex items-center gap-2 border-b-2 border-transparent px-3 py-2.5 text-sm font-medium whitespace-nowrap text-slate-500 hover:border-slate-300 hover:text-slate-800; }
+  .tab.is-active { @apply border-brand-600 text-brand-700; }
+  .tab .count { @apply rounded-full bg-slate-100 px-1.5 py-0.5 text-[11px] font-semibold text-slate-600; }
+  .tab.is-active .count { @apply bg-brand-100 text-brand-700; }
+
+  /* App shell (portal + admin) ------------------------------------------- */
+  .side-link { @apply flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-400 transition hover:bg-white/5 hover:text-white; }
+  .side-link.is-active { @apply bg-white/10 text-white; }
+  .side-link .count { @apply ml-auto rounded-full bg-brand-500 px-1.5 py-0.5 text-[11px] leading-none font-semibold text-white; }
+  .side-heading { @apply px-3 pt-5 pb-1.5 font-mono text-[10.5px] font-medium tracking-[0.16em] text-slate-500 uppercase; }
+  .page-title { @apply text-2xl font-semibold tracking-tight text-slate-900; letter-spacing: -0.02em; }
+  .page-subtitle { @apply mt-1 text-sm text-slate-500; }
+
+  /* Alerts ---------------------------------------------------------------- */
+  .alert { @apply flex items-start gap-3 rounded-lg px-4 py-3 text-sm ring-1 ring-inset; }
+  .alert-success { @apply bg-emerald-50 text-emerald-800 ring-emerald-200; }
+  .alert-error { @apply bg-red-50 text-red-800 ring-red-200; }
+  .alert-warning { @apply bg-amber-50 text-amber-900 ring-amber-200; }
+  .alert-info { @apply bg-sky-50 text-sky-800 ring-sky-200; }
+
+  /* Stat tiles ------------------------------------------------------------ */
+  .stat { @apply rounded-xl bg-white p-5 shadow-card ring-1 ring-slate-200/80; }
+  .stat-label { @apply text-xs font-medium tracking-wide text-slate-500 uppercase; }
+  .stat-value { @apply mt-2 text-3xl font-semibold tracking-tight text-slate-900 tabular-nums; }
+  .stat-meta { @apply mt-1 text-xs text-slate-500; }
+
+  /* Markdown content ------------------------------------------------------ */
+  .prose-content { @apply text-[15px] leading-7 text-slate-700; }
+  .prose-content > * + * { @apply mt-4; }
+  .prose-content h1 { @apply mt-8 text-2xl font-semibold; }
+  .prose-content h2 { @apply mt-8 text-xl font-semibold; }
+  .prose-content h3 { @apply mt-6 text-lg font-semibold; }
+  .prose-content ul { @apply list-disc space-y-1.5 pl-5; }
+  .prose-content ol { @apply list-decimal space-y-1.5 pl-5; }
+  .prose-content a { @apply font-medium text-brand-600 underline decoration-brand-300 underline-offset-2 hover:text-brand-700; }
+  .prose-content strong { @apply font-semibold text-slate-900; }
+  .prose-content code { @apply rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[13px] text-slate-800; }
+  .prose-content pre { @apply overflow-x-auto rounded-lg bg-ink-900 p-4 text-[13px] text-slate-200; }
+  .prose-content pre code { @apply bg-transparent p-0 text-inherit; }
+  .prose-content blockquote { @apply border-l-4 border-brand-200 bg-brand-50/40 py-2 pl-4 text-slate-700; }
+  .prose-content table { @apply w-full text-sm; }
+  .prose-content th { @apply border-b border-slate-200 px-3 py-2 text-left font-semibold; }
+  .prose-content td { @apply border-b border-slate-100 px-3 py-2; }
+  .prose-content img { @apply rounded-lg ring-1 ring-slate-200; }
+  .prose-content hr { @apply my-8 border-slate-200; }
+}

@@ -1,0 +1,8 @@
+{% comment %} Usage: {% include "components/page_header.html" with title="Employees" subtitle="…" %} — put action buttons in a {% block page_actions %} instead when extending. {% endcomment %}
+<div class="mb-6 flex flex-wrap items-end justify-between gap-4">
+  <div>
+    {% if eyebrow %}<p class="eyebrow mb-2">{{ eyebrow }}</p>{% endif %}
+    <h1 class="page-title">{{ title }}</h1>
+    {% if subtitle %}<p class="page-subtitle">{{ subtitle }}</p>{% endif %}
+  </div>
+</div>

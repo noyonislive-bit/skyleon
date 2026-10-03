@@ -1,0 +1,2 @@
+{% comment %} Usage: {% include "components/avatar.html" with user=u size="h-8 w-8 text-xs" %} {% endcomment %}
+<span class="inline-flex {{ size|default:'h-8 w-8 text-xs' }} shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-accent-500 font-semibold text-white ring-2 ring-white" title="{{ user.name }}">{{ user.name|initials }}</span>

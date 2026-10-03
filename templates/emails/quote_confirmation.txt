@@ -1,0 +1,9 @@
+{% autoescape off %}Hi {{ quote.name }},
+
+Thank you for contacting {{ brand.name }}. We've received your request for {{ quote.project_type }}.
+Our team will review your requirements and get back to you within one business day.
+
+
+— The {{ brand.name }} team
+{{ APP_URL }}
+{% endautoescape %}

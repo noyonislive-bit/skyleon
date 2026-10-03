@@ -1,0 +1,2 @@
+{% extends "base.html" %}
+{% block body %}<main class="container-page section"><h1 class="heading-xl">{{ brand.name }}</h1><p class="lead mt-4">{{ brand.description }}</p><a class="btn btn-primary mt-6" href="{% url 'accounts:login' %}">Employee login</a></main>{% endblock %}

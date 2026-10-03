@@ -1,0 +1,10 @@
+{% autoescape off %}New employee signup awaiting approval:
+{{ applicant.name }} <{{ applicant.email }}>
+Phone: {{ applicant.phone|default:'-' }}
+Location: {{ applicant.location|default:'-' }}
+{% if review_url %}
+Review in admin panel: {{ review_url }}{% endif %}
+
+— The {{ brand.name }} team
+{{ APP_URL }}
+{% endautoescape %}

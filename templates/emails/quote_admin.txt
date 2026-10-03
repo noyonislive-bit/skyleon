@@ -1,0 +1,15 @@
+{% autoescape off %}New quote request
+{{ quote.name }}{% if quote.company %} ({{ quote.company }}){% endif %} <{{ quote.email }}> {{ quote.phone }}
+Project type: {{ quote.project_type }}
+Annotation: {{ quote.annotation_types|join:', ' }}
+Dataset size: {{ quote.dataset_size }}
+Timeline: {{ quote.timeline }}
+Platform: {{ quote.platform }}
+
+{{ quote.requirements }}
+{% if review_url %}
+Open lead in admin: {{ review_url }}{% endif %}
+
+— The {{ brand.name }} team
+{{ APP_URL }}
+{% endautoescape %}

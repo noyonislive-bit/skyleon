@@ -1,0 +1,7 @@
+{% extends "emails/base.html" %}
+{% block content %}
+<h1 style="margin:0 0 12px;font-size:20px;line-height:28px;color:#0f172a">New employee signup</h1>
+<p style="margin:0 0 12px;font-size:15px;line-height:24px"><strong>{{ applicant.name }}</strong> ({{ applicant.email }}) created an employee account and is waiting for approval.</p><p style="margin:0 0 12px;font-size:15px;line-height:24px">Phone: {{ applicant.phone|default:'—' }}<br>Location: {{ applicant.location|default:'—' }}</p>
+{% if review_url %}{% include "emails/_button.html" with url=review_url label="Review in admin panel" %}{% endif %}
+<p style="margin:16px 0 0;font-size:13px;color:#94a3b8">— The {{ brand.name }} team</p>
+{% endblock %}

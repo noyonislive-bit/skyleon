@@ -1,0 +1,23 @@
+{% extends "layouts/app_shell.html" %}
+{% block title %}Client portal · {{ brand.name }}{% endblock %}
+{% block home_url %}{% url 'clients:dashboard' %}{% endblock %}
+{% block shell_label %}Client portal{% endblock %}
+{% block sidebar_nav %}
+  <a class="side-link {% nav_active '/client/' exact=True %}" href="{% url 'clients:dashboard' %}">{% icon "layout-dashboard" class="h-4 w-4" %} Overview</a>
+{% endblock %}
+{% block content %}
+<div class="mb-6"><p class="eyebrow">Phase 2 preview</p><h1 class="page-title mt-2">Welcome, {{ request.user.first_name }}</h1><p class="page-subtitle">{{ request.user.organization.name|default:"Your organisation" }} · project overview</p></div>
+<div class="card">
+  <div class="card-header"><h2 class="card-title">Your projects</h2></div>
+  {% if projects %}
+  <div class="table-wrap"><table class="table"><thead><tr><th>Project</th><th>Code</th><th>Status</th><th>Annotation</th><th>Platform</th></tr></thead><tbody>
+    {% for p in projects %}<tr><td class="font-medium text-slate-900">{{ p.name }}</td><td class="font-mono text-xs">{{ p.code }}</td><td>{% status_badge p.status p.get_status_display %}</td><td>{{ p.annotation_type|default:"—" }}</td><td>{{ p.platform|default:"—" }}</td></tr>{% endfor %}
+  </tbody></table></div>
+  {% else %}
+    {% include "components/empty_state.html" with icon="folder-open" title="No projects linked yet" text="Your account manager will link your projects here. Detailed production, QA and delivery dashboards are coming in the next phase." %}
+  {% endif %}
+</div>
+<div class="mt-6 grid gap-4 sm:grid-cols-3">
+  {% for f in "Production statistics,QA reports,Delivery progress"|split %}<div class="stat"><p class="stat-label">{{ f }}</p><p class="mt-2 text-sm text-slate-500">Coming soon</p></div>{% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,7 @@
+{% extends "emails/base.html" %}
+{% block content %}
+<h1 style="margin:0 0 12px;font-size:20px;line-height:28px;color:#0f172a">New quote request</h1>
+<p style="margin:0 0 12px;font-size:15px;line-height:24px"><strong>{{ quote.name }}</strong>{% if quote.company %} · {{ quote.company }}{% endif %}<br>{{ quote.email }}{% if quote.phone %} · {{ quote.phone }}{% endif %}</p><p style="margin:0 0 12px;font-size:15px;line-height:24px">Project type: {{ quote.project_type }}<br>Annotation: {{ quote.annotation_types|join:', '|default:'—' }}<br>Dataset size: {{ quote.dataset_size|default:'—' }}<br>Timeline: {{ quote.timeline|default:'—' }}<br>Platform: {{ quote.platform|default:'—' }}</p>{% if quote.requirements %}<p style="margin:0 0 12px;font-size:15px;line-height:24px">{{ quote.requirements|linebreaksbr }}</p>{% endif %}
+{% if review_url %}{% include "emails/_button.html" with url=review_url label="Open lead in admin" %}{% endif %}
+<p style="margin:16px 0 0;font-size:13px;color:#94a3b8">— The {{ brand.name }} team</p>
+{% endblock %}
