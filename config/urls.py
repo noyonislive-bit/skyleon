@@ -10,6 +10,7 @@ urlpatterns = [
     path("", include("apps.accounts.urls")),
     path("media/", include("apps.storage.urls")),
     path("", include("apps.practice.urls")),  # /portal/practice/… and /admin/practice/…
+    path("", include("apps.guides.urls")),  # /portal/guides/… and /admin/guides/…
     path("portal/", include("apps.portal.urls")),
     path("admin/", include("apps.backoffice.urls")),
     path("client/", include("apps.clients.urls")),

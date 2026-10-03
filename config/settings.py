@@ -67,6 +67,7 @@ INSTALLED_APPS = [
     "apps.assessments",
     "apps.feedback",
     "apps.practice",
+    "apps.guides",
     "apps.comms",
     "apps.website",
     "apps.portal",
