@@ -6,6 +6,7 @@ import re
 from django import forms
 
 from apps.core.forms import HoneypotMixin, StyledFormMixin
+from apps.core.site_settings import BRAND
 
 from . import content
 
@@ -139,7 +140,7 @@ class ApplicationForm(StyledFormMixin, HoneypotMixin, forms.Form):
         help_text=f"Optional · PDF, DOC/DOCX, ZIP or image · max {SAMPLE_MAX_MB} MB",
     )
     consent = forms.BooleanField(
-        label="I agree that Skyleon may store and use my information to evaluate my application.",
+        label=f"I agree that {BRAND['name']} may store and use my information to evaluate my application.",
         error_messages={"required": "Please confirm so we can process your application."},
     )
 

@@ -118,3 +118,15 @@ def convert_application(application, by: User) -> User:
     application.status = ApplicationStatus.APPROVED
     application.save(update_fields=["user", "status", "updated_at"])
     return user
+
+
+def change_role(user: User, role: str) -> User:
+    """Change a user's role, keeping Django-admin flags in line (only super admins get /django-admin/)."""
+    user.role = role
+    is_super = role == Role.SUPER_ADMIN
+    user.is_staff = is_super
+    user.is_superuser = is_super
+    if role != Role.CLIENT and user.status == UserStatus.ACTIVE:
+        ensure_employee_id(user)
+    user.save()
+    return user

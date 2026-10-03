@@ -123,3 +123,16 @@ class AssignmentOnJoinTests(TestCase):
         approve_user(emp, send_email=False)
         add_member(p, emp, notify_user=False)
         self.assertTrue(TutorialProgress.objects.filter(tutorial=t, user=emp, assigned=True).exists())
+
+
+class ChangeRoleTests(TestCase):
+    def test_promotion_and_demotion_sync_django_admin_flags(self):
+        from .services import change_role
+
+        u = User.objects.create_user("r@example.com", "pw-Strong-1", name="R", status=UserStatus.ACTIVE)
+        change_role(u, Role.SUPER_ADMIN)
+        self.assertTrue(u.is_staff and u.is_superuser)
+        change_role(u, Role.PROJECT_MANAGER)
+        u.refresh_from_db()
+        self.assertFalse(u.is_staff or u.is_superuser)
+        self.assertTrue(u.employee_id)

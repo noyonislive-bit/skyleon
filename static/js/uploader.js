@@ -1,5 +1,5 @@
 /*
- * Skyleon admin — direct-to-storage uploader.
+ * Admin panel — direct-to-storage uploader.
  *
  * Markup: templates/backoffice/components/uploader.html ({% uploader form.video kind="video" purpose="tutorial" %}).
  * Flow for a video:

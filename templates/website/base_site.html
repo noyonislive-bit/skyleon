@@ -10,7 +10,7 @@
 {% block og_title %}{{ meta.title|default:brand.name }}{% endblock %}
 {% block og_description %}{{ meta.description|default:brand.description }}{% endblock %}
 {% block structured_data %}{{ jsonld }}{% endblock %}
-{% block head %}<script>document.documentElement.classList.add("js")</script>{% endblock %}
+{% block head %}<script>document.documentElement.classList.add("js")</script><noscript><style>.reveal{opacity:1;transform:none}</style></noscript>{% endblock %}
 {% block body_class %}min-h-screen bg-white{% endblock %}
 {% block body %}
 <a href="#main" class="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[60] focus:rounded-lg focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-ink-900">Skip to content</a>

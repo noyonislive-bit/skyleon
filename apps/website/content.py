@@ -15,7 +15,12 @@ Copy rules (keep them when editing):
   * Output formats always depend on project requirements.
 
 Tailwind scans this file, so the literal class strings in TONES are compiled.
+Never hard-code the company name here — use BRAND_NAME (from core.site_settings.BRAND).
 """
+
+from apps.core.site_settings import BRAND
+
+BRAND_NAME = BRAND["name"]
 
 DATASET_STATEMENT = (
     "We provide high-quality annotated datasets to support the training, evaluation and improvement "
@@ -1381,7 +1386,7 @@ PLATFORM_CHOICES = [
     "Supervisely",
     "Roboflow",
     "Our own platform (client-provided)",
-    "Skyleon-provided annotation server",
+    f"{BRAND_NAME}-provided annotation server",
     "Other / custom",
 ]
 

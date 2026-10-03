@@ -1,4 +1,4 @@
-/* Skyleon public website — progressive enhancement only (everything works without JS). */
+/* Public marketing website — progressive enhancement only (everything works without JS). */
 (function () {
   "use strict";
   const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));

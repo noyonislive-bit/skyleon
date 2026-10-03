@@ -1,4 +1,4 @@
-/* Skyleon admin panel — small progressive enhancements (no build step). */
+/* Admin panel — small progressive enhancements (no build step). */
 (function () {
   "use strict";
   const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));

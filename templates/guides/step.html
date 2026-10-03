@@ -1,0 +1,114 @@
+{% extends "portal/base.html" %}
+{% load static guides_tags %}
+{% block browser_title %}{{ node.obj.title }} · {{ guide.title }}{% endblock %}
+{% block page_header %}{% endblock %}
+{% block content %}
+<div class="g-reader g-stepmode guide-bn g-accent-{{ guide.accent }}" lang="bn" data-g-reader data-g-mode="step"
+     data-g-prev="{% if node.prev %}{% url 'guides:step' guide.slug node.prev.anchor %}{% endif %}"
+     data-g-next="{% if node.next %}{% url 'guides:step' guide.slug node.next.anchor %}{% endif %}">
+
+  {% if is_preview %}
+  <div class="alert alert-warning mb-5" lang="en">{% icon "eye" class="mt-0.5 h-4 w-4 shrink-0" %}
+    <p class="flex-1">Preview — this guide is a <strong>{{ guide.get_status_display|lower }}</strong>, employees can't see it yet.</p>
+    {% if can_edit %}<a href="{% url 'guides:manage_edit' guide.pk %}" class="font-semibold underline">Back to editor</a>{% endif %}
+  </div>
+  {% endif %}
+
+  {# ── Where am I: guide, position, mode switch ── #}
+  <div class="g-stepbar card">
+    <div class="flex flex-wrap items-center gap-x-4 gap-y-3">
+      <a href="{{ guide.get_absolute_url }}" class="g-icon-tile-sm" title="গাইডের শুরুতে ফিরে যান" aria-label="গাইডের শুরুতে ফিরে যান">{% icon guide.icon class="h-5 w-5" %}</a>
+      <div class="min-w-0 flex-1">
+        <p class="truncate text-xs text-slate-500"><a href="{{ guide.get_absolute_url }}" class="hover:text-slate-800">{{ guide.title }}</a></p>
+        <p class="text-[15px] font-semibold text-slate-900">ধাপ {{ node.index|bn }} / {{ outline.total|bn }}<span class="font-normal text-slate-400"> · </span><span class="font-normal text-slate-600">অধ্যায় {{ section.label }}</span></p>
+      </div>
+      <div class="flex w-full items-center gap-2 sm:w-auto">
+        <button type="button" class="btn btn-secondary btn-sm flex-1 sm:flex-none" data-g-drawer-open aria-controls="g-toc" aria-expanded="false">{% icon "list-tree" class="h-4 w-4" %} সূচিপত্র</button>
+        <a href="{{ doc_url }}" class="btn btn-ghost btn-sm flex-1 sm:flex-none">{% icon "scroll-text" class="h-4 w-4" %} এক পাতায় পুরো গাইড</a>
+      </div>
+    </div>
+    {% if outline.total <= 60 %}
+    <ol class="g-segments" aria-label="ধাপগুলোর অবস্থা">
+      {% for st in outline.steps %}
+      <li class="{% if st == node %}is-current{% elif st.done %}is-done{% endif %}" data-g-seg="{{ st.obj.pk }}">
+        <a href="{% url 'guides:step' guide.slug st.anchor %}" title="{{ st.label }} · {{ st.obj.title }}"><span class="sr-only">ধাপ {{ st.label }}: {{ st.obj.title }}{% if st.done %} (পড়া হয়েছে){% endif %}</span></a>
+      </li>
+      {% endfor %}
+    </ol>
+    {% else %}
+    <div class="progress mt-4 h-1.5"><div class="progress-bar" style="width: {{ outline.percent }}%"></div></div>
+    {% endif %}
+    <p class="mt-2 text-xs text-slate-500"><span data-g-done-count>{{ outline.done_count|bn }}</span> / {{ outline.total|bn }} ধাপ সম্পন্ন</p>
+  </div>
+
+  {# ── Section → Step ── #}
+  {% if show_section_intro %}
+    <div class="g-sec-card card">{% include "guides/_section_head.html" with sec=section mode="step" %}</div>
+  {% else %}
+    <p class="g-sec-crumb">{% icon "layers" class="h-3.5 w-3.5" %} অধ্যায় {{ section.label }} · <a href="{% url 'guides:step' guide.slug section.anchor %}">{{ section.obj.title }}</a></p>
+  {% endif %}
+
+  {% include "guides/_step.html" with mode="step" %}
+
+  {# ── Done & navigation ── #}
+  <div class="g-stepnav card">
+    <div class="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+      {% if node.prev %}
+        <a href="{% url 'guides:step' guide.slug node.prev.anchor %}" class="btn btn-ghost justify-start" rel="prev">{% icon "arrow-left" class="h-4 w-4" %} আগের ধাপ</a>
+      {% else %}
+        <span class="btn btn-ghost pointer-events-none justify-start opacity-40" aria-disabled="true">{% icon "arrow-left" class="h-4 w-4" %} আগের ধাপ</span>
+      {% endif %}
+      <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+        {% if node.next %}<a href="{% url 'guides:step' guide.slug node.next.anchor %}" class="btn btn-secondary" rel="next">পরের ধাপ {% icon "arrow-right" class="h-4 w-4" %}</a>{% endif %}
+        <form method="post" action="{% url 'guides:done' node.obj.pk %}" data-g-done-form data-g-advance>
+          {% csrf_token %}
+          <input type="hidden" name="done" value="1" data-g-done-input>
+          <input type="hidden" name="next" value="{% if node.next %}{% url 'guides:step' guide.slug node.next.anchor %}{% else %}{{ guide.get_absolute_url }}#g-finish{% endif %}">
+          <button type="submit" class="btn btn-primary w-full" data-g-done-btn aria-pressed="{{ node.done|yesno:'true,false' }}">
+            {% icon "check" class="h-4 w-4" stroke_width="2.5" %}
+            {% if node.next %}{% if node.done %}বুঝেছি — পরের ধাপে যান{% else %}বুঝেছি ও পরের ধাপ{% endif %}{% else %}বুঝেছি ও গাইড শেষ করুন{% endif %}
+            {% icon "arrow-right" class="h-4 w-4" %}
+          </button>
+        </form>
+      </div>
+    </div>
+    {% if node.done %}
+    <form method="post" action="{% url 'guides:done' node.obj.pk %}" class="mt-3 border-t border-slate-100 pt-3 text-xs text-slate-500" data-g-undo-form>
+      {% csrf_token %}<input type="hidden" name="done" value="0"><input type="hidden" name="next" value="{{ request.path }}">
+      {% icon "circle-check" class="inline h-3.5 w-3.5 text-emerald-600" %} এই ধাপ আগে “বুঝেছি” হিসেবে চিহ্নিত করেছেন। <button type="submit" class="font-medium text-slate-700 underline decoration-slate-300 underline-offset-2 hover:text-slate-900">অপঠিত করুন</button>
+    </form>
+    {% endif %}
+  </div>
+
+  {# ── Pager with titles (crosses sections) ── #}
+  <nav class="g-pager" aria-label="ধাপগুলোর মধ্যে যান">
+    {% if node.prev %}
+    <a href="{% url 'guides:step' guide.slug node.prev.anchor %}" class="g-pager-link">
+      <span class="g-pager-dir">{% icon "arrow-left" class="h-3.5 w-3.5" %} আগের ধাপ {{ node.prev.label }}</span>
+      <span class="g-pager-title">{{ node.prev.obj.title }}</span>
+      {% if node.prev.section != node.section %}<span class="g-pager-sec">অধ্যায় {{ node.prev.section.label }} · {{ node.prev.section.obj.title }}</span>{% endif %}
+    </a>
+    {% else %}<span></span>{% endif %}
+    {% if node.next %}
+    <a href="{% url 'guides:step' guide.slug node.next.anchor %}" class="g-pager-link is-next">
+      <span class="g-pager-dir">পরের ধাপ {{ node.next.label }} {% icon "arrow-right" class="h-3.5 w-3.5" %}</span>
+      <span class="g-pager-title">{{ node.next.obj.title }}</span>
+      {% if node.next.section != node.section %}<span class="g-pager-sec">নতুন অধ্যায় {{ node.next.section.label }} · {{ node.next.section.obj.title }}</span>{% endif %}
+    </a>
+    {% else %}
+    <a href="{{ guide.get_absolute_url }}#g-finish" class="g-pager-link is-next">
+      <span class="g-pager-dir">শেষ {% icon "flag" class="h-3.5 w-3.5" %}</span>
+      <span class="g-pager-title">গাইডের সারসংক্ষেপে ফিরে যান</span>
+    </a>
+    {% endif %}
+  </nav>
+  <p class="mt-4 hidden text-center text-xs text-slate-400 lg:block">কিবোর্ড: <kbd class="g-kbd g-kbd-sm">←</kbd> আগের ধাপ · <kbd class="g-kbd g-kbd-sm">→</kbd> পরের ধাপ</p>
+
+  <aside id="g-toc" class="g-drawer" aria-label="সূচিপত্র" data-g-drawer>
+    <div class="g-toc">{% include "guides/_toc.html" with mode="step" current=node %}</div>
+  </aside>
+  <div class="g-backdrop" data-g-backdrop hidden></div>
+  <div class="g-toast" role="status" aria-live="polite" data-g-toast hidden></div>
+</div>
+{% endblock %}
+{% block page_scripts %}<script src="{% static 'js/guides.js' %}" defer></script>{% endblock %}

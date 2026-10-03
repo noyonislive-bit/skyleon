@@ -11,6 +11,7 @@ from apps.accounts.models import Role, User, UserStatus
 from apps.accounts.permissions import can_manage_content_for, can_manage_project, has_permission, project_scope
 from apps.accounts.services import (
     approve_user,
+    change_role,
     create_account,
     password_setup_url,
     reactivate_user,
@@ -303,8 +304,7 @@ def employee_role(request, pk):
     form = RoleForm(request.POST)
     if form.is_valid() and form.cleaned_data["role"] != employee.role:
         old = employee.role
-        employee.role = form.cleaned_data["role"]
-        employee.save(update_fields=["role", "updated_at"])
+        change_role(employee, form.cleaned_data["role"])
         audit.log(request, "employee.role", employee, old=old, new=employee.role)
         messages.success(request, f"{employee.name} is now {employee.get_role_display()}.")
     return redirect("backoffice:employee_detail", pk=employee.pk)

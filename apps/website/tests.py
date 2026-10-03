@@ -18,7 +18,7 @@ from apps.comms.models import EmailMessage
 from apps.website import content
 from apps.website.models import ContactMessage, JobApplication, QuoteRequest
 
-TMP_STORAGE = tempfile.mkdtemp(prefix="skyleon-web-tests-")
+TMP_STORAGE = tempfile.mkdtemp(prefix="website-tests-")
 
 STATIC_PAGES = [
     "home", "services", "industries", "solutions", "capability", "quality", "platforms", "security", "about",
@@ -39,7 +39,7 @@ def png(name="sample.png"):
     PRIVATE_STORAGE_DIR=TMP_STORAGE,
     STORAGE_BACKEND="local",
     EMAIL_SEND_IMMEDIATELY=False,
-    APP_URL="https://www.skyleon.example",
+    APP_URL="https://www.brand.example",
 )
 class WebsiteTestCase(TestCase):
     def setUp(self):
@@ -59,7 +59,7 @@ class PageTests(WebsiteTestCase):
         self.assertEqual(len(re.findall(r"<h1[\s>]", html)), 1, f"{url} must have exactly one <h1>")
         self.assertRegex(html, r"<title>[^<]{10,}</title>")
         self.assertIn('<meta name="description" content="', html)
-        self.assertIn(f'<link rel="canonical" href="https://www.skyleon.example{url.split("?")[0]}">', html)
+        self.assertIn(f'<link rel="canonical" href="https://www.brand.example{url.split("?")[0]}">', html)
         self.assertIn('property="og:title"', html)
         for block in re.findall(r'<script type="application/ld\+json">(.*?)</script>', html, re.S):
             json.loads(block)  # valid JSON-LD
@@ -125,19 +125,19 @@ class SeoEndpointTests(WebsiteTestCase):
         body = res.content.decode()
         for path in ("/portal/", "/admin/", "/client/", "/django-admin/", "/media/", "/account/", "/password/"):
             self.assertIn(f"Disallow: {path}", body)
-        self.assertIn("Sitemap: https://www.skyleon.example/sitemap.xml", body)
+        self.assertIn("Sitemap: https://www.brand.example/sitemap.xml", body)
 
     def test_sitemap_uses_app_url(self):
         res = self.client.get("/sitemap.xml")
         self.assertEqual(res.status_code, 200)
         self.assertIn("xml", res["Content-Type"])
         body = res.content.decode()
-        self.assertIn("<loc>https://www.skyleon.example/</loc>", body)
-        self.assertIn("<loc>https://www.skyleon.example/request-a-quote/</loc>", body)
+        self.assertIn("<loc>https://www.brand.example/</loc>", body)
+        self.assertIn("<loc>https://www.brand.example/request-a-quote/</loc>", body)
         for svc in content.SERVICES:
-            self.assertIn(f"<loc>https://www.skyleon.example/services/{svc['slug']}/</loc>", body)
+            self.assertIn(f"<loc>https://www.brand.example/services/{svc['slug']}/</loc>", body)
         for sp in content.SOLUTION_PAGES:
-            self.assertIn(f"<loc>https://www.skyleon.example/solutions/{sp['slug']}/</loc>", body)
+            self.assertIn(f"<loc>https://www.brand.example/solutions/{sp['slug']}/</loc>", body)
         self.assertNotIn("thank-you", body)
         self.assertNotIn("testserver", body)
 

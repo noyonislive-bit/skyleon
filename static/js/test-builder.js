@@ -1,5 +1,5 @@
 /*
- * Skyleon admin — question builder (templates/backoffice/tests/_question_form.html).
+ * Admin panel — question builder (templates/backoffice/tests/_question_form.html).
  * Server-rendered Django formset for the answer options; this script only adds/removes rows,
  * switches the True/False editor and keeps single-answer questions to one correct option.
  */

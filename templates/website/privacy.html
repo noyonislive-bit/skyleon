@@ -4,7 +4,7 @@
 <section class="bg-white py-16 sm:py-20">
   <div class="container-page">
     <article class="legal mx-auto max-w-3xl">
-      <p>This policy explains how {{ brand.legal_name }} ("{{ brand.name }}", "we", "us") collects, uses and protects personal information submitted through this website. It does not cover data that clients provide to us for annotation projects — that data is governed by the agreement with each client.</p>
+      <p>This policy explains how {{ brand.legal_name }} ({% if brand.legal_name != brand.name %}"{{ brand.name }}", {% endif %}"we", "us") collects, uses and protects personal information submitted through this website. It does not cover data that clients provide to us for annotation projects — that data is governed by the agreement with each client.</p>
 
       <h2>Information we collect</h2>
       <ul>

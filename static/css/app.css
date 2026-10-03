@@ -437,6 +437,9 @@
   .-right-2 {
     right: calc(var(--spacing) * -2);
   }
+  .-right-6 {
+    right: calc(var(--spacing) * -6);
+  }
   .-right-10 {
     right: calc(var(--spacing) * -10);
   }
@@ -511,6 +514,9 @@
   }
   .-left-4 {
     left: calc(var(--spacing) * -4);
+  }
+  .-left-6 {
+    left: calc(var(--spacing) * -6);
   }
   .-left-16 {
     left: calc(var(--spacing) * -16);
@@ -1428,6 +1434,9 @@
   }
   .justify-end {
     justify-content: flex-end;
+  }
+  .justify-start {
+    justify-content: flex-start;
   }
   .gap-0 {
     gap: 0px;
@@ -2989,6 +2998,9 @@
   .decoration-brand-300 {
     text-decoration-color: var(--color-brand-300);
   }
+  .decoration-slate-300 {
+    text-decoration-color: var(--color-slate-300);
+  }
   .underline-offset-2 {
     text-underline-offset: 2px;
   }
@@ -3752,6 +3764,9 @@
     .sm\:w-auto {
       width: auto;
     }
+    .sm\:flex-none {
+      flex: none;
+    }
     .sm\:-translate-y-2 {
       --tw-translate-y: calc(var(--spacing) * -2);
       translate: var(--tw-translate-x) var(--tw-translate-y);
@@ -4303,6 +4318,14 @@
     }
     .xl\:grid-cols-\[minmax\(0\,1fr\)_24rem\] {
       grid-template-columns: minmax(0,1fr) 24rem;
+    }
+  }
+  @media (width >= 96rem) {
+    .\32 xl\:-right-16 {
+      right: calc(var(--spacing) * -16);
+    }
+    .\32 xl\:-left-16 {
+      left: calc(var(--spacing) * -16);
     }
   }
   .\[\&\:\:-webkit-details-marker\]\:hidden::-webkit-details-marker {

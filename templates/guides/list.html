@@ -1,0 +1,60 @@
+{% extends "portal/base.html" %}
+{% load static guides_tags %}
+{% block page_actions %}{% if can_manage %}<a href="{% url 'guides:manage' %}" class="btn btn-secondary btn-sm" lang="en">{% icon "settings-2" class="h-4 w-4" %} Manage guides</a>{% endif %}{% endblock %}
+{% block content %}
+<div class="guide-bn" lang="bn">
+  {% if rows %}
+  <div class="grid gap-5 lg:grid-cols-2">
+    {% for r in rows %}{% with g=r.guide %}
+    <article class="card g-card g-accent-{{ g.accent }}">
+      <div class="g-hero-bar" aria-hidden="true"></div>
+      <div class="flex flex-1 flex-col p-5 sm:p-6">
+        <div class="flex items-start gap-4">
+          <span class="g-icon-tile">{% icon g.icon class="h-6 w-6" %}</span>
+          <div class="min-w-0 flex-1">
+            <div class="flex flex-wrap items-center gap-1.5">
+              <span class="g-chip">{{ g.kind_label_bn }}</span>
+              {% if g.project %}<span class="g-chip-muted" lang="en">{{ g.project.code }}</span>{% endif %}
+              {% if r.total and r.done == r.total %}<span class="badge badge-success">{% icon "check" class="h-3 w-3" stroke_width="3" %} সম্পন্ন</span>{% endif %}
+            </div>
+            <h2 class="mt-2 text-lg leading-snug font-semibold text-slate-900"><a href="{{ g.get_absolute_url }}" class="hover:text-brand-700">{{ g.title }}</a></h2>
+            {% if g.title_en %}<p class="mt-0.5 text-xs text-slate-500" lang="en">{{ g.title_en }}</p>{% endif %}
+          </div>
+        </div>
+        {% if g.summary %}<p class="g-card-summary">{{ g.summary }}</p>{% endif %}
+        <ul class="g-meta mt-4">
+          <li>{% icon "layers" class="h-4 w-4" %} {{ r.sections|bn }}টি অধ্যায়</li>
+          <li>{% icon "list-checks" class="h-4 w-4" %} {{ r.total|bn }}টি ধাপ</li>
+          <li>{% icon "clock" class="h-4 w-4" %} আনুমানিক {{ r.minutes|bn }} মিনিট</li>
+        </ul>
+        <div class="mt-auto pt-5">
+          <div class="flex items-center justify-between gap-3 text-xs">
+            <span class="text-slate-500">{% if r.done %}অগ্রগতি{% else %}এখনো শুরু করেননি{% endif %}</span>
+            <span class="font-medium text-slate-700">{{ r.done|bn }}/{{ r.total|bn }} ধাপ · {{ r.percent|bn }}%</span>
+          </div>
+          <div class="progress mt-1.5" role="progressbar" aria-label="{{ g.title }} — অগ্রগতি" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ r.percent }}">
+            <div class="progress-bar{% if r.percent == 100 %} is-complete{% endif %}" style="width: {{ r.percent }}%"></div>
+          </div>
+          <div class="mt-4 flex flex-wrap gap-2">
+            <a href="{{ r.resume_url }}" class="btn btn-primary">{% if r.total and r.done == r.total %}আবার দেখুন {% icon "rotate-ccw" class="h-4 w-4" %}{% elif r.done %}চালিয়ে যান {% icon "arrow-right" class="h-4 w-4" %}{% else %}শুরু করুন {% icon "arrow-right" class="h-4 w-4" %}{% endif %}</a>
+            {% if r.step_url %}<a href="{{ r.step_url }}" class="btn btn-secondary">{% icon "footprints" class="h-4 w-4" %} ধাপে ধাপে</a>{% endif %}
+          </div>
+        </div>
+      </div>
+    </article>
+    {% endwith %}{% endfor %}
+  </div>
+
+  <div class="card mt-6 p-5 sm:p-6">
+    <h2 class="text-sm font-semibold text-slate-900">কীভাবে পড়বেন</h2>
+    <ol class="mt-4 grid gap-4 sm:grid-cols-3">
+      <li class="flex gap-3"><span class="g-how-num">১</span><p class="g-how-text"><strong>অধ্যায় ধরে পড়ুন।</strong> বাম পাশের সূচিপত্র থেকে যেকোনো ধাপে সরাসরি যাওয়া যায়।</p></li>
+      <li class="flex gap-3"><span class="g-how-num">২</span><p class="g-how-text"><strong>ভিডিও দেখুন, নিয়ম মিলিয়ে নিন।</strong> প্রতিটি ধাপের পাশে মূল ভিডিও আর কোন বোতামে কী হয় তা দেওয়া আছে।</p></li>
+      <li class="flex gap-3"><span class="g-how-num">৩</span><p class="g-how-text"><strong>বুঝলে “বুঝেছি” চাপুন।</strong> এতে আপনার অগ্রগতি সেভ হয়, পরে ঠিক সেখান থেকেই শুরু করতে পারবেন।</p></li>
+    </ol>
+  </div>
+  {% else %}
+  <div class="card">{% include "components/empty_state.html" with icon="book-open-check" title="এখনো কোনো গাইড প্রকাশ করা হয়নি" text="আপনার প্রজেক্টের কাজের গাইড এখানে দেখা যাবে। ট্রেইনার প্রকাশ করলেই চলে আসবে।" %}</div>
+  {% endif %}
+</div>
+{% endblock %}
