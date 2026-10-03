@@ -45,6 +45,40 @@ Built with **Python (Django 5.2 LTS) + MySQL/MariaDB** and designed to run on **
 
 ---
 
+## Try it on your computer (5 minutes, no MySQL needed)
+
+Needs **Python 3.10+** (python.org, tick "Add python.exe to PATH" on Windows) and **Git** (or download the ZIP of the branch from GitHub).
+
+```bash
+git clone -b claude/eager-cori-wcmlyv https://github.com/noyonislive-bit/skyleon.git
+cd skyleon
+python -m venv .venv
+.venv\Scripts\activate            # Windows   (macOS/Linux: source .venv/bin/activate)
+pip install -r requirements.txt
+```
+
+Create a file named `.env` in the `skyleon` folder with:
+
+```ini
+DEBUG=true
+SECRET_KEY=local-test-key
+DB_ENGINE=sqlite
+EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend
+```
+
+Then:
+
+```bash
+python manage.py migrate
+python manage.py createcachetable
+python manage.py seed_demo
+python manage.py runserver
+```
+
+Open http://127.0.0.1:8000 in Chrome / Edge. Log in at http://127.0.0.1:8000/login/ with the demo accounts below
+(password `Demo@12345`). Emails are printed in the terminal instead of being sent. SQLite mode is for testing only —
+the live site uses MySQL (see the deployment guide).
+
 ## Local development
 
 Requirements: Python 3.10+, MySQL 8 / MariaDB 10.5+ (Node.js only if you change templates/CSS).

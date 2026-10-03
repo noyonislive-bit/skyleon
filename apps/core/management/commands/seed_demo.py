@@ -247,17 +247,23 @@ class Command(BaseCommand):
 
         from apps.practice.models import PracticeTask
 
+        def fit(video, design_len, rng, clips):
+            """Scale a segmentation designed for a `design_len`-second clip to the real video length."""
+            k = min(1.0, (video.duration_sec or design_len) / design_len)
+            return dict(range_start=round(rng[0] * k, 2), range_end=round(rng[1] * k, 2),
+                        reference_clips=[[round(a * k, 2), round(b * k, 2)] for a, b in clips])
+
         PracticeTask.objects.create(
-            title="Kitchen clip 001 — pick & place", project=act, video=t_seg.video, range_start=3, range_end=40,
+            title="Kitchen clip 001 — pick & place", project=act, video=t_seg.video,
             tolerance_sec=0.5, passing_score=75, status="published", published_at=now, created_by=trainer,
-            instructions="Segment every hand action between **00:03** and **00:40**. Start a clip when the hand begins an action and end it when the action is complete.",
-            reference_clips=[[4.0, 7.5], [8.0, 12.0], [12.5, 18.0], [19.0, 24.5], [25.0, 31.0], [32.0, 39.5]],
+            instructions="Segment every hand action in the hands-present range. Start a clip when the hand begins an action and end it when the action is complete.",
+            **fit(t_seg.video, 45, (3, 40), [[4.0, 7.5], [8.0, 12.0], [12.5, 18.0], [19.0, 24.5], [25.0, 31.0], [32.0, 39.5]]),
         )
         PracticeTask.objects.create(
-            title="Kitchen clip 002 — open & close", project=act, video=t_desc.video, range_start=2, range_end=33,
+            title="Kitchen clip 002 — open & close", project=act, video=t_desc.video,
             tolerance_sec=0.5, passing_score=75, status="published", published_at=now, created_by=trainer, order=1,
             instructions="Clip each open / close action. Remember: the clip ends when the door or drawer stops moving.",
-            reference_clips=[[3.0, 6.0], [7.0, 11.5], [12.0, 17.0], [18.5, 24.0], [25.0, 32.0]],
+            **fit(t_desc.video, 35, (2, 33), [[3.0, 6.0], [7.0, 11.5], [12.0, 17.0], [18.5, 24.0], [25.0, 32.0]]),
         )
 
         Announcement.objects.create(title="New QA scoring starts Monday", project=act, priority="important", pinned=True, created_by=pm,
