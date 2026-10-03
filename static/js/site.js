@@ -1,4 +1,4 @@
-/* Skyleon — small progressive-enhancement helpers shared by every page. */
+/* Skyloon AI — small progressive-enhancement helpers shared by every page. */
 (function () {
   "use strict";
   const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));

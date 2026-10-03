@@ -1,4 +1,4 @@
-/* Skyleon employee portal — small progressive enhancements (no build step). */
+/* Skyloon AI employee portal — small progressive enhancements (no build step). */
 (function () {
   "use strict";
   const $ = (sel, root = document) => root.querySelector(sel);

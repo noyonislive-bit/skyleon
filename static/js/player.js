@@ -1,5 +1,5 @@
 /*
- * Skyleon tracked video player — used for tutorials and feedback videos.
+ * Skyloon AI tracked video player — used for tutorials and feedback videos.
  *
  * Markup: templates/portal/includes/player.html  (<div data-player …><video data-video></video></div>)
  *
