@@ -1,0 +1,62 @@
+{% extends "backoffice/base.html" %}
+{% load backoffice_tags %}
+{% block page_actions %}
+  <a href="{% url 'backoffice:organization_create' %}" class="btn btn-primary btn-sm">{% icon "plus" class="h-4 w-4" %} New organisation</a>
+{% endblock %}
+{% block content %}
+{% if unattached %}
+  <div class="alert alert-warning mb-5">
+    {% icon "alert-triangle" class="mt-0.5 h-4 w-4 shrink-0" %}
+    <p class="flex-1"><strong>{{ unattached|length }} client account{{ unattached|length|pluralize }}</strong> {{ unattached|length|pluralize:"is,are" }} not attached to an organisation and can't see any project.</p>
+  </div>
+{% endif %}
+<div class="card">
+  <form method="get" class="bo-filters">
+    {% include "backoffice/components/search.html" with value=filters.q placeholder="Organisation, contact or client email" %}
+    <button class="btn btn-secondary btn-sm sm:!w-auto">Search</button>
+    {% if filters.q %}<a href="{% url 'backoffice:organization_list' %}" class="btn btn-ghost btn-sm sm:!w-auto">Reset</a>{% endif %}
+  </form>
+  {% if organizations %}
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>Organisation</th><th>Contact</th><th class="num">Client accounts</th><th class="num">Projects</th><th>Created</th><th aria-label="Actions"></th></tr></thead>
+      <tbody>
+      {% for o in organizations %}
+        <tr>
+          <td><a href="{% url 'backoffice:organization_detail' o.pk %}" class="bo-person-name">{{ o.name }}</a><span class="bo-person-sub">{{ o.slug }}</span></td>
+          <td class="text-sm">{% if o.contact_email %}<a href="mailto:{{ o.contact_email }}" class="bo-link">{{ o.contact_email }}</a>{% else %}<span class="bo-muted">—</span>{% endif %}</td>
+          <td class="num bo-num">{{ o.client_count }}</td>
+          <td class="num bo-num">{{ o.project_count }}</td>
+          <td class="text-xs whitespace-nowrap text-slate-500">{{ o.created_at|date:"j M Y" }}</td>
+          <td><div class="bo-row-actions"><a href="{% url 'backoffice:organization_detail' o.pk %}" class="bo-icon-btn" title="Open">{% icon "chevron-right" class="h-4 w-4" %}</a></div></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+    {% include "components/empty_state.html" with icon="building-2" title="No organisations yet" text="Create an organisation for each client company, then add its client-portal accounts and link its projects." %}
+  {% endif %}
+</div>
+
+{% if unattached %}
+<section class="card mt-6">
+  <div class="card-header"><div><h2 class="card-title">Client accounts without an organisation</h2><p class="mt-0.5 text-xs text-slate-500">Edit an account to attach it to an organisation.</p></div></div>
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>Client</th><th>Status</th><th>Last login</th><th aria-label="Actions"></th></tr></thead>
+      <tbody>
+      {% for u in unattached %}
+        <tr>
+          <td>{% include "backoffice/components/person.html" with u=u link=True sub=u.email %}</td>
+          <td>{% status_badge u.status u.get_status_display %}</td>
+          <td class="text-xs whitespace-nowrap text-slate-500">{% if u.last_login %}{{ u.last_login|timesince }} ago{% else %}Never{% endif %}</td>
+          <td><div class="bo-row-actions"><a href="{% url 'backoffice:client_edit' u.pk %}" class="btn btn-secondary btn-sm">{% icon "pencil" class="h-3.5 w-3.5" %} Attach</a></div></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+{% endblock %}

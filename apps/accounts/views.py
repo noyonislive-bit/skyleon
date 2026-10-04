@@ -5,6 +5,7 @@ from django.contrib.auth import views as auth_views
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect, render
 from django.urls import reverse, reverse_lazy
+from django.utils import translation
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
@@ -133,10 +134,35 @@ class PasswordResetDoneView(auth_views.PasswordResetDoneView):
 
 
 class PasswordResetConfirmView(auth_views.PasswordResetConfirmView):
+    """Set-password page (password reset and account invitations). Bangla for employees; English for
+    client accounts, whose portal and emails are in English."""
+
     template_name = "accounts/password_reset_confirm.html"
     form_class = StyledSetPasswordForm
     success_url = reverse_lazy("accounts:password_reset_complete")
+    for_client = False
+
+    def get_user(self, uidb64):
+        user = super().get_user(uidb64)
+        self.for_client = getattr(user, "role", None) == Role.CLIENT
+        if self.for_client:
+            translation.activate("en")
+            self.request.LANGUAGE_CODE = "en"
+        return user
+
+    def get_context_data(self, **kwargs):
+        return {**super().get_context_data(**kwargs), "for_client": self.for_client}
+
+    def get_success_url(self):
+        url = super().get_success_url()
+        return f"{url}?for=client" if self.for_client else url
 
 
 class PasswordResetCompleteView(auth_views.PasswordResetCompleteView):
     template_name = "accounts/password_reset_complete.html"
+
+    def get_context_data(self, **kwargs):
+        for_client = self.request.GET.get("for") == "client"
+        if for_client:
+            translation.activate("en")
+        return {**super().get_context_data(**kwargs), "for_client": for_client}

@@ -13,13 +13,14 @@ from apps.accounts.services import (
     approve_user,
     change_role,
     create_account,
-    password_setup_url,
+    delete_account,
+    deletion_problem,
     reactivate_user,
+    send_password_link,
     suspend_user,
 )
 from apps.assessments.models import Test, TestAssignment, TestAttempt
 from apps.assessments.services import assign_test, extra_attempts_map, test_state
-from apps.comms.services import absolute_url, queue_email
 from apps.core import audit
 from apps.core.choices import ContentStatus
 from apps.feedback.models import Feedback, FeedbackRecipient
@@ -47,6 +48,7 @@ from ..helpers import (
     get_employee,
     paginate,
     redirect_back,
+    safe_next,
     scope_ids,
     staff_projects,
 )
@@ -96,6 +98,7 @@ def employee_list(request):
         "roles": [c for c in Role.choices if user.is_super_admin or c[0] == Role.EMPLOYEE],
         "filters": {"q": q, "status": status, "role": role, "project": project_id},
         "can_create": has_permission(user, "employees.manage"),
+        "can_reject": has_permission(user, "staff.manage"),
         "pending_count": employee_scope(user, User.objects.filter(status=UserStatus.PENDING, role=Role.EMPLOYEE)).count(),
     })
 
@@ -151,6 +154,9 @@ def employee_detail(request, pk):
         "memberships": memberships,
         "can_manage": can_manage,
         "can_change_role": has_permission(user, "staff.manage") and employee.pk != user.pk,
+        # Permanent deletion / rejecting a signup: super admins only, never their own account.
+        "can_delete": has_permission(user, "staff.manage") and employee.pk != user.pk,
+        "can_clients": has_permission(user, "clients.manage"),
         "can_projects": can_projects,
         "can_content": can_content and employee.status == UserStatus.ACTIVE,
         "role_form": RoleForm(initial={"role": employee.role}),
@@ -326,17 +332,90 @@ def employee_role(request, pk):
 @permission_required_code("employees.manage")
 def employee_invite(request, pk):
     employee = _managed_employee(request, pk)
+    fallback = reverse("backoffice:employee_detail", args=[employee.pk])
     if employee.status == UserStatus.SUSPENDED:
         messages.error(request, "Reactivate the account before sending a password link.")
-        return redirect("backoffice:employee_detail", pk=employee.pk)
-    queue_email(
-        employee.email, "Set your password", "account_invite",
-        {"user": employee, "setup_url": password_setup_url(employee), "login_url": absolute_url(reverse("accounts:login")),
-         "invited_by": request.user},
-    )
+        return redirect_back(request, fallback)
+    send_password_link(employee, request.user)  # English for client accounts, Bangla for everyone else
     audit.log(request, "employee.password_link", employee)
     messages.success(request, f"A password-setup link was emailed to {employee.email}.")
-    return redirect("backoffice:employee_detail", pk=employee.pk)
+    return redirect_back(request, fallback)
+
+
+@require_POST
+@permission_required_code("staff.manage")
+def employee_reject(request, pk):
+    """Reject a pending signup: the account is deleted (they can sign up again later)."""
+    employee = _managed_employee(request, pk)
+    if employee.status != UserStatus.PENDING:
+        messages.error(request, "Only pending signups can be rejected — suspend or delete active accounts instead.")
+        return redirect("backoffice:employee_detail", pk=employee.pk)
+    name, email = employee.name, employee.email
+    audit.log(request, "employee.reject", employee, name=name, email=email)
+    delete_account(employee)
+    messages.success(request, f"The signup of {name} ({email}) was rejected and the pending account deleted.")
+    return redirect(reverse("backoffice:employee_list") + "?status=pending")
+
+
+def _deletion_summary(person):
+    """What disappears with the account (shown on the confirmation page)."""
+    from apps.comms.models import Notification
+    from apps.guides.models import GuideProgress
+    from apps.projects.models import GuidelineAck
+    from apps.training.models import OnboardingCompletion
+
+    rows = [
+        ("project membership", person.memberships.count()),
+        ("tutorial progress record", TutorialProgress.objects.filter(user=person).count()),
+        ("onboarding step completion", OnboardingCompletion.objects.filter(user=person).count()),
+        ("guideline acknowledgement", GuidelineAck.objects.filter(user=person).count()),
+        ("test assignment", TestAssignment.objects.filter(user=person).count()),
+        ("test attempt (answers and scores)", TestAttempt.objects.filter(user=person).count()),
+        ("feedback delivery", FeedbackRecipient.objects.filter(user=person).count()),
+        ("work-guide progress record", GuideProgress.objects.filter(user=person).count()),
+        ("notification", Notification.objects.filter(user=person).count()),
+    ]
+    try:
+        rows.append(("practice attempt", person.practice_attempts.count()))
+    except AttributeError:  # practice lab not installed
+        pass
+    return [f"{n} {label}{'' if n == 1 else 's'}" for label, n in rows if n]
+
+
+@permission_required_code("staff.manage")
+def employee_delete(request, pk):
+    """Permanently delete an account (super admins). GET shows what will be deleted; POST deletes."""
+    person = get_employee(request, pk)
+    is_client = person.role == Role.CLIENT
+    fallback = (reverse("backoffice:organization_detail", args=[person.organization_id]) if is_client and person.organization_id
+                else reverse("backoffice:employee_list"))
+    problem = deletion_problem(request.user, person)
+    if request.method == "POST":
+        if problem:
+            messages.error(request, problem)
+            return redirect("backoffice:employee_detail", pk=person.pk)
+        name, email, role = person.name, person.email, person.role
+        audit.log(request, "employee.delete", person, name=name, email=email, role=role,
+                  employee_id=person.employee_id)
+        delete_account(person)
+        messages.success(request, f"The account of {name} ({email}) was permanently deleted.")
+        return redirect_back(request, fallback)
+    return render(request, "backoffice/confirm_delete.html", {
+        "page_title": f"Delete {person.name}?",
+        "page_subtitle": f"{person.get_role_display()} · {person.email}" + (f" · {person.employee_id}" if person.employee_id else ""),
+        "crumbs": [("Employees", reverse("backoffice:employee_list")),
+                   (person.name, reverse("backoffice:employee_detail", args=[person.pk])), ("Delete", None)],
+        "problem": problem,
+        "warning": f"This permanently deletes the account of {person.name}. They can no longer sign in, and this cannot be undone.",
+        "deleted": _deletion_summary(person),
+        "kept": ["Tutorials, tests, feedback and other content they created stay (without an author).",
+                 "The audit log keeps the record of what they did."],
+        "alternative": None if is_client or person.status == UserStatus.SUSPENDED else
+        "To only block access while keeping their history, suspend the account instead.",
+        "confirm_label": "Delete account permanently",
+        "cancel_url": safe_next(request, reverse("backoffice:employee_detail", args=[person.pk])),
+        "next": safe_next(request, ""),
+    })
 
 
 @require_POST

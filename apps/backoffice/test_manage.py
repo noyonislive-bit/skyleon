@@ -6,23 +6,231 @@ company-wide onboarding.
     DB_TEST_NAME=test_skyleon_manage python manage.py test apps.backoffice.test_manage
 """
 
+import re
+
+from django.test import Client
 from django.urls import reverse
 from django.utils import timezone
 
+from apps.accounts.models import Organization, Role, User, UserStatus
+from apps.accounts.services import deletion_problem
 from apps.assessments.models import Test, TestAssignment, TestAttempt
 from apps.assessments.services import start_attempt, submit_attempt, test_state
-from apps.comms.models import Notification
+from apps.comms.models import EmailMessage, Notification
 from apps.core.choices import ContentStatus, ProgressStatus
 from apps.core.models import AuditLog
 from apps.feedback.models import Feedback, FeedbackRecipient
 from apps.feedback.services import publish_feedback
 from apps.training.models import TutorialProgress
+from apps.website.models import JobApplication
 
 from .tests import AdminTestCase
 
 
 def audited(action, **filters):
     return AuditLog.objects.filter(action=action, **filters).exists()
+
+
+class OrganizationTests(AdminTestCase):
+    def test_only_super_admins_manage_clients(self):
+        org = Organization.objects.create(name="Acme", slug="acme")
+        for name, args in (("organization_list", ()), ("organization_create", ()), ("organization_detail", (org.pk,)),
+                           ("organization_edit", (org.pk,)), ("client_create", (org.pk,))):
+            self.assertEqual(self.get(self.admin, name, *args).status_code, 200, name)
+            self.assertEqual(self.get(self.pm, name, *args).status_code, 403, name)
+            self.assertEqual(self.get(self.trainer, name, *args).status_code, 403, name)
+        self.assertIn(reverse("backoffice:organization_list"), self.get(self.admin, "dashboard").content.decode())
+        self.assertNotIn(reverse("backoffice:organization_list"), self.get(self.pm, "dashboard").content.decode())
+
+    def test_create_edit_and_list_organisation(self):
+        response = self.post(self.admin, "organization_create", data={"name": "  Northwind   Traders ", "slug": "", "contact_email": "ops@nw.test"})
+        org = Organization.objects.get(name="Northwind Traders")
+        self.assertRedirects(response, reverse("backoffice:organization_detail", args=[org.pk]), fetch_redirect_response=False)
+        self.assertEqual(org.slug, "northwind-traders")
+        self.assertTrue(audited("organization.create", entity_id=str(org.pk)))
+        # same name again → a unique slug is generated; a typed duplicate slug is refused
+        self.post(self.admin, "organization_create", data={"name": "Northwind Traders", "slug": ""})
+        self.assertTrue(Organization.objects.filter(slug="northwind-traders-2").exists())
+        response = self.post(self.admin, "organization_create", data={"name": "Other", "slug": "northwind-traders"})
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(Organization.objects.filter(name="Other").exists())
+
+        self.post(self.admin, "organization_edit", org.pk, data={"name": "Northwind", "slug": "northwind", "contact_email": ""})
+        org.refresh_from_db()
+        self.assertEqual((org.name, org.slug, org.contact_email), ("Northwind", "northwind", ""))
+        self.assertContains(self.get(self.admin, "organization_list"), "Northwind")
+        self.assertContains(self.get(self.admin, "organization_list", q="nw.test"), "No organisations yet")
+
+    def test_add_client_account_with_invite(self):
+        org = Organization.objects.create(name="Acme", slug="acme")
+        response = self.post(self.admin, "client_create", org.pk, data={
+            "name": "Clara Client", "email": "Clara@Acme.test", "title": "Head of data", "send_invite": "on",
+        })
+        self.assertRedirects(response, reverse("backoffice:organization_detail", args=[org.pk]), fetch_redirect_response=False)
+        client = User.objects.get(email="clara@acme.test")
+        self.assertEqual((client.role, client.status, client.organization), (Role.CLIENT, UserStatus.ACTIVE, org))
+        self.assertIsNone(client.employee_id)
+        self.assertFalse(client.has_usable_password())
+        mail = EmailMessage.objects.get(to="clara@acme.test")
+        self.assertEqual(mail.template, "client_invite")  # English, with the client sign-in page
+        self.assertIn(reverse("accounts:client_login"), mail.text)
+        self.assertTrue(audited("client.create", entity_id=str(client.pk)))
+        # duplicate email refused
+        response = self.post(self.admin, "client_create", org.pk, data={"name": "Again", "email": "clara@acme.test"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(User.objects.filter(email="clara@acme.test").count(), 1)
+        detail = self.get(self.admin, "organization_detail", org.pk)
+        self.assertContains(detail, "Clara Client")
+
+        # the invite link leads to an English set-password page and then to the client login
+        setup_url = re.search(r"(/password/set/[^\s]+/)", mail.text).group(1)
+        browser = Client()
+        page = browser.get(setup_url, follow=True)
+        self.assertContains(page, "Choose a password")
+        response = browser.post(page.redirect_chain[-1][0] if page.redirect_chain else setup_url,
+                                {"new_password1": "Very-Long-pass-42", "new_password2": "Very-Long-pass-42"})
+        self.assertRedirects(response, reverse("accounts:password_reset_complete") + "?for=client", fetch_redirect_response=False)
+        done = browser.get(response["Location"])
+        self.assertContains(done, reverse("accounts:client_login"))
+        client.refresh_from_db()
+        self.assertTrue(client.check_password("Very-Long-pass-42"))
+
+    def test_client_portal_shows_the_organisation_projects(self):
+        org = Organization.objects.create(name="Acme", slug="acme")
+        User.objects.filter(pk=self.client_user.pk).update(organization=org)
+        self.post(self.admin, "organization_projects", org.pk, data={"action": "link", "project": self.p1.pk})
+        self.p1.refresh_from_db()
+        self.assertEqual(self.p1.organization, org)
+        self.client.force_login(self.client_user)
+        page = self.client.get(reverse("clients:dashboard"))
+        self.assertContains(page, self.p1.name)
+        self.assertNotContains(page, self.p2.name)
+        self.post(self.admin, "organization_projects", org.pk, data={"action": "unlink", "project": self.p1.pk})
+        self.p1.refresh_from_db()
+        self.assertIsNone(self.p1.organization)
+        self.client.force_login(self.client_user)
+        self.assertNotContains(self.client.get(reverse("clients:dashboard")), self.p1.name)
+
+    def test_move_client_to_another_organisation(self):
+        acme = Organization.objects.create(name="Acme", slug="acme")
+        globex = Organization.objects.create(name="Globex", slug="globex")
+        User.objects.filter(pk=self.client_user.pk).update(organization=acme)
+        self.assertContains(self.get(self.admin, "organization_detail", acme.pk), self.client_user.email)
+        response = self.post(self.admin, "client_edit", self.client_user.pk, data={
+            "name": "Client Person", "email": self.client_user.email, "title": "", "phone": "", "organization": globex.pk,
+        })
+        self.assertRedirects(response, reverse("backoffice:organization_detail", args=[globex.pk]), fetch_redirect_response=False)
+        self.client_user.refresh_from_db()
+        self.assertEqual((self.client_user.name, self.client_user.organization), ("Client Person", globex))
+        self.assertTrue(audited("client.edit", entity_id=str(self.client_user.pk)))
+        # only client accounts are edited here
+        self.assertEqual(self.get(self.admin, "client_edit", self.emp1.pk).status_code, 404)
+        # the employee page of a client points to its organisation
+        self.assertContains(self.get(self.admin, "employee_detail", self.client_user.pk),
+                            reverse("backoffice:organization_detail", args=[globex.pk]))
+
+    def test_unattached_clients_are_listed(self):
+        page = self.get(self.admin, "organization_list")
+        self.assertContains(page, "Client accounts without an organisation")
+        self.assertContains(page, reverse("backoffice:client_edit", args=[self.client_user.pk]))
+
+    def test_delete_only_empty_organisations(self):
+        org = Organization.objects.create(name="Acme", slug="acme")
+        User.objects.filter(pk=self.client_user.pk).update(organization=org)
+        self.p1.organization = org
+        self.p1.save()
+        response = self.post(self.admin, "organization_delete", org.pk)
+        self.assertRedirects(response, reverse("backoffice:organization_detail", args=[org.pk]), fetch_redirect_response=False)
+        self.assertTrue(Organization.objects.filter(pk=org.pk).exists())
+        messages = [str(m) for m in response.wsgi_request._messages]
+        self.assertTrue(any("1 account and 1 project" in m for m in messages), messages)
+        self.assertEqual(self.post(self.pm, "organization_delete", org.pk).status_code, 403)
+
+        User.objects.filter(pk=self.client_user.pk).update(organization=None)
+        self.post(self.admin, "organization_projects", org.pk, data={"action": "unlink", "project": self.p1.pk})
+        response = self.post(self.admin, "organization_delete", org.pk)
+        self.assertRedirects(response, reverse("backoffice:organization_list"), fetch_redirect_response=False)
+        self.assertFalse(Organization.objects.filter(pk=org.pk).exists())
+        self.assertTrue(audited("organization.delete", entity_id=str(org.pk)))
+
+    def test_client_password_link_and_suspend(self):
+        org = Organization.objects.create(name="Acme", slug="acme")
+        User.objects.filter(pk=self.client_user.pk).update(organization=org)
+        back = reverse("backoffice:organization_detail", args=[org.pk])
+        response = self.post(self.admin, "employee_invite", self.client_user.pk, data={"next": back})
+        self.assertRedirects(response, back, fetch_redirect_response=False)
+        self.assertTrue(EmailMessage.objects.filter(to=self.client_user.email, template="client_invite").exists())
+        self.post(self.admin, "employee_status", self.client_user.pk, data={"action": "suspend", "next": back})
+        self.client_user.refresh_from_db()
+        self.assertEqual(self.client_user.status, UserStatus.SUSPENDED)
+        # employees still get the Bangla invite
+        self.post(self.admin, "employee_invite", self.emp1.pk)
+        self.assertTrue(EmailMessage.objects.filter(to=self.emp1.email, template="account_invite").exists())
+
+
+class UserDeletionTests(AdminTestCase):
+    def test_super_admin_deletes_an_account(self):
+        TestAttempt.objects.create(test=self.test1, user=self.emp2, attempt_number=1)
+        JobApplication.objects.filter(pk=self.application.pk).update(user=self.emp2)
+        page = self.get(self.admin, "employee_delete", self.emp2.pk)
+        self.assertContains(page, "Delete account permanently")
+        self.assertContains(page, "1 test attempt")
+        self.assertContains(page, "1 project membership")
+        response = self.post(self.admin, "employee_delete", self.emp2.pk)
+        self.assertRedirects(response, reverse("backoffice:employee_list"), fetch_redirect_response=False)
+        self.assertFalse(User.objects.filter(pk=self.emp2.pk).exists())
+        self.assertFalse(TestAttempt.objects.filter(user_id=self.emp2.pk).exists())
+        self.application.refresh_from_db()
+        self.assertIsNone(self.application.user)  # the careers application is kept
+        log = AuditLog.objects.get(action="employee.delete", entity_id=str(self.emp2.pk))
+        self.assertEqual(log.meta["email"], "emp2@t.test")
+
+    def test_only_super_admins_and_never_yourself(self):
+        self.assertEqual(self.get(self.pm, "employee_delete", self.emp2.pk).status_code, 403)
+        self.assertEqual(self.post(self.pm, "employee_delete", self.emp2.pk).status_code, 403)
+        page = self.get(self.admin, "employee_delete", self.admin.pk)
+        self.assertContains(page, "You cannot delete your own account.")
+        self.assertNotContains(page, "Delete account permanently")
+        self.post(self.admin, "employee_delete", self.admin.pk)
+        self.assertTrue(User.objects.filter(pk=self.admin.pk).exists())
+        self.assertNotContains(self.get(self.admin, "employee_detail", self.admin.pk),
+                               reverse("backoffice:employee_delete", args=[self.admin.pk]))
+        self.assertContains(self.get(self.admin, "employee_detail", self.emp1.pk),
+                            reverse("backoffice:employee_delete", args=[self.emp1.pk]))
+
+    def test_last_active_super_admin_is_protected(self):
+        other_admin = User.objects.create_user(email="admin2@t.test", password="x", name="Admin Two",
+                                               role=Role.SUPER_ADMIN, status=UserStatus.ACTIVE)
+        self.assertIsNone(deletion_problem(other_admin, self.admin))
+        User.objects.filter(pk=other_admin.pk).update(status=UserStatus.SUSPENDED)
+        self.assertIn("last active super admin", deletion_problem(other_admin, self.admin))
+        # with two active super admins, one may delete the other
+        User.objects.filter(pk=other_admin.pk).update(status=UserStatus.ACTIVE)
+        self.post(self.admin, "employee_delete", other_admin.pk)
+        self.assertFalse(User.objects.filter(pk=other_admin.pk).exists())
+
+    def test_delete_client_returns_to_its_organisation(self):
+        org = Organization.objects.create(name="Acme", slug="acme")
+        User.objects.filter(pk=self.client_user.pk).update(organization=org)
+        back = reverse("backoffice:organization_detail", args=[org.pk])
+        page = self.get(self.admin, "employee_delete", self.client_user.pk, next=back)
+        self.assertContains(page, f'name="next" value="{back}"')
+        response = self.post(self.admin, "employee_delete", self.client_user.pk, data={"next": back})
+        self.assertRedirects(response, back, fetch_redirect_response=False)
+        self.assertFalse(User.objects.filter(pk=self.client_user.pk).exists())
+
+    def test_reject_pending_signup(self):
+        self.assertContains(self.get(self.admin, "employee_list", status="pending"),
+                            reverse("backoffice:employee_reject", args=[self.pending.pk]))
+        self.assertEqual(self.post(self.pm, "employee_reject", self.pending.pk).status_code, 403)
+        response = self.post(self.admin, "employee_reject", self.pending.pk)
+        self.assertRedirects(response, reverse("backoffice:employee_list") + "?status=pending", fetch_redirect_response=False)
+        self.assertFalse(User.objects.filter(pk=self.pending.pk).exists())
+        self.assertTrue(AuditLog.objects.filter(action="employee.reject", meta__email="pending@t.test").exists())
+
+    def test_reject_only_pending_accounts(self):
+        self.post(self.admin, "employee_reject", self.emp1.pk)
+        self.assertTrue(User.objects.filter(pk=self.emp1.pk).exists())
 
 
 class AssignmentAdjustmentTests(AdminTestCase):

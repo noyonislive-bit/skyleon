@@ -21,6 +21,7 @@
   <div class="flex flex-wrap items-center gap-2">
     {% if employee.status == "pending" %}
       <form method="post" action="{% url 'backoffice:employee_status' employee.pk %}">{% csrf_token %}<input type="hidden" name="action" value="approve"><button class="btn btn-success btn-sm">{% icon "check" class="h-4 w-4" %} Approve</button></form>
+      {% if can_delete %}<form method="post" action="{% url 'backoffice:employee_reject' employee.pk %}" data-confirm="Reject the signup of {{ employee.name }} ({{ employee.email }})? The pending account is deleted.">{% csrf_token %}<button class="btn btn-danger-soft btn-sm">{% icon "user-x" class="h-4 w-4" %} Reject</button></form>{% endif %}
     {% elif employee.status == "active" %}
       <form method="post" action="{% url 'backoffice:employee_status' employee.pk %}" data-confirm="Suspend {{ employee.name }}? They are signed out immediately and can't log in until reactivated.">{% csrf_token %}<input type="hidden" name="action" value="suspend"><button class="btn btn-danger-soft btn-sm">{% icon "user-x" class="h-4 w-4" %} Suspend</button></form>
     {% else %}
@@ -29,13 +30,21 @@
     {% if employee.status != "suspended" %}
       <form method="post" action="{% url 'backoffice:employee_invite' employee.pk %}" data-confirm="Email a password-setup link to {{ employee.email }}?">{% csrf_token %}<button class="btn btn-secondary btn-sm">{% icon "send" class="h-4 w-4" %} Send password link</button></form>
     {% endif %}
-    <a href="{% url 'backoffice:employee_edit' employee.pk %}" class="btn btn-secondary btn-sm">{% icon "pencil" class="h-4 w-4" %} Edit</a>
+    {% if employee.role == "client" and can_clients %}
+      <a href="{% url 'backoffice:client_edit' employee.pk %}" class="btn btn-secondary btn-sm">{% icon "pencil" class="h-4 w-4" %} Edit</a>
+    {% else %}
+      <a href="{% url 'backoffice:employee_edit' employee.pk %}" class="btn btn-secondary btn-sm">{% icon "pencil" class="h-4 w-4" %} Edit</a>
+    {% endif %}
+    {% if can_delete and employee.status != "pending" %}<a href="{% url 'backoffice:employee_delete' employee.pk %}" class="btn btn-danger-soft btn-sm" title="Delete the account permanently">{% icon "trash-2" class="h-4 w-4" %}<span class="sr-only">Delete account</span></a>{% endif %}
   </div>
   {% endif %}
 </div>
 {% endblock %}
 
 {% block content %}
+{% if employee.role == "client" %}
+  <div class="alert alert-info mb-5">{% icon "building-2" class="mt-0.5 h-4 w-4 shrink-0" %}<p class="flex-1">This is a client-portal account{% if employee.organization %} of <strong>{{ employee.organization.name }}</strong>{% endif %}. Clients sign in at the client login page and only see their organisation's projects.</p>{% if can_clients %}<a href="{% if employee.organization %}{% url 'backoffice:organization_detail' employee.organization.pk %}{% else %}{% url 'backoffice:organization_list' %}{% endif %}" class="font-semibold underline underline-offset-2">{% if employee.organization %}Open organisation{% else %}Clients{% endif %}</a>{% endif %}</div>
+{% endif %}
 <div class="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
   <div class="min-w-0 space-y-6">
     <nav class="tabs" aria-label="Employee sections">

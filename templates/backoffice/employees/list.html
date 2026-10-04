@@ -51,6 +51,7 @@
             <div class="bo-row-actions">
               {% if u.status == "pending" and can_create %}
                 <form method="post" action="{% url 'backoffice:employee_status' u.pk %}">{% csrf_token %}<input type="hidden" name="action" value="approve"><input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="btn btn-success btn-sm">Approve</button></form>
+                {% if can_reject %}<form method="post" action="{% url 'backoffice:employee_reject' u.pk %}" data-confirm="Reject the signup of {{ u.name }} ({{ u.email }})? The pending account is deleted.">{% csrf_token %}<button class="btn btn-danger-soft btn-sm">Reject</button></form>{% endif %}
               {% endif %}
               <a href="{% url 'backoffice:employee_detail' u.pk %}" class="bo-icon-btn" title="Open">{% icon "chevron-right" class="h-4 w-4" %}</a>
             </div>

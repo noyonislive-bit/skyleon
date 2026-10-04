@@ -22,6 +22,7 @@ PERMISSIONS: dict[str, set[str]] = {
     "applicants.manage": {SA, PM},
     # Business
     "leads.manage": {SA},  # quote requests + contact messages
+    "clients.manage": {SA},  # client organisations + client portal accounts
     # Projects
     "projects.create": {SA},
     "projects.manage": {SA, PM},  # edit, members, teams, guidelines (scoped for PM)

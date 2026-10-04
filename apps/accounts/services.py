@@ -105,6 +105,50 @@ def create_account(*, email, name, role=Role.EMPLOYEE, invited_by=None, approve=
     return user
 
 
+def send_password_link(user: User, invited_by=None):
+    """Email a password-setup link: the Bangla employee invite, or the English client invite for client accounts."""
+    if user.role == Role.CLIENT:
+        return queue_email(
+            user.email, "Your client portal account — choose a password", "client_invite",
+            {"user": user, "setup_url": password_setup_url(user), "login_url": absolute_url(reverse("accounts:client_login")),
+             "invited_by": invited_by},
+        )
+    return queue_email(
+        user.email, "আপনার অ্যাকাউন্ট তৈরি হয়েছে — পাসওয়ার্ড সেট করুন", "account_invite",
+        {"user": user, "setup_url": password_setup_url(user), "login_url": absolute_url(reverse("accounts:login")),
+         "invited_by": invited_by},
+    )
+
+
+@transaction.atomic
+def create_client(*, email, name, organization, invited_by=None, send_invite=True, **fields) -> User:
+    """Create an active client account attached to an organisation (client portal, English)."""
+    user = create_account(email=email, name=name, role=Role.CLIENT, invited_by=invited_by, send_invite=False,
+                          organization=organization, **fields)
+    if send_invite:
+        send_password_link(user, invited_by)
+    return user
+
+
+def deletion_problem(actor: User, target: User) -> str | None:
+    """Why `actor` may not permanently delete `target` (None = allowed)."""
+    if actor.pk == target.pk:
+        return "You cannot delete your own account."
+    if target.role == Role.SUPER_ADMIN and target.status == UserStatus.ACTIVE and not (
+        User.objects.filter(role=Role.SUPER_ADMIN, status=UserStatus.ACTIVE).exclude(pk=target.pk).exists()
+    ):
+        return "This is the last active super admin — make someone else a super admin first."
+    return None
+
+
+@transaction.atomic
+def delete_account(user: User) -> None:
+    """Permanently delete an account and everything that belongs to it (progress, attempts, memberships …).
+    Content the person created (tutorials, tests, feedback …) is kept without an author."""
+    _end_sessions(user)
+    user.delete()
+
+
 class ConversionRefused(Exception):
     """A job application can't be linked to the account that already uses its email (str(exc) explains why)."""
 

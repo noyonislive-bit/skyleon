@@ -1,0 +1,104 @@
+{% extends "backoffice/base.html" %}
+{% load backoffice_tags %}
+{% block page_header %}
+<div class="bo-header">
+  <div class="flex min-w-0 items-center gap-4">
+    <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-600">{% icon "building-2" class="h-6 w-6" %}</span>
+    <div class="min-w-0">
+      <h1 class="page-title truncate">{{ org.name }}</h1>
+      <p class="page-subtitle flex flex-wrap items-center gap-x-3 gap-y-1">
+        <span class="bo-code">{{ org.slug }}</span>
+        {% if org.contact_email %}<a href="mailto:{{ org.contact_email }}" class="hover:text-slate-900">{{ org.contact_email }}</a>{% endif %}
+        <span>Created {{ org.created_at|date:"j M Y" }}</span>
+      </p>
+    </div>
+  </div>
+  <div class="flex flex-wrap items-center gap-2">
+    <a href="{% url 'backoffice:client_create' org.pk %}" class="btn btn-primary btn-sm">{% icon "user-plus" class="h-4 w-4" %} Add client account</a>
+    <a href="{% url 'backoffice:organization_edit' org.pk %}" class="btn btn-secondary btn-sm">{% icon "pencil" class="h-4 w-4" %} Edit</a>
+    {% if can_delete %}
+      <form method="post" action="{% url 'backoffice:organization_delete' org.pk %}" data-confirm="Delete the organisation “{{ org.name }}”? This cannot be undone.">{% csrf_token %}<button class="btn btn-danger-soft btn-sm" title="Delete organisation">{% icon "trash-2" class="h-4 w-4" %}<span class="sr-only">Delete organisation</span></button></form>
+    {% else %}
+      <button type="button" class="btn btn-danger-soft btn-sm" disabled title="Move or delete its accounts and unlink its projects first">{% icon "trash-2" class="h-4 w-4" %}<span class="sr-only">Delete organisation</span></button>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+{% block content %}
+<div class="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
+  <div class="min-w-0 space-y-6">
+    <section class="card">
+      <div class="card-header"><h2 class="card-title">Client accounts</h2><span class="text-xs text-slate-500">{{ clients|length }} account{{ clients|length|pluralize }}</span></div>
+      {% if clients %}
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>Client</th><th>Job title</th><th>Status</th><th>Last login</th><th aria-label="Actions"></th></tr></thead>
+          <tbody>
+          {% for u in clients %}
+            <tr>
+              <td class="min-w-48">{% include "backoffice/components/person.html" with u=u link=True sub=u.email %}</td>
+              <td class="text-sm text-slate-600">{{ u.title|default:"—" }}</td>
+              <td>{% status_badge u.status u.get_status_display %}</td>
+              <td class="text-xs whitespace-nowrap text-slate-500">{% if u.last_login %}{{ u.last_login|timesince }} ago{% else %}Never signed in{% endif %}</td>
+              <td>
+                <div class="bo-row-actions">
+                  {% if u.status != "suspended" %}
+                    <form method="post" action="{% url 'backoffice:employee_invite' u.pk %}" data-confirm="Email a password-setup link to {{ u.email }}?">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="bo-icon-btn" title="Send password link">{% icon "send" class="h-4 w-4" %}</button></form>
+                  {% endif %}
+                  {% if u.status == "active" %}
+                    <form method="post" action="{% url 'backoffice:employee_status' u.pk %}" data-confirm="Suspend {{ u.name }}? They are signed out and can't log in until reactivated.">{% csrf_token %}<input type="hidden" name="action" value="suspend"><input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="bo-icon-btn" title="Suspend">{% icon "user-x" class="h-4 w-4" %}</button></form>
+                  {% elif u.status == "suspended" %}
+                    <form method="post" action="{% url 'backoffice:employee_status' u.pk %}">{% csrf_token %}<input type="hidden" name="action" value="reactivate"><input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="bo-icon-btn" title="Reactivate">{% icon "user-check" class="h-4 w-4" %}</button></form>
+                  {% endif %}
+                  <a href="{% url 'backoffice:client_edit' u.pk %}" class="bo-icon-btn" title="Edit / move to another organisation">{% icon "pencil" class="h-4 w-4" %}</a>
+                  <a href="{% url 'backoffice:employee_delete' u.pk %}?next={{ request.path|urlencode }}" class="bo-icon-btn is-danger" title="Delete account">{% icon "trash-2" class="h-4 w-4" %}</a>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+        {% include "components/empty_state.html" with icon="users" title="No client accounts yet" text="Add the people at this client who should see their projects in the client portal." %}
+      {% endif %}
+    </section>
+
+    {% if others %}
+    <section class="card">
+      <div class="card-header"><div><h2 class="card-title">Other accounts linked to this organisation</h2><p class="mt-0.5 text-xs text-slate-500">These accounts are not clients (their role was changed) — they don't use the client portal.</p></div></div>
+      <ul class="bo-list">
+        {% for u in others %}<li class="flex items-center justify-between gap-3 px-5 py-3">{% include "backoffice/components/person.html" with u=u link=True sub=u.get_role_display %}{% status_badge u.status u.get_status_display %}</li>{% endfor %}
+      </ul>
+    </section>
+    {% endif %}
+  </div>
+
+  <aside class="min-w-0 space-y-6">
+    <section class="card">
+      <div class="card-header"><div><h2 class="card-title">Projects</h2><p class="mt-0.5 text-xs text-slate-500">Visible to this organisation's client accounts.</p></div></div>
+      {% if projects %}
+      <ul class="bo-list">
+        {% for p in projects %}
+          <li class="flex items-center gap-3 px-5 py-3">
+            <span class="dot shrink-0" style="background: {{ p.color }}"></span>
+            <a href="{% url 'backoffice:project_detail' p.pk %}" class="min-w-0 flex-1"><span class="block truncate text-sm font-medium text-slate-900 hover:text-brand-700">{{ p.name }}</span><span class="block text-xs text-slate-500">{{ p.code }} · {{ p.get_status_display }}</span></a>
+            <form method="post" action="{% url 'backoffice:organization_projects' org.pk %}" data-confirm="Unlink {{ p.code }} from {{ org.name }}? Its client accounts will no longer see it.">{% csrf_token %}<input type="hidden" name="action" value="unlink"><input type="hidden" name="project" value="{{ p.pk }}"><button class="bo-icon-btn is-danger" title="Unlink project">{% icon "x-circle" class="h-4 w-4" %}</button></form>
+          </li>
+        {% endfor %}
+      </ul>
+      {% else %}<p class="px-5 py-4 text-sm text-slate-500">No projects linked yet.</p>{% endif %}
+      {% if link_form.fields.project.queryset.exists %}
+      <form method="post" action="{% url 'backoffice:organization_projects' org.pk %}" class="flex gap-2 border-t border-slate-100 px-5 py-4">{% csrf_token %}
+        <input type="hidden" name="action" value="link">
+        {{ link_form.project }}<button class="btn btn-secondary shrink-0">Link</button>
+      </form>
+      {% endif %}
+    </section>
+    <section class="card card-body text-sm text-slate-600">
+      <h2 class="bo-section mb-2">Client portal</h2>
+      <p>Clients sign in at <a href="{% url 'accounts:client_login' %}" class="bo-link">{% url 'accounts:client_login' %}</a> and see the status of the projects linked here. The portal is in English.</p>
+    </section>
+  </aside>
+</div>
+{% endblock %}

@@ -1,0 +1,39 @@
+{% extends "backoffice/base.html" %}
+{% comment %}
+  Confirmation page for permanent deletions (accounts, projects).
+  Context: warning, deleted (list of "N things"), kept (list), alternative (text), problem (blocks the deletion),
+  confirm_label, cancel_url, next.
+{% endcomment %}
+{% block content %}
+<form method="post" class="card max-w-2xl">{% csrf_token %}
+  {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+  <div class="card-body space-y-5">
+    {% if problem %}
+      <div class="alert alert-error">{% icon "alert-triangle" class="mt-0.5 h-4 w-4 shrink-0" %}<p class="flex-1">{{ problem }}</p></div>
+    {% else %}
+      <div class="alert alert-error">{% icon "alert-triangle" class="mt-0.5 h-4 w-4 shrink-0" %}<p class="flex-1">{{ warning }}</p></div>
+    {% endif %}
+    {% if deleted %}
+      <div>
+        <h2 class="bo-section">Deleted together with it</h2>
+        <ul class="mt-2 space-y-1.5 text-sm text-slate-700">
+          {% for line in deleted %}<li class="flex gap-2">{% icon "trash-2" class="mt-0.5 h-4 w-4 shrink-0 text-red-500" %}<span>{{ line }}</span></li>{% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+    {% if kept %}
+      <div>
+        <h2 class="bo-section">Kept</h2>
+        <ul class="mt-2 space-y-1.5 text-sm text-slate-600">
+          {% for line in kept %}<li class="flex gap-2">{% icon "check" class="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" %}<span>{{ line }}</span></li>{% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+    {% if alternative %}<p class="text-sm text-slate-500">{{ alternative }}</p>{% endif %}
+  </div>
+  <div class="flex flex-wrap justify-end gap-2 border-t border-slate-100 px-5 py-4">
+    <a href="{{ cancel_url }}" class="btn btn-ghost">Cancel</a>
+    {% if not problem %}<button type="submit" class="btn btn-danger">{% icon "trash-2" class="h-4 w-4" %} {{ confirm_label }}</button>{% endif %}
+  </div>
+</form>
+{% endblock %}

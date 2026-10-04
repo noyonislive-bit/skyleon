@@ -29,6 +29,7 @@ NAV = [
         ("applicants", "Applicants", "backoffice:applicant_list", "briefcase", "applicants.manage", "applicants", ()),
     ]),
     ("Business", [
+        ("clients", "Clients", "backoffice:organization_list", "building-2", "clients.manage", None, ("/admin/client-accounts/",)),
         ("leads", "Quote requests", "backoffice:lead_list", "file-text", "leads.manage", "leads", ()),
         ("messages", "Messages", "backoffice:message_list", "message-square", "leads.manage", "messages", ()),
     ]),
@@ -61,7 +62,7 @@ NAV = [
 ]
 
 FLAG_CODES = [
-    "employees.view", "employees.manage", "staff.manage", "applicants.manage", "leads.manage", "projects.create",
+    "employees.view", "employees.manage", "staff.manage", "applicants.manage", "leads.manage", "clients.manage", "projects.create",
     "projects.manage", "content.manage", "announcements.manage", "meetings.manage", "reports.view", "emails.view",
     "settings.manage", "audit.view", "portal.access",
 ]

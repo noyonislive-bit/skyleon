@@ -10,7 +10,7 @@ from django.utils import timezone
 from django.utils.text import slugify
 
 from apps.accounts.forms import ProfileForm
-from apps.accounts.models import Role, User
+from apps.accounts.models import Organization, Role, User
 from apps.accounts.permissions import can_manage_content_for, has_permission, is_unscoped
 from apps.assessments.models import Question, QuestionType, Test, TestKind
 from apps.comms.models import Announcement, Meeting
@@ -197,6 +197,83 @@ class EmployeeEditForm(ProfileForm):
 
 class RoleForm(StyledFormMixin, forms.Form):
     role = forms.ChoiceField(choices=Role.choices)
+
+
+# ── Client organisations & client accounts ──────────────────────────────────
+
+class OrganizationForm(StyledFormMixin, forms.ModelForm):
+    class Meta:
+        model = Organization
+        fields = ["name", "slug", "contact_email"]
+        labels = {"name": "Organisation name", "contact_email": "Contact email"}
+        help_texts = {
+            "slug": "Short unique identifier. Leave empty to generate it from the name.",
+            "contact_email": "Optional — the main contact at the client.",
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["slug"].required = False
+        self.fields["slug"].widget.attrs.pop("required", None)
+
+    def clean_name(self):
+        return " ".join(self.cleaned_data["name"].split())
+
+    def clean_slug(self):
+        typed = slugify(self.cleaned_data.get("slug") or "")[:120]
+        others = Organization.objects.exclude(pk=self.instance.pk)
+        if typed:
+            if others.filter(slug=typed).exists():
+                raise ValidationError("Another organisation already uses this slug.")
+            return typed
+        base = slugify(self.cleaned_data.get("name") or "")[:110] or "organisation"
+        slug, n = base, 2
+        while others.filter(slug=slug).exists():
+            slug, n = f"{base}-{n}", n + 1
+        return slug
+
+
+class ClientCreateForm(StyledFormMixin, forms.Form):
+    name = forms.CharField(label="Full name", max_length=150)
+    email = forms.EmailField(help_text="They sign in with this email on the client login page.")
+    title = forms.CharField(label="Job title", max_length=120, required=False)
+    phone = forms.CharField(max_length=40, required=False)
+    send_invite = forms.BooleanField(label="Email a link to set the password", required=False, initial=True)
+
+    def clean_email(self):
+        email = self.cleaned_data["email"].strip().lower()
+        if User.objects.filter(email__iexact=email).exists():
+            raise ValidationError("An account with this email already exists.")
+        return email
+
+
+class ClientEditForm(StyledFormMixin, forms.ModelForm):
+    class Meta:
+        model = User
+        fields = ["name", "email", "title", "phone", "organization"]
+        labels = {"name": "Full name", "organization": "Organisation"}
+        help_texts = {"organization": "The client sees the projects linked to this organisation."}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["organization"].required = True
+        self.fields["organization"].empty_label = "Select an organisation"
+
+    def clean_email(self):
+        email = self.cleaned_data["email"].strip().lower()
+        if User.objects.filter(email__iexact=email).exclude(pk=self.instance.pk).exists():
+            raise ValidationError("Another account already uses this email.")
+        return email
+
+
+class LinkProjectForm(StyledFormMixin, forms.Form):
+    project = forms.ModelChoiceField(queryset=Project.objects.none(), empty_label="Select a project")
+
+    def __init__(self, *args, organization, **kwargs):
+        super().__init__(*args, **kwargs)
+        field = self.fields["project"]
+        field.queryset = Project.objects.exclude(organization=organization).select_related("organization").order_by("name")
+        field.label_from_instance = lambda p: f"{p.code} · {p.name}" + (f" (now: {p.organization.name})" if p.organization_id else "")
 
 
 class MembershipForm(StyledFormMixin, forms.Form):

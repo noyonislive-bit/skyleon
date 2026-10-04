@@ -1,0 +1,13 @@
+{% autoescape off %}Hi {{ user.first_name }},
+
+A {{ brand.name }} client portal account has been created for you{% if user.organization %} ({{ user.organization.name }}){% endif %}{% if invited_by %} by {{ invited_by.name }}{% endif %}.
+Sign-in email: {{ user.email }}
+
+Choose your password (the link is valid for 24 hours):
+{{ setup_url }}
+
+Sign in at: {{ login_url }}
+
+— The {{ brand.name }} team
+{{ APP_URL }}
+{% endautoescape %}

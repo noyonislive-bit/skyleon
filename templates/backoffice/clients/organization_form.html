@@ -1,0 +1,27 @@
+{% extends "backoffice/base.html" %}
+{% block content %}
+<form method="post" class="grid grid-cols-1 gap-6 lg:grid-cols-3" novalidate>{% csrf_token %}
+  <div class="card lg:col-span-2">
+    <div class="card-body space-y-5">
+      {% include "components/form_errors.html" %}
+      <div class="grid gap-5 sm:grid-cols-2">
+        {% include "components/field.html" with field=form.name class="sm:col-span-2" %}
+        {% include "components/field.html" with field=form.slug %}
+        {% include "components/field.html" with field=form.contact_email %}
+      </div>
+    </div>
+    <div class="flex flex-wrap justify-end gap-2 border-t border-slate-100 px-5 py-4">
+      <a href="{% if org %}{% url 'backoffice:organization_detail' org.pk %}{% else %}{% url 'backoffice:organization_list' %}{% endif %}" class="btn btn-ghost">Cancel</a>
+      <button type="submit" class="btn btn-primary">{% if org %}Save changes{% else %}{% icon "plus" class="h-4 w-4" %} Create organisation{% endif %}</button>
+    </div>
+  </div>
+  <aside class="card card-body h-fit text-sm text-slate-600">
+    <h2 class="bo-section mb-3">How client access works</h2>
+    <ol class="space-y-3">
+      <li class="flex gap-3"><span class="bo-step-num !h-6 !w-6 !text-[11px]">1</span><span>Create one organisation per client company.</span></li>
+      <li class="flex gap-3"><span class="bo-step-num !h-6 !w-6 !text-[11px]">2</span><span>Add client accounts — they get an English email to choose a password.</span></li>
+      <li class="flex gap-3"><span class="bo-step-num !h-6 !w-6 !text-[11px]">3</span><span>Link the client's projects. Client accounts see exactly those projects in the client portal.</span></li>
+    </ol>
+  </aside>
+</form>
+{% endblock %}
