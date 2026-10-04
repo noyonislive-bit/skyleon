@@ -78,6 +78,7 @@ urlpatterns = [
     path("projects/new/", projects.project_create, name="project_create"),
     path("projects/<int:pk>/", projects.project_detail, name="project_detail"),
     path("projects/<int:pk>/edit/", projects.project_edit, name="project_edit"),
+    path("projects/<int:pk>/delete/", projects.project_delete, name="project_delete"),
     path("projects/<int:pk>/members/", projects.project_members, name="project_members"),
     path("projects/<int:pk>/teams/", projects.project_teams, name="project_teams"),
     path("projects/<int:pk>/guidelines/", projects.project_guidelines, name="project_guidelines"),

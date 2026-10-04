@@ -13,7 +13,7 @@ from apps.assessments.models import Test, TestAttempt, TestKind
 from apps.core import audit
 from apps.core.choices import ContentStatus, ProgressStatus
 from apps.feedback.models import Feedback, FeedbackRecipient
-from apps.projects.models import Guideline, ProjectMember, ProjectStatus, Team
+from apps.projects.models import Guideline, Project, ProjectMember, ProjectStatus, Team
 from apps.projects.services import add_member
 from apps.training.models import OnboardingStep, OnboardingStepType, Tutorial, TutorialProgress
 from apps.training.services import onboarding_matrix, step_rule
@@ -73,6 +73,7 @@ def _ctx(request, project, tab, **extra):
         "tabs": tabs,
         "can_edit": _can_edit_project(user, project),
         "can_content": can_manage_content_for(user, project),
+        "can_delete_project": has_permission(user, "projects.create") and project.status == ProjectStatus.ARCHIVED,
         **extra,
     }
 
@@ -154,6 +155,83 @@ def project_edit(request, pk):
         "crumbs": [("Projects", reverse("backoffice:project_list")), (project.code, reverse("backoffice:project_detail", args=[project.pk])), ("Edit", None)],
         "form": form,
         "project": project,
+    })
+
+
+def _named(qs, label, plural, field="title", limit=5):
+    """'3 tutorials: A, B, C' — what a project deletion takes with it (None when there is nothing)."""
+    names = list(qs.values_list(field, flat=True)[: limit + 1])
+    if not names:
+        return None
+    total = qs.count() if len(names) > limit else len(names)
+    shown = ", ".join(f"“{n}”" for n in names[:limit]) + (f" and {total - limit} more" if total > limit else "")
+    return f"{total} {label if total == 1 else plural}: {shown}"
+
+
+def _counted(n, label, plural):
+    return f"{n} {label if n == 1 else plural}" if n else None
+
+
+def project_deletion_summary(project):
+    from apps.comms.models import Announcement, Meeting
+
+    practice = getattr(project, "practice_tasks", None)  # optional apps
+    guides = getattr(project, "guides", None)
+    lines = [
+        _counted(project.members.count(), "project membership", "project memberships"),
+        _named(project.teams.all(), "team", "teams", field="name"),
+        _named(project.guidelines.all(), "guideline", "guidelines"),
+        _counted(project.onboarding_steps.count(), "onboarding step", "onboarding steps"),
+        _named(project.tutorials.all(), "tutorial", "tutorials"),
+        _counted(TutorialProgress.objects.filter(tutorial__project=project).count(), "tutorial progress record",
+                 "tutorial progress records"),
+        _named(project.tests.all(), "test", "tests"),
+        _counted(TestAttempt.objects.filter(test__project=project).count(), "test attempt", "test attempts"),
+        _named(project.feedback.all(), "feedback item", "feedback items", field="topic"),
+        _counted(FeedbackRecipient.objects.filter(feedback__project=project).count(), "feedback delivery", "feedback deliveries"),
+        _named(practice.all(), "practice task", "practice tasks") if practice is not None else None,
+        _named(guides.all(), "work guide", "work guides") if guides is not None else None,
+        _named(Announcement.objects.filter(project=project), "announcement", "announcements"),
+        _named(Meeting.objects.filter(project=project), "meeting", "meetings"),
+    ]
+    return [line for line in lines if line]
+
+
+@permission_required_code("projects.create")
+def project_delete(request, pk):
+    """Super admins permanently delete an ARCHIVED project and everything that belongs to it."""
+    from apps.comms.models import Meeting
+
+    project = get_object_or_404(Project, pk=pk)
+    problem = None
+    if project.status != ProjectStatus.ARCHIVED:
+        problem = ("Only archived projects can be deleted. Edit the project and set its status to Archived first — "
+                   "an archived project is hidden from employees and clients but keeps all of its data.")
+    if request.method == "POST":
+        if problem:
+            messages.error(request, problem)
+            return redirect("backoffice:project_detail", pk=project.pk)
+        code, name = project.code, project.name
+        with transaction.atomic():
+            audit.log(request, "project.delete", project, code=code, name=name, deleted=project_deletion_summary(project))
+            Meeting.objects.filter(project=project).delete()  # would otherwise become company-wide meetings
+            project.delete()
+        messages.success(request, f"Project {code} · {name} and all of its content were deleted.")
+        return redirect("backoffice:project_list")
+    return render(request, "backoffice/confirm_delete.html", {
+        "page_title": f"Delete project {project.code}?",
+        "page_subtitle": f"{project.name} · {project.get_status_display()}",
+        "crumbs": [("Projects", reverse("backoffice:project_list")),
+                   (project.code, reverse("backoffice:project_detail", args=[project.pk])), ("Delete", None)],
+        "problem": problem,
+        "warning": f"This permanently deletes the project {project.code} · {project.name} with all of its content and "
+                   "everyone's progress on it. This cannot be undone.",
+        "deleted": project_deletion_summary(project),
+        "kept": ["Employee and client accounts (they are only removed from the project).",
+                 "Company-wide content, and uploaded video / document files in the media storage.",
+                 "The audit log."],
+        "confirm_label": "Delete project permanently",
+        "cancel_url": reverse("backoffice:project_detail", args=[project.pk]),
     })
 
 

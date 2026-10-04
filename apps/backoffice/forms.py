@@ -403,7 +403,10 @@ class ProjectForm(StyledFormMixin, forms.ModelForm):
             "start_date": date_widget(),
             "end_date": date_widget(),
         }
-        help_texts = {"slug": "Used in portal URLs. Leave empty to generate from the name."}
+        help_texts = {
+            "slug": "Used in portal URLs. Leave empty to generate from the name.",
+            "status": "Archived projects are hidden from employees; a super admin can then delete them permanently.",
+        }
 
     def __init__(self, *args, user, **kwargs):
         super().__init__(*args, **kwargs)

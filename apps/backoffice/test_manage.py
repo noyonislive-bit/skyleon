@@ -21,7 +21,8 @@ from apps.core.choices import ContentStatus, ProgressStatus
 from apps.core.models import AuditLog
 from apps.feedback.models import Feedback, FeedbackRecipient
 from apps.feedback.services import publish_feedback
-from apps.training.models import TutorialProgress
+from apps.projects.models import Project, ProjectStatus
+from apps.training.models import Tutorial, TutorialProgress
 from apps.website.models import JobApplication
 
 from .tests import AdminTestCase
@@ -396,3 +397,47 @@ class TestBuilderDeleteButtonTests(AdminTestCase):
         self.assertNotContains(page, 'value="delete"')
         self.post(self.trainer, "test_status", self.test1.pk, data={"action": "delete"})
         self.assertTrue(Test.objects.filter(pk=self.test1.pk).exists())
+
+
+class ProjectDeletionTests(AdminTestCase):
+    def archive(self, project):
+        Project.objects.filter(pk=project.pk).update(status=ProjectStatus.ARCHIVED)
+        project.refresh_from_db()
+
+    def test_only_archived_projects_can_be_deleted(self):
+        page = self.get(self.admin, "project_delete", self.p1.pk)
+        self.assertContains(page, "Only archived projects can be deleted")
+        self.assertNotContains(page, "Delete project permanently")
+        self.assertNotContains(self.get(self.admin, "project_detail", self.p1.pk), reverse("backoffice:project_delete", args=[self.p1.pk]))
+        self.post(self.admin, "project_delete", self.p1.pk)
+        self.assertTrue(Project.objects.filter(pk=self.p1.pk).exists())
+
+    def test_only_super_admins(self):
+        self.archive(self.p1)
+        self.assertEqual(self.get(self.pm, "project_delete", self.p1.pk).status_code, 403)
+        self.assertEqual(self.post(self.pm, "project_delete", self.p1.pk).status_code, 403)
+        self.assertNotContains(self.get(self.pm, "project_detail", self.p1.pk), reverse("backoffice:project_delete", args=[self.p1.pk]))
+        self.assertTrue(Project.objects.filter(pk=self.p1.pk).exists())
+
+    def test_delete_archived_project_with_its_content(self):
+        from apps.comms.models import Meeting
+
+        self.archive(self.p1)
+        meeting = Meeting.objects.create(title="P1 sync", project=self.p1, starts_at=timezone.now(), meeting_url="https://meet.example/x")
+        TestAttempt.objects.create(test=self.test1, user=self.emp1, attempt_number=1)
+        self.assertContains(self.get(self.admin, "project_detail", self.p1.pk), reverse("backoffice:project_delete", args=[self.p1.pk]))
+        page = self.get(self.admin, "project_delete", self.p1.pk)
+        for text in ("1 tutorial: “P1 tutorial”", "1 test: “P1 test”", "1 feedback item: “Boxes too loose”",
+                     "1 team: “Team A”", "1 meeting: “P1 sync”", "1 test attempt", "Delete project permanently"):
+            self.assertContains(page, text)
+        response = self.post(self.admin, "project_delete", self.p1.pk)
+        self.assertRedirects(response, reverse("backoffice:project_list"), fetch_redirect_response=False)
+        self.assertFalse(Project.objects.filter(pk=self.p1.pk).exists())
+        self.assertFalse(Tutorial.objects.filter(pk=self.tut1.pk).exists())
+        self.assertFalse(Test.objects.filter(pk=self.test1.pk).exists())
+        self.assertFalse(Feedback.objects.filter(pk=self.fb1.pk).exists())
+        self.assertFalse(Meeting.objects.filter(pk=meeting.pk).exists())  # not turned into a company-wide meeting
+        self.assertTrue(User.objects.filter(pk=self.emp1.pk).exists())
+        self.assertTrue(Project.objects.filter(pk=self.p2.pk).exists())
+        log = AuditLog.objects.get(action="project.delete", entity_id=str(self.p1.pk))
+        self.assertEqual(log.meta["code"], "P1-01")

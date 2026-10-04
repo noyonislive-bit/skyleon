@@ -16,6 +16,7 @@
   <div class="flex flex-wrap gap-2">
     {% block project_actions %}{% endblock %}
     {% if can_edit %}<a href="{% url 'backoffice:project_edit' project.pk %}" class="btn btn-secondary btn-sm">{% icon "pencil" class="h-4 w-4" %} Edit project</a>{% endif %}
+    {% if can_delete_project %}<a href="{% url 'backoffice:project_delete' project.pk %}" class="btn btn-danger-soft btn-sm" title="Delete this archived project permanently">{% icon "trash-2" class="h-4 w-4" %} Delete project</a>{% endif %}
   </div>
 </div>
 <nav class="tabs mb-6" aria-label="Project sections">
