@@ -909,3 +909,37 @@ class ExportAuditTests(AdminTestCase):
         self.get(self.pm, "reports", format="csv")
         self.assertTrue(AuditLog.objects.filter(action="messages.export").exists())
         self.assertTrue(AuditLog.objects.filter(action="reports.export").exists())
+
+
+class CompanyOnboardingTests(AdminTestCase):
+    """Company-wide onboarding steps (project=None): managed from Admin → Company onboarding."""
+
+    def test_create_edit_move_delete_company_steps(self):
+        from apps.training.models import OnboardingStep
+        from apps.training.services import onboarding_for_user
+
+        r = self.post(self.trainer, "company_step_create", data={"step_type": "welcome", "title": "স্বাগতম", "description": "", "content": "হ্যালো"})
+        self.assertEqual(r.status_code, 302)
+        self.post(self.trainer, "company_step_create", data={"step_type": "custom", "title": "নিয়ম", "description": "", "content": ""})
+        a, b = OnboardingStep.objects.filter(project__isnull=True).order_by("order")
+        self.assertEqual((a.order, b.order), (1, 2))
+        self.assertContains(self.get(self.trainer, "company_onboarding"), "নিয়ম")
+        self.post(self.trainer, "step_move", b.pk, data={"direction": "up"})
+        self.assertEqual(list(OnboardingStep.objects.filter(project__isnull=True).order_by("order").values_list("pk", flat=True)), [b.pk, a.pk])
+        self.post(self.trainer, "step_edit", a.pk, data={"step_type": "welcome", "title": "স্বাগতম!", "description": "", "content": ""})
+        a.refresh_from_db()
+        self.assertEqual(a.title, "স্বাগতম!")
+        # employees see the company section in their onboarding
+        self.assertTrue(any(sec["project"] is None for sec in onboarding_for_user(self.emp1)))
+        self.post(self.trainer, "step_delete", b.pk)
+        self.assertEqual(list(OnboardingStep.objects.filter(project__isnull=True).values_list("order", flat=True)), [1])
+
+    def test_only_company_content_can_be_linked_and_scoped_staff_cannot_edit(self):
+        from apps.backoffice.forms import OnboardingStepForm
+
+        form = OnboardingStepForm(project=None)
+        self.assertNotIn("guideline", form.fields)
+        self.assertNotIn("qualification", [c[0] for c in form.fields["step_type"].choices])
+        self.assertNotIn(self.tut1, form.fields["tutorial"].queryset)
+        # project managers manage their own projects only
+        self.assertEqual(self.post(self.pm, "company_step_create", data={"step_type": "custom", "title": "x"}).status_code, 403)

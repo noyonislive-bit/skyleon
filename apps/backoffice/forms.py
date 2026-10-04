@@ -19,7 +19,7 @@ from apps.core.forms import StyledFormMixin
 from apps.feedback.models import Feedback
 from apps.projects.models import Guideline, MemberRole, Project, Team
 from apps.storage.models import MediaAsset, MediaKind, MediaStatus
-from apps.training.models import OnboardingStep, Tutorial, TutorialCategory
+from apps.training.models import OnboardingStep, OnboardingStepType, Tutorial, TutorialCategory
 from apps.website.models import ApplicationStatus, ContactMessage, JobApplication, LeadStatus, QuoteRequest
 
 from .helpers import assignable_employees, assignable_people, can_target_project, staff_projects
@@ -495,15 +495,27 @@ class OnboardingStepForm(StyledFormMixin, forms.ModelForm):
         }
 
     def __init__(self, *args, project, **kwargs):
+        """`project=None` → a company-wide step (every employee): only company-wide tutorials / tests can be
+        linked, there are no guidelines and no final qualification (that is per project)."""
         super().__init__(*args, **kwargs)
         from django.db.models import Q
 
-        self.fields["tutorial"].queryset = Tutorial.objects.filter(Q(project=project) | Q(project__isnull=True)).exclude(
+        self.project = project
+        audience = Q(project__isnull=True) if project is None else Q(project=project) | Q(project__isnull=True)
+        self.fields["tutorial"].queryset = Tutorial.objects.filter(audience).exclude(
             status=ContentStatus.ARCHIVED).order_by("title")
-        self.fields["test"].queryset = Test.objects.filter(Q(project=project) | Q(project__isnull=True)).exclude(
+        self.fields["test"].queryset = Test.objects.filter(audience).exclude(
             status=ContentStatus.ARCHIVED).order_by("title")
-        self.fields["guideline"].queryset = project.guidelines.all()
-        for name in ("tutorial", "test", "guideline"):
+        if project is None:
+            del self.fields["guideline"]
+            self.fields["step_type"].choices = [c for c in self.fields["step_type"].choices
+                                                if c[0] != OnboardingStepType.QUALIFICATION]
+            self.fields["tutorial"].help_text += " Only company-wide tutorials can be linked."
+            self.fields["test"].help_text += " Only company-wide tests can be linked."
+        else:
+            self.fields["guideline"].queryset = project.guidelines.all()
+            self.fields["guideline"].empty_label = "None"
+        for name in ("tutorial", "test"):
             self.fields[name].empty_label = "None"
 
     def clean(self):

@@ -40,6 +40,7 @@ NAV = [
     ("Training", [
         ("tutorials", "Tutorials", "backoffice:tutorial_list", "circle-play", "content.manage", None, ()),
         ("training", "Training progress", "backoffice:training_progress", "graduation-cap", "reports.view", None, ()),
+        ("company_onboarding", "Company onboarding", "backoffice:company_onboarding", "route", "content.manage", None, ("/admin/company-onboarding/",)),
         ("practice", "Practice lab", "practice:manage", "clapperboard", "content.manage", None, ()),
         ("guides", "Work guides", "guides:manage", "book-open-check", "content.manage", None, ("/admin/guides/",)),
     ]),

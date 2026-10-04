@@ -19,7 +19,7 @@ from apps.training.models import OnboardingStep, OnboardingStepType, Tutorial, T
 from apps.training.services import onboarding_matrix, step_rule
 
 from ..forms import AddMembersForm, GuidelineForm, MemberUpdateForm, OnboardingStepForm, ProjectForm, TeamForm
-from ..helpers import employee_scope, get_project, pct, staff_projects
+from ..helpers import assignable_employees, employee_scope, get_project, pct, staff_projects
 from ..stats import training_by_user
 
 TABS = [
@@ -426,11 +426,9 @@ def guideline_delete(request, pk):
 
 # ── Onboarding ──────────────────────────────────────────────────────────────
 
-@staff_required
-def project_onboarding(request, pk):
-    project = get_project(request, pk)
+def _step_rows(project, employees):
+    """The onboarding steps of a project (or the company-wide ones, project=None) with how many employees completed each."""
     steps = list(OnboardingStep.objects.filter(project=project).select_related("tutorial", "test", "guideline").order_by("order", "pk"))
-    employees = [m.user for m in project.members.select_related("user").filter(user__role=Role.EMPLOYEE)]
     matrix = onboarding_matrix(project, employees)
     done_by_step = {s.pk: 0 for s in steps}
     for data in matrix.values():
@@ -440,6 +438,14 @@ def project_onboarding(request, pk):
     for s in steps:
         s.rule = step_rule(s)
         s.done_count = done_by_step.get(s.pk, 0)
+    return steps
+
+
+@staff_required
+def project_onboarding(request, pk):
+    project = get_project(request, pk)
+    employees = [m.user for m in project.members.select_related("user").filter(user__role=Role.EMPLOYEE)]
+    steps = _step_rows(project, employees)
     form = OnboardingStepForm(project=project) if can_manage_content_for(request.user, project) else None
     return render(request, "backoffice/projects/onboarding.html", _ctx(
         request, project, "onboarding", steps=steps, employee_count=len(employees), form=form,
@@ -451,6 +457,20 @@ def _content_project(request, pk):
     if not can_manage_content_for(request.user, project):
         raise PermissionDenied
     return project
+
+
+def _managed_step(request, pk):
+    """A step the user may edit: project steps need the project, company-wide steps need company-wide content rights."""
+    step = get_object_or_404(OnboardingStep.objects.select_related("project"), pk=pk)
+    if step.project_id is None:
+        if not can_manage_content_for(request.user, None):
+            raise PermissionDenied
+        return step, None
+    return step, _content_project(request, step.project_id)
+
+
+def _onboarding_url(project):
+    return reverse("backoffice:project_onboarding", args=[project.pk]) if project else reverse("backoffice:company_onboarding")
 
 
 def _renumber(project):
@@ -476,8 +496,9 @@ def step_create(request, pk):
 
 @permission_required_code("content.manage")
 def step_edit(request, pk):
-    step = get_object_or_404(OnboardingStep.objects.select_related("project"), pk=pk, project__isnull=False)
-    project = _content_project(request, step.project_id)
+    step, project = _managed_step(request, pk)
+    if project is None:
+        return company_step_edit(request, pk)
     form = OnboardingStepForm(request.POST or None, instance=step, project=project)
     if request.method == "POST" and form.is_valid():
         form.save()
@@ -490,20 +511,18 @@ def step_edit(request, pk):
 @require_POST
 @permission_required_code("content.manage")
 def step_delete(request, pk):
-    step = get_object_or_404(OnboardingStep, pk=pk, project__isnull=False)
-    project = _content_project(request, step.project_id)
-    audit.log(request, "onboarding.delete", step, title=step.title)
+    step, project = _managed_step(request, pk)
+    audit.log(request, "onboarding.delete", step, title=step.title, project=project.code if project else None)
     step.delete()
     _renumber(project)
     messages.success(request, "Step deleted.")
-    return redirect("backoffice:project_onboarding", pk=project.pk)
+    return redirect(_onboarding_url(project))
 
 
 @require_POST
 @permission_required_code("content.manage")
 def step_move(request, pk):
-    step = get_object_or_404(OnboardingStep, pk=pk, project__isnull=False)
-    project = _content_project(request, step.project_id)
+    step, project = _managed_step(request, pk)
     with transaction.atomic():
         steps = list(OnboardingStep.objects.select_for_update().filter(project=project).order_by("order", "pk"))
         idx = next(i for i, s in enumerate(steps) if s.pk == step.pk)
@@ -513,7 +532,62 @@ def step_move(request, pk):
             for i, s in enumerate(steps, start=1):
                 if s.order != i:
                     OnboardingStep.objects.filter(pk=s.pk).update(order=i)
-    return redirect(reverse("backoffice:project_onboarding", args=[project.pk]) + f"#step-{step.pk}")
+    return redirect(_onboarding_url(project) + f"#step-{step.pk}")
+
+
+# ── Company-wide onboarding (steps with project=None — every employee does them) ──
+
+def _company_crumbs(*extra):
+    return [("Company onboarding", reverse("backoffice:company_onboarding"))] + list(extra)
+
+
+@permission_required_code("content.manage")
+def company_onboarding(request):
+    user = request.user
+    employees = list(assignable_employees(user))
+    can_edit = can_manage_content_for(user, None)
+    return render(request, "backoffice/training/company_onboarding.html", {
+        "page_title": "Company onboarding",
+        "page_subtitle": "Steps every employee completes, before and next to their project onboarding.",
+        "crumbs": [("Company onboarding", None)],
+        "steps": _step_rows(None, employees),
+        "employee_count": len(employees),
+        "can_edit": can_edit,
+        "form": OnboardingStepForm(project=None) if can_edit else None,
+    })
+
+
+def _company_step_form(request, step=None):
+    if not can_manage_content_for(request.user, None):
+        raise PermissionDenied
+    form = OnboardingStepForm(request.POST or None, instance=step, project=None)
+    if request.method == "POST" and form.is_valid():
+        obj = form.save(commit=False)
+        if step is None:
+            obj.project = None
+            obj.order = OnboardingStep.objects.filter(project__isnull=True).count() + 1
+        obj.save()
+        audit.log(request, "onboarding.edit" if step else "onboarding.create", obj, project=None)
+        messages.success(request, "Step saved." if step else f"Step “{obj.title}” added.")
+        return redirect(reverse("backoffice:company_onboarding") + f"#step-{obj.pk}")
+    title = "Edit company onboarding step" if step else "Add company onboarding step"
+    return render(request, "backoffice/training/company_step_form.html", {
+        "page_title": title,
+        "page_subtitle": "Employees see the step in Bangla in their portal — write the title and text in Bangla.",
+        "crumbs": _company_crumbs(("Edit step" if step else "Add step", None)),
+        "form": form,
+        "step": step,
+    })
+
+
+@permission_required_code("content.manage")
+def company_step_create(request):
+    return _company_step_form(request)
+
+
+@permission_required_code("content.manage")
+def company_step_edit(request, pk):
+    return _company_step_form(request, get_object_or_404(OnboardingStep, pk=pk, project__isnull=True))
 
 
 @require_POST
