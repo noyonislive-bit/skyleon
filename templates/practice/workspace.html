@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
-{% block title %}{{ task.title }} · {% if mode == "reference" %}Reference segmentation{% else %}প্র্যাকটিস ল্যাব{% endif %} · {{ brand.name }}{% endblock %}
+{% block title %}{{ task.title }} · {% if mode == "reference" %}{% if task.is_review %}Reviewer answer{% else %}Reference segmentation{% endif %}{% elif mode == "review" %}সাপ্তাহিক রিভিউ{% elif mode == "correct" %}সংশোধন{% else %}প্র্যাকটিস ল্যাব{% endif %} · {{ brand.name }}{% endblock %}
 {% block meta_robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
 {% block head %}<link rel="stylesheet" href="{% static 'css/practice-tool.css' %}">{% endblock %}
 {% block body_class %}{% endblock %}
@@ -8,14 +8,14 @@
 <div class="pt-root" data-mode="{{ mode }}">
   <!-- Training bar: not part of the production tool -->
   <div class="pt-trainbar">
-    <a href="{{ back_url }}">← {% if mode == "reference" %}Back to task{% else %}প্র্যাকটিস ল্যাব{% endif %}</a>
-    <span class="pt-badge{% if mode == 'reference' %} is-ref{% endif %}">{% if mode == "reference" %}Reference segmentation{% else %}প্র্যাকটিস মোড{% endif %}</span>
+    <a href="{{ back_url }}">← {% if mode == "reference" %}Back to task{% elif mode == "correct" %}তুলনার পেজ{% else %}প্র্যাকটিস ল্যাব{% endif %}</a>
+    <span class="pt-badge{% if mode == 'reference' %} is-ref{% elif mode == 'review' %} is-review{% elif mode == 'correct' %} is-correct{% endif %}">{% if mode == "reference" %}{% if task.is_review %}Reviewer answer{% else %}Reference segmentation{% endif %}{% elif mode == "review" %}সাপ্তাহিক রিভিউ{% elif mode == "correct" %}সংশোধন মোড{% else %}প্র্যাকটিস মোড{% endif %}</span>
     <span class="pt-task-title">{{ task.title }}</span>
     <span class="pt-spacer"></span>
-    {% if mode == "practice" %}<span class="pt-meta">চেষ্টা: {{ attempt_count }}</span>{% endif %}
+    {% if mode == "practice" %}<span class="pt-meta">চেষ্টা: {{ attempt_count }}</span>{% elif mode == "correct" %}<span class="pt-meta">সংশোধন: {{ attempt_count }}</span>{% elif mode == "review" and submitted_once %}<span class="pt-meta">জমা দেওয়া হয়েছে — উত্তর প্রকাশের আগ পর্যন্ত ঠিক করতে পারবেন</span>{% endif %}
     <span class="pt-meta" data-save-status></span>
     <span class="pt-meta" data-timer>00:00</span>
-    {% if task.instructions or mode == "practice" %}<button type="button" class="pt-help" data-open="#pt-intro">{% bn "নির্দেশনা" "Instructions" %}</button>{% endif %}
+    {% if task.instructions or mode != "reference" %}<button type="button" class="pt-help" data-open="#pt-intro">{% bn "নির্দেশনা" "Instructions" %}</button>{% endif %}
   </div>
 
   <div class="pt-page">
@@ -53,6 +53,7 @@
               <select data-source aria-label="{% bn "ভিডিওর উৎস" "Video source" %}"><option value="auto">Auto</option><option value="original">Original</option></select>
             </label>
             <label class="vp-loop"><input type="checkbox" data-loop> Loop Current Segment (L)</label>
+            {% if mode == "correct" %}<label class="vp-guide-toggle"><input type="checkbox" data-guide-toggle checked> রিভিউয়ারের উত্তর দেখান</label>{% endif %}
           </div>
         </div>
 
@@ -64,6 +65,7 @@
               <div class="vp-tl-inner" data-inner>
                 <div class="vp-ruler" data-ruler></div>
                 <div class="vp-track" data-track></div>
+                {% if mode == "correct" %}<div class="vp-guide" data-guide><span class="vp-guide-label">রিভিউয়ারের উত্তর</span></div>{% endif %}
                 <div class="vp-playhead" data-playhead><div class="vp-playhead-handle" data-playhead-handle title="{% bn "টেনে ভিডিওর জায়গা বদলান" "Drag to scrub" %}"></div><div class="vp-playhead-line"></div></div>
               </div>
             </div>
@@ -126,6 +128,7 @@
       <div class="pt-dialog-body pt-instructions">
         {% if task.instructions %}<div>{{ task.instructions|markdown }}</div>{% endif %}
         {% if mode == "reference" %}
+        {% if task.is_review %}<p><strong>Reviewer answer for a weekly review.</strong> Clip the video the way it should be done and press <em>submit task</em> to save the answer. Employees don't see it until you press <strong>Publish answer</strong> on the task page.</p>{% endif %}
         <p><strong>This is an exact copy of the production clipping tool.</strong> Everything you practise here works the same way at work.</p>
         <ul>
           <li><span class="pt-kbd">Space</span> plays / pauses the video (or click the play button).</li>
@@ -133,6 +136,22 @@
           <li>Click a clip to edit it — drag its edges, or use <span class="pt-kbd">[</span> / <span class="pt-kbd">]</span> to move its start / end to the playhead. <strong>Delete Clip</strong> removes it.</li>
           <li><span class="pt-kbd">L</span> loops the current segment. Open <strong>Shortcuts</strong> for the full list.</li>
           <li>Cover the whole “Hands present” range, then press <strong>submit task</strong> — you'll get a score compared to the trainer's reference.</li>
+        </ul>
+        {% elif mode == "review" %}
+        <p><strong>এটা এই সপ্তাহের রিভিউ ভিডিও।</strong> ভিডিওটায় অনেক অ্যাকশন আছে — মন দিয়ে দেখে প্রতিটা অ্যাকশন আলাদা ক্লিপ করুন।</p>
+        <ul>
+          <li>নিজের মতো করে পুরো ভিডিও ক্লিপ করুন, তারপর <strong>submit task</strong> চাপুন। আপনার কাজ সেভ থাকবে, হারাবে না।</li>
+          <li>রিভিউয়ারের উত্তর প্রকাশ হওয়ার আগ পর্যন্ত যতবার খুশি খুলে ঠিক করে আবার জমা দিতে পারবেন।{% if task.due_at %} জমা দেওয়ার শেষ সময়: <strong>{{ task.due_at|date:"j F, g:i A" }}</strong>।{% endif %}</li>
+          <li>উত্তর প্রকাশ হলে দেখতে পাবেন আপনার কাজ রিভিউয়ারের কাজের সাথে কতটা মিলেছে, কোথায় কোথায় ভুল হয়েছে — তারপর নিজের কাজ ঠিক করবেন।</li>
+          <li>শর্টকাট আগের মতোই: <span class="pt-kbd">Space</span> চালান / থামান, <span class="pt-kbd">N</span> কাট, <span class="pt-kbd">L</span> লুপ। সব দেখতে <strong>Shortcuts</strong> খুলুন।</li>
+        </ul>
+        {% elif mode == "correct" %}
+        <p><strong>এবার নিজের কাজ ঠিক করুন।</strong> টাইমলাইনের নিচের সবুজ সারিতে রিভিউয়ারের উত্তর দেখা যাচ্ছে।</p>
+        <ul>
+          <li>রিভিউয়ারের কোনো ক্লিপে ক্লিক করলে ভিডিও ঠিক সেই জায়গায় চলে যাবে — দেখে বুঝুন কেন অ্যাকশনটা ওখানে শুরু আর শেষ হচ্ছে।</li>
+          <li>নিজের ক্লিপগুলো সেই অনুযায়ী ঠিক করুন: কিনারা টেনে সরান, <span class="pt-kbd">[</span> / <span class="pt-kbd">]</span> দিয়ে শুরু / শেষ বসান, বাদ পড়া অ্যাকশনের জন্য <span class="pt-kbd">N</span> দিয়ে নতুন ক্লিপ বানান, বাড়তি ক্লিপ মুছে দিন।</li>
+          <li>চাইলে “রিভিউয়ারের উত্তর দেখান” বন্ধ করে নিজে নিজে চেষ্টা করুন, তারপর আবার চালু করে মিলিয়ে নিন।</li>
+          <li><strong>submit task</strong> চাপলে নতুন মিল % দেখাবে — আগের চেয়ে কতটা উন্নতি হলো সেটাও। যতবার খুশি ঠিক করে জমা দিতে পারবেন।</li>
         </ul>
         {% else %}
         <p><strong>এটা আসল কাজের ক্লিপিং টুলের হুবহু কপি।</strong> এখানে যা প্র্যাকটিস করবেন, কাজের সময়ও ঠিক একইভাবে করতে হবে।</p>
@@ -145,7 +164,7 @@
         </ul>
         {% endif %}
       </div>
-      <div class="pt-dialog-foot"><button type="button" class="vp-fbtn vp-fbtn-green" data-close>{% if mode == "reference" %}Start editing{% else %}প্র্যাকটিস শুরু করুন{% endif %}</button></div>
+      <div class="pt-dialog-foot"><button type="button" class="vp-fbtn vp-fbtn-green" data-close>{% if mode == "reference" %}Start editing{% elif mode == "correct" %}ঠিক করা শুরু করুন{% else %}শুরু করুন{% endif %}</button></div>
     </div>
   </div>
 

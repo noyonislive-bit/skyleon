@@ -1,0 +1,80 @@
+{% extends "portal/base.html" %}
+{% block page_actions %}
+  <a href="{{ back_url }}" class="btn btn-secondary">প্র্যাকটিস ল্যাব</a>
+  <a href="{% url 'practice:correct' task.pk %}" class="btn btn-primary">{% icon "pencil" class="h-4 w-4" %} {% if latest %}আবার ঠিক করুন{% else %}এবার নিজের কাজ ঠিক করুন{% endif %}</a>
+{% endblock %}
+{% block content %}
+<p class="-mt-3 mb-6 text-sm text-slate-500">
+  সাপ্তাহিক রিভিউ · আমার কাজ জমা {{ attempt.submitted_at|date:"j F Y, g:i A" }}{% if st.late %} <span class="badge badge-warning">দেরিতে জমা</span>{% endif %}
+  · রিভিউয়ারের উত্তর প্রকাশ {{ task.answer_published_at|date:"j F, g:i A" }}{% if task.answer_by %} ({{ task.answer_by.name }}){% endif %}
+</p>
+
+<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+  <div class="stat"><p class="stat-label">আমার কাজ — মিল</p><p class="stat-value {% if attempt.passed %}text-emerald-700{% else %}text-amber-700{% endif %}">{{ attempt.score|floatformat:0 }}%</p><p class="stat-meta">রিভিউয়ারের উত্তরের সাথে · পাস মার্ক {{ task.passing_score }}%</p></div>
+  <div class="stat"><p class="stat-label">সংশোধনের পর</p><p class="stat-value {% if latest %}text-emerald-700{% else %}text-slate-400{% endif %}">{% if st.best_correction is not None %}{{ st.best_correction|floatformat:0 }}%{% else %}—{% endif %}</p><p class="stat-meta">{% if improvement is not None %}{% if improvement > 0 %}+{{ improvement }} উন্নতি{% elif improvement == 0 %}আগের মতোই{% else %}{{ improvement }}{% endif %} · {{ st.corrections|length }} বার ঠিক করেছেন{% else %}এখনো ঠিক করেননি{% endif %}</p></div>
+  <div class="stat"><p class="stat-label">ক্লিপ</p><p class="stat-value">{{ metrics.clip_count }} <span class="text-base text-slate-400">/ {{ metrics.reference_count }}</span></p><p class="stat-meta">আমার ক্লিপ / রিভিউয়ারের ক্লিপ</p></div>
+  <div class="stat"><p class="stat-label">শুরু/শেষের নির্ভুলতা</p><p class="stat-value">{% if metrics.boundary_f1 is not None %}{{ metrics.boundary_f1|floatformat:0 }}%{% else %}—{% endif %}</p><p class="stat-meta">ছাড় ±{{ task.tolerance_sec }} সেকেন্ড</p></div>
+</div>
+
+<div class="mt-6">{% include "practice/_comparison.html" %}</div>
+
+<div class="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+  <section class="card">
+    <div class="card-header">
+      <div>
+        <h2 class="card-title">রিভিউয়ারের প্রতিটি ক্লিপ — আমি কোথায় মিস করেছি</h2>
+        <p class="mt-0.5 text-xs text-slate-500">আমার জমা দেওয়া কাজের সাথে মিলিয়ে{% if latest %} · শেষ কলামে সংশোধনের পরের অবস্থা{% endif %}</p>
+      </div>
+    </div>
+    <div class="table-wrap"><table class="table">
+      <thead><tr><th>ক্লিপ</th><th>রিভিউয়ারের সময়</th><th>আমার কাজ</th><th>পার্থক্য</th>{% if latest %}<th>সংশোধনের পর</th>{% endif %}</tr></thead>
+      <tbody>
+      {% for m in matches %}
+        <tr>
+          <td class="font-medium text-slate-900">{{ m.n }}</td>
+          <td class="font-mono text-xs">{{ m.start|floatformat:2 }}s – {{ m.end|floatformat:2 }}s</td>
+          <td>{% if m.status == "ok" %}<span class="badge badge-success">মিলেছে</span>{% elif m.status == "near" %}<span class="badge badge-warning">কাছাকাছি</span>{% else %}<span class="badge badge-danger">বাদ পড়েছে</span>{% endif %}</td>
+          <td class="text-xs text-slate-600">{% if m.user %}শুরু {% if m.start_diff > 0 %}+{% endif %}{{ m.start_diff }}s · শেষ {% if m.end_diff > 0 %}+{% endif %}{{ m.end_diff }}s{% else %}এই অ্যাকশনের কোনো ক্লিপ নেই{% endif %}</td>
+          {% if latest %}<td>{% if m.after == "ok" %}<span class="badge badge-success">মিলেছে</span>{% elif m.after == "near" %}<span class="badge badge-warning">কাছাকাছি</span>{% else %}<span class="badge badge-danger">বাদ পড়েছে</span>{% endif %}</td>{% endif %}
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+    <p class="border-t border-slate-100 px-5 py-3 text-xs text-slate-500"><strong>মিলেছে</strong> = শুরু আর শেষ দুটোই ±{{ task.tolerance_sec }} সেকেন্ডের মধ্যে · <strong>কাছাকাছি</strong> = অ্যাকশনটা ধরেছেন, কিন্তু শুরু বা শেষ সরে আছে · <strong>বাদ পড়েছে</strong> = এই অ্যাকশনের কোনো ক্লিপ নেই। “+” মানে দেরিতে, “−” মানে আগে।</p>
+  </section>
+
+  <aside class="space-y-6">
+    <div class="card card-body">
+      <h2 class="card-title mb-2">এবার কী করবেন</h2>
+      <ol class="list-decimal space-y-2 pl-4 text-sm text-slate-600">
+        <li>ওপরের টাইমলাইনে নিজের কাজ আর রিভিউয়ারের উত্তর পাশাপাশি দেখুন।</li>
+        <li>যেগুলো <strong>বাদ পড়েছে</strong> বা <strong>কাছাকাছি</strong>, সেগুলো ভিডিওতে চালিয়ে দেখুন — কেন ওখানে অ্যাকশন শুরু বা শেষ হচ্ছে।</li>
+        <li><strong>নিজের কাজ ঠিক করুন:</strong> টুলে রিভিউয়ারের উত্তর টাইমলাইনের নিচে দেখা যাবে — সেই অনুযায়ী নিজের ক্লিপগুলো ঠিক করে জমা দিন।</li>
+      </ol>
+      <a href="{% url 'practice:correct' task.pk %}" class="btn btn-primary mt-4 w-full">{% icon "pencil" class="h-4 w-4" %} {% if latest %}আবার ঠিক করুন{% else %}নিজের কাজ ঠিক করুন{% endif %}</a>
+    </div>
+    {% if st.corrections %}
+    <div class="card">
+      <div class="card-header"><h2 class="card-title">সংশোধনের ইতিহাস</h2></div>
+      <ul class="divide-y divide-slate-100 text-sm">
+        <li class="flex items-center justify-between px-5 py-2.5"><span class="text-slate-600">নিজের কাজ</span><span class="font-semibold tabular-nums">{{ attempt.score|floatformat:0 }}%</span></li>
+        {% for c in st.corrections %}<li class="flex items-center justify-between px-5 py-2.5"><span class="text-slate-600">সংশোধন {{ forloop.counter }} · {{ c.submitted_at|date:"j M, g:i A" }}</span><span class="font-semibold tabular-nums {% if c.passed %}text-emerald-700{% else %}text-amber-700{% endif %}">{{ c.score|floatformat:0 }}%</span></li>{% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+    {% if metrics.issues %}
+    <div class="card">
+      <div class="card-header"><h2 class="card-title">আমার কাজের ভুলগুলো</h2></div>
+      <ul class="divide-y divide-slate-100">
+        {% for i in metrics.issues|slice:":12" %}
+          <li class="flex items-start gap-3 px-5 py-3 text-sm">
+            <span class="mt-0.5 {% if i.kind == 'missed' or i.kind == 'overlap' %}text-red-600{% else %}text-amber-600{% endif %}">{% icon "alert-triangle" class="h-4 w-4" %}</span>
+            <span class="text-slate-700">{{ i.text_bn|default:i.text }}</span>
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+  </aside>
+</div>
+{% endblock %}

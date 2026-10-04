@@ -13,6 +13,10 @@ urlpatterns = [
     path("portal/practice/<int:pk>/submit/", views.submit, name="submit"),
     path("portal/practice/<int:pk>/task-error/", views.task_error, name="task_error"),
     path("portal/practice/results/<int:attempt_id>/", views.result, name="result"),
+    path("portal/practice/<int:pk>/review/", views.review, name="review"),
+    path("portal/practice/<int:pk>/correct/", views.correct, name="correct"),
+    path("portal/practice/<int:pk>/correct/save/", views.correct_save, name="correct_save"),
+    path("portal/practice/<int:pk>/correct/submit/", views.correct_submit, name="correct_submit"),
     path("admin/practice/", manage_views.manage_list, name="manage"),
     path("admin/practice/new/", manage_views.task_form, name="manage_new"),
     path("admin/practice/settings/", manage_views.tool_settings, name="manage_settings"),
@@ -22,5 +26,6 @@ urlpatterns = [
     path("admin/practice/<int:pk>/reference/", manage_views.reference_editor, name="manage_reference"),
     path("admin/practice/<int:pk>/reference/save/", manage_views.reference_save, name="manage_reference_save"),
     path("admin/practice/<int:pk>/results/", manage_views.results, name="manage_results"),
+    path("admin/practice/<int:pk>/answer/", manage_views.answer, name="manage_answer"),
     path("admin/practice/attempts/<int:attempt_id>/", manage_views.attempt_detail, name="manage_attempt"),
 ]

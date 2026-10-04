@@ -223,3 +223,102 @@ class PracticeHardeningTests(TestCase):
         self.client.force_login(self.trainer)
         self.client.post(reverse("practice:manage_delete", args=[self.task.pk]))
         self.assertTrue(PracticeTask.objects.filter(pk=self.task.pk).exists())
+
+
+from apps.comms.models import Notification  # noqa: E402
+
+from .models import AttemptPhase  # noqa: E402
+from .scoring import clip_matches  # noqa: E402
+
+
+class WeeklyReviewTests(TestCase):
+    """Employees clip first; the reviewer's answer is published later; then compare and correct."""
+
+    post = PracticeViewTests.post
+
+    def setUp(self):
+        PracticeViewTests.setUp(self)
+        self.task.kind = "review"
+        self.task.reference_clips = []
+        self.task.save()
+
+    def publish_answer(self, clips=([1, 5], [6, 10])):
+        self.client.force_login(self.trainer)
+        self.assertEqual(self.post("practice:manage_reference_save", self.task, {"clips": list(clips)}).status_code, 200)
+        r = self.client.post(reverse("practice:manage_answer", args=[self.task.pk]))
+        self.assertEqual(r.status_code, 302)
+        self.task.refresh_from_db()
+        self.assertIsNotNone(self.task.answer_published_at)
+        self.client.force_login(self.emp)
+
+    def test_own_work_is_kept_and_unscored_until_the_answer(self):
+        self.client.force_login(self.emp)
+        self.assertContains(self.client.get(reverse("practice:list")), "সাপ্তাহিক রিভিউ")
+        self.assertContains(self.client.get(reverse("practice:workspace", args=[self.task.pk])), "সাপ্তাহিক রিভিউ")
+        body = self.post("practice:submit", self.task, {"clips": [[1.2, 5], [7, 10]]}).json()
+        self.assertTrue(body["pending"])
+        self.assertIsNone(body["score"])
+        # can still edit and re-submit before the answer — always the same single attempt
+        self.assertEqual(self.post("practice:save", self.task, {"clips": [[1.1, 5], [6.2, 10]]}).status_code, 200)
+        self.post("practice:submit", self.task, {"clips": [[1.1, 5], [6.2, 10]]})
+        attempts = PracticeAttempt.objects.filter(task=self.task, user=self.emp)
+        self.assertEqual(attempts.count(), 1)
+        self.assertEqual(attempts.get().clips, [[1.1, 5.0], [6.2, 10.0]])
+        # nothing to compare yet
+        self.assertRedirects(self.client.get(reverse("practice:review", args=[self.task.pk])), reverse("practice:workspace", args=[self.task.pk]))
+        self.assertEqual(self.post("practice:correct_submit", self.task, {"clips": [[1, 5]]}).status_code, 409)
+
+    def test_answer_scores_everyone_then_compare_and_correct(self):
+        self.client.force_login(self.emp)
+        self.post("practice:submit", self.task, {"clips": [[1, 5]]})  # missed the second action
+        self.publish_answer()
+        first = PracticeAttempt.objects.get(task=self.task, user=self.emp, phase=AttemptPhase.FIRST)
+        self.assertIsNotNone(first.score)
+        self.assertLess(first.score, 70)
+        self.assertTrue(Notification.objects.filter(user=self.emp, title__contains="রিভিউয়ারের উত্তর").exists())
+        # own work is frozen now; the workspace sends you to the comparison
+        self.assertEqual(self.post("practice:submit", self.task, {"clips": [[1, 5], [6, 10]]}).status_code, 409)
+        self.assertRedirects(self.client.get(reverse("practice:workspace", args=[self.task.pk])), reverse("practice:review", args=[self.task.pk]))
+        page = self.client.get(reverse("practice:review", args=[self.task.pk]))
+        self.assertContains(page, "রিভিউয়ারের উত্তর")
+        self.assertContains(page, "বাদ পড়েছে")
+        # correction mode shows the answer as a guide and starts from the employee's own clips
+        page = self.client.get(reverse("practice:correct", args=[self.task.pk]))
+        self.assertEqual(page.status_code, 200)
+        self.assertEqual(page.context["payload"]["guide"], [[1.0, 5.0], [6.0, 10.0]])
+        self.assertEqual(page.context["payload"]["clips"], [[1.0, 5.0]])
+        body = self.post("practice:correct_submit", self.task, {"clips": [[1, 5], [6, 10]]}).json()
+        self.assertGreater(body["score"], body["firstScore"])
+        self.assertEqual(PracticeAttempt.objects.filter(task=self.task, user=self.emp, phase=AttemptPhase.CORRECTION, status="submitted").count(), 1)
+        page = self.client.get(reverse("practice:review", args=[self.task.pk]))
+        self.assertContains(page, "সংশোধনের পর")
+        self.client.force_login(self.trainer)
+        results = self.client.get(reverse("practice:manage_results", args=[self.task.pk]))
+        self.assertContains(results, "Weekly review")
+        self.assertEqual(results.context["review_stats"]["corrected"], 1)
+
+    def test_late_starter_must_submit_own_work_before_seeing_the_answer(self):
+        self.publish_answer()
+        self.assertRedirects(self.client.get(reverse("practice:correct", args=[self.task.pk])), reverse("practice:workspace", args=[self.task.pk]))
+        self.assertEqual(self.client.get(reverse("practice:workspace", args=[self.task.pk])).context["payload"]["guide"], [])
+        body = self.post("practice:submit", self.task, {"clips": [[1, 5], [6, 10]]}).json()
+        self.assertFalse(body["pending"])
+        self.assertTrue(body["resultUrl"].endswith("/review/"))
+
+    def test_answer_needs_a_recording_and_editing_it_rescores(self):
+        self.client.force_login(self.trainer)
+        self.client.post(reverse("practice:manage_answer", args=[self.task.pk]))
+        self.task.refresh_from_db()
+        self.assertIsNone(self.task.answer_published_at)
+        self.client.force_login(self.emp)
+        self.post("practice:submit", self.task, {"clips": [[1, 5], [6, 10]]})
+        self.publish_answer(clips=([1, 5],))
+        before = PracticeAttempt.objects.get(task=self.task, user=self.emp).score
+        self.client.force_login(self.trainer)
+        self.post("practice:manage_reference_save", self.task, {"clips": [[1, 5], [6, 10]]})
+        after = PracticeAttempt.objects.get(task=self.task, user=self.emp).score
+        self.assertGreater(after, before)
+
+    def test_clip_matches(self):
+        rows = clip_matches([(1, 5), (6.8, 10)], [(1, 5), (6, 10), (12, 14)], 0.5)
+        self.assertEqual([r["status"] for r in rows], ["ok", "near", "missed"])

@@ -7,20 +7,20 @@
 <div class="card">
   {% if tasks %}
   <div class="table-wrap"><table class="table">
-    <thead><tr><th>Task</th><th>Project</th><th>Status</th><th>Reference</th><th class="num">Employees</th><th class="num">Attempts</th><th class="num">Avg score</th><th class="num">Passed</th><th></th></tr></thead>
+    <thead><tr><th>Task</th><th>Project</th><th>Status</th><th>Reference / answer</th><th class="num">Employees</th><th class="num">Attempts</th><th class="num">Avg score</th><th class="num">Passed</th><th></th></tr></thead>
     <tbody>
     {% for t in tasks %}
       <tr>
-        <td><a href="{% url 'practice:manage_edit' t.pk %}" class="font-medium text-slate-900 hover:text-brand-700">{{ t.title }}</a><p class="text-xs text-slate-500">{% if t.video %}{{ t.video.duration_sec|duration }} video{% else %}No video yet{% endif %} · tolerance ±{{ t.tolerance_sec }}s</p></td>
+        <td><a href="{% url 'practice:manage_edit' t.pk %}" class="font-medium text-slate-900 hover:text-brand-700">{{ t.title }}</a>{% if t.is_review %} <span class="badge badge-info">Weekly review</span>{% endif %}<p class="text-xs text-slate-500">{% if t.video %}{{ t.video.duration_sec|duration }} video{% else %}No video yet{% endif %} · tolerance ±{{ t.tolerance_sec }}s{% if t.is_review and t.due_at %} · submit by {{ t.due_at|date:"j M, H:i" }}{% endif %}</p></td>
         <td>{{ t.project.name|default:"All employees" }}</td>
         <td>{% status_badge t.status t.get_status_display %}</td>
-        <td>{% if t.has_reference %}<span class="badge badge-success">{{ t.reference_clips|length }} clips</span>{% else %}<span class="badge badge-warning">Missing</span>{% endif %}</td>
+        <td>{% if t.is_review %}{% if t.answer_published %}<span class="badge badge-success">Answer published</span>{% elif t.has_reference %}<span class="badge badge-warning">Answer ready · not published</span>{% else %}<span class="badge badge-neutral">Answer not recorded</span>{% endif %}{% elif t.has_reference %}<span class="badge badge-success">{{ t.reference_clips|length }} clips</span>{% else %}<span class="badge badge-warning">Missing</span>{% endif %}</td>
         <td class="num">{{ t.n_people }}</td>
         <td class="num">{{ t.n_attempts }}</td>
         <td class="num">{% if t.avg_score is not None %}{{ t.avg_score|floatformat:0 }}%{% else %}—{% endif %}</td>
         <td class="num">{{ t.n_passed }}</td>
         <td class="text-right whitespace-nowrap">
-          {% if t.video %}<a href="{% url 'practice:manage_reference' t.pk %}" class="btn btn-ghost btn-sm">{% icon "scissors" class="h-4 w-4" %} Reference</a>{% endif %}
+          {% if t.video %}<a href="{% url 'practice:manage_reference' t.pk %}" class="btn btn-ghost btn-sm">{% icon "scissors" class="h-4 w-4" %} {% if t.is_review %}Answer{% else %}Reference{% endif %}</a>{% endif %}
           <a href="{% url 'practice:manage_results' t.pk %}" class="btn btn-ghost btn-sm">Results</a>
         </td>
       </tr>
