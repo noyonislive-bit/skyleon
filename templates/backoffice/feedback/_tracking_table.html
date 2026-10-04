@@ -1,7 +1,8 @@
-{% comment %} Rows from views.feedback.tracking_rows + decorate(). show_feedback: include project/date columns. {% endcomment %}
+{% comment %} Rows from views.feedback.tracking_rows + decorate(). show_feedback: include project/date columns.
+can_remove: show a "remove recipient" button per row (feedback detail page, staff who may edit the feedback). {% endcomment %}
 <div class="table-wrap">
   <table class="table">
-    <thead><tr><th>Employee</th><th>Feedback</th><th>Watched</th><th>Test</th><th class="num">Score</th><th>Status</th>{% if show_feedback %}<th>Published</th>{% endif %}</tr></thead>
+    <thead><tr><th>Employee</th><th>Feedback</th><th>Watched</th><th>Test</th><th class="num">Score</th><th>Status</th>{% if show_feedback %}<th>Published</th>{% endif %}{% if can_remove %}<th aria-label="Actions"></th>{% endif %}</tr></thead>
     <tbody>
     {% for r in rows %}
       <tr>
@@ -16,6 +17,7 @@
         <td class="num bo-num font-semibold text-slate-900">{% if r.best_score is not None %}{{ r.best_score|floatformat:0 }}%{% else %}<span class="font-normal text-slate-400">—</span>{% endif %}</td>
         <td>{% status_badge r.result r.result_label %}</td>
         {% if show_feedback %}<td class="text-xs whitespace-nowrap text-slate-500">{{ r.feedback.published_at|date:"j M Y" }}</td>{% endif %}
+        {% if can_remove %}<td><form method="post" action="{% url 'backoffice:feedback_recipient_remove' r.pk %}" class="bo-row-actions" data-confirm="Remove {{ r.user.name }} from the recipients of {{ r.feedback.display_number }}? It disappears from their portal{% if r.feedback.test_id %} together with its test assignment{% endif %}.">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="bo-icon-btn is-danger" title="Remove recipient">{% icon "x-circle" class="h-4 w-4" %}</button></form></td>{% endif %}
       </tr>
     {% endfor %}
     </tbody>

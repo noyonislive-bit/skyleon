@@ -99,19 +99,37 @@ class TestState:
     best_score: float | None
     last_attempt: TestAttempt | None
     open_attempt: TestAttempt | None
+    attempt_limit: int | None = None  # the test's limit + attempts granted to this person (None = unlimited)
+    extra_attempts: int = 0
 
     @property
     def can_attempt(self):
         return self.status != "passed" and (self.attempts_left is None or self.attempts_left > 0)
 
 
-def test_state(user, test: Test, attempts=None) -> TestState:
+def extra_attempts_map(user, test_ids) -> dict:
+    """{test_id: extra attempts granted to the user} — feed into test_state(extra_attempts=…) for lists."""
+    rows = TestAssignment.objects.filter(user=user, test_id__in=list(test_ids), extra_attempts__gt=0)
+    return dict(rows.values_list("test_id", "extra_attempts"))
+
+
+def test_state(user, test: Test, attempts=None, extra_attempts=None) -> TestState:
+    """
+    The user's status on a test. `attempts` (newest first) and `extra_attempts` (granted on top of the
+    test's attempt limit, see TestAssignment.extra_attempts) are looked up when not given.
+    """
     if attempts is None:
         attempts = list(TestAttempt.objects.filter(test=test, user=user).order_by("-attempt_number"))
     submitted = [a for a in attempts if a.submitted_at]
     open_attempt = next((a for a in attempts if not a.submitted_at), None)
     used = len(submitted)
-    left = None if test.attempt_limit is None else max(0, test.attempt_limit - used)
+    limit, extra = test.attempt_limit, 0
+    if limit is not None:
+        if extra_attempts is None:
+            extra_attempts = extra_attempts_map(user, [test.pk]).get(test.pk, 0)
+        extra = extra_attempts or 0
+        limit += extra
+    left = None if limit is None else max(0, limit - used)
     best = max((a.score for a in submitted if a.score is not None), default=None)
     if any(a.passed for a in submitted):
         status = "passed"
@@ -121,7 +139,28 @@ def test_state(user, test: Test, attempts=None) -> TestState:
         status = "review" if left != 0 else "locked"
     else:
         status = "pending"
-    return TestState(status, used, left, best, submitted[0] if submitted else None, open_attempt)
+    return TestState(status, used, left, best, submitted[0] if submitted else None, open_attempt, limit, extra)
+
+
+# ── Staff adjustments (admin panel) ─────────────────────────────────────────
+
+@transaction.atomic
+def grant_extra_attempt(test: Test, user, *, by=None, count: int = 1) -> TestAssignment:
+    """Allow `user` `count` more attempt(s) than the test's limit. Creates the assignment row if needed."""
+    assignment, _ = TestAssignment.objects.select_for_update().get_or_create(
+        test=test, user=user, defaults={"assigned_by": by}
+    )
+    assignment.extra_attempts = min(assignment.extra_attempts + count, 999)
+    assignment.save(update_fields=["extra_attempts"])
+    return assignment
+
+
+@transaction.atomic
+def reset_attempts(test: Test, user) -> int:
+    """Delete all of the user's attempts at the test (and any granted extra attempts): they start again from attempt 1."""
+    deleted, _ = TestAttempt.objects.filter(test=test, user=user).delete()
+    TestAssignment.objects.filter(test=test, user=user).update(extra_attempts=0)
+    return deleted
 
 
 # ── Attempts ────────────────────────────────────────────────────────────────

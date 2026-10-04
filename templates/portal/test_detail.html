@@ -17,7 +17,7 @@
       <dl class="grid grid-cols-2 divide-slate-100 border-b border-slate-100 sm:grid-cols-4 sm:divide-x">
         <div class="px-5 py-4"><dt class="kv-label">প্রশ্ন</dt><dd class="kv-value text-lg">{{ test.question_count }}</dd></div>
         <div class="px-5 py-4"><dt class="kv-label">পাস মার্ক</dt><dd class="kv-value text-lg">{{ test.passing_score }}%</dd></div>
-        <div class="px-5 py-4"><dt class="kv-label">চেষ্টা</dt><dd class="kv-value text-lg">{{ state.attempts_used }}<span class="text-slate-400">/{% if test.attempt_limit %}{{ test.attempt_limit }}{% else %}∞{% endif %}</span></dd></div>
+        <div class="px-5 py-4"><dt class="kv-label">চেষ্টা</dt><dd class="kv-value text-lg">{{ state.attempts_used }}<span class="text-slate-400">/{% if state.attempt_limit %}{{ state.attempt_limit }}{% else %}∞{% endif %}</span></dd></div>
         <div class="px-5 py-4"><dt class="kv-label">সময়সীমা</dt><dd class="kv-value text-lg">{% if test.time_limit_min %}{{ test.time_limit_min }} মিনিট{% else %}নেই{% endif %}</dd></div>
       </dl>
       <div class="card-body">
@@ -33,7 +33,7 @@
           {% if state.status == "passed" %}
             <div class="alert alert-success">{% icon "award" class="mt-0.5 h-4 w-4 shrink-0" %}<p class="flex-1">আপনি <strong>{{ state.best_score|floatformat:0 }}%</strong> পেয়ে এই টেস্টে পাস করেছেন।{% if state.last_attempt %} <a class="font-semibold underline" href="{% url 'portal:result_detail' state.last_attempt.pk %}">ফলাফল দেখুন</a>{% endif %}</p></div>
           {% elif state.status == "locked" %}
-            <div class="alert alert-warning">{% icon "lock" class="mt-0.5 h-4 w-4 shrink-0" %}<p class="flex-1">আপনার {{ test.attempt_limit }}টি চেষ্টাই শেষ (সেরা স্কোর {{ state.best_score|floatformat:0 }}%)। আপনার ট্রেইনার আপনার সাথে যোগাযোগ করবেন।</p></div>
+            <div class="alert alert-warning">{% icon "lock" class="mt-0.5 h-4 w-4 shrink-0" %}<p class="flex-1">আপনার {{ state.attempt_limit }}টি চেষ্টাই শেষ (সেরা স্কোর {{ state.best_score|floatformat:0 }}%)। আপনার ট্রেইনার আপনার সাথে যোগাযোগ করবেন।</p></div>
           {% elif gate %}
             <div class="alert alert-warning">{% icon "lock" class="mt-0.5 h-4 w-4 shrink-0" %}<p class="flex-1">{{ gate }}{% if feedback %} <a class="font-semibold underline" href="{% url 'portal:feedback_detail' feedback.number %}">ফিডব্যাক {{ feedback.display_number }} খুলুন</a>{% endif %}</p></div>
             <button type="button" class="btn btn-primary btn-lg mt-4" disabled aria-disabled="true">{% icon "play" class="h-4 w-4" %} টেস্ট শুরু করুন</button>

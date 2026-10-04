@@ -15,7 +15,8 @@ Access rules:
 
 from functools import cached_property, wraps
 
-from django.db.models import Count, Exists, F, OuterRef, Q
+from django.db.models import Count, Exists, F, OuterRef, Q, Subquery, Value
+from django.db.models.functions import Coalesce
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 
@@ -101,8 +102,9 @@ class PortalScope:
         return Exists(AnnouncementRead.objects.filter(announcement=OuterRef("pk"), user=self.user))
 
     def open_tests(self):
-        """Visible tests that still need doing: not passed and with attempts left."""
+        """Visible tests that still need doing: not passed and with attempts left (incl. extra attempts granted)."""
         user = self.user
+        extra = TestAssignment.objects.filter(test=OuterRef("pk"), user=user).values("extra_attempts")[:1]
         return (
             self.tests()
             .annotate(
@@ -110,9 +112,10 @@ class PortalScope:
                 used_n=Count(
                     "attempts", filter=Q(attempts__user=user, attempts__submitted_at__isnull=False), distinct=True
                 ),
+                extra_n=Coalesce(Subquery(extra), Value(0)),
             )
             .filter(passed_n=0)
-            .filter(Q(attempt_limit__isnull=True) | Q(used_n__lt=F("attempt_limit")))
+            .filter(Q(attempt_limit__isnull=True) | Q(used_n__lt=F("attempt_limit") + F("extra_n")))
         )
 
     # ── Sidebar / top-bar counts (a handful of cheap COUNT queries) ─────────

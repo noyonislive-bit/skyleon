@@ -69,7 +69,7 @@
   {% if page.object_list %}
   <div class="table-wrap">
     <table class="table">
-      <thead><tr><th>Employee</th><th>Video</th><th>Watched</th><th>% watched</th><th>Completion date</th><th>Assigned</th></tr></thead>
+      <thead><tr><th>Employee</th><th>Video</th><th>Watched</th><th>% watched</th><th>Completion date</th><th>Assigned</th>{% if can_edit %}<th aria-label="Actions"></th>{% endif %}</tr></thead>
       <tbody>
       {% for p in page %}
         <tr>
@@ -79,6 +79,9 @@
           <td class="w-48">{% include "backoffice/components/meter.html" with value=p.percent|floatformat:0|add:0 %}<p class="mt-0.5 text-[11px] text-slate-400">{{ p.watched_seconds|duration }} played{% if p.last_viewed_at %} · seen {{ p.last_viewed_at|timesince }} ago{% endif %}</p></td>
           <td class="text-xs whitespace-nowrap">{% if p.completed_at %}<span class="font-medium text-slate-800">{{ p.completed_at|date:"j M Y, H:i" }}</span>{% else %}<span class="bo-muted">—</span>{% endif %}</td>
           <td class="text-xs whitespace-nowrap text-slate-500">{{ p.assigned_at|date:"j M Y" }}{% if p.due_at %}<span class="block">due {{ p.due_at|date:"j M" }}</span>{% endif %}</td>
+          {% if can_edit %}
+          <td>{% if p.assigned %}<form method="post" action="{% url 'backoffice:progress_unassign' p.pk %}" class="bo-row-actions" data-confirm="Unassign this tutorial from {{ p.user.name }}? What they have already watched is kept.">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="bo-icon-btn is-danger" title="Unassign">{% icon "x-circle" class="h-4 w-4" %}</button></form>{% endif %}</td>
+          {% endif %}
         </tr>
       {% endfor %}
       </tbody>

@@ -163,7 +163,7 @@
         {% if progress_rows %}
         <div class="table-wrap">
           <table class="table">
-            <thead><tr><th>Tutorial</th><th>Status</th><th>Watched</th><th class="num">Watched time</th><th>Assigned</th><th>Completed</th></tr></thead>
+            <thead><tr><th>Tutorial</th><th>Status</th><th>Watched</th><th class="num">Watched time</th><th>Assigned</th><th>Completed</th><th aria-label="Due date and actions"></th></tr></thead>
             <tbody>
             {% for p in progress_rows %}
               <tr>
@@ -173,6 +173,18 @@
                 <td class="num bo-num text-xs">{{ p.watched_seconds|duration }}{% if p.tutorial.video.duration_sec %} <span class="text-slate-400">/ {{ p.tutorial.video.duration_sec|duration }}</span>{% endif %}</td>
                 <td class="text-xs whitespace-nowrap text-slate-500">{{ p.assigned_at|date:"j M Y" }}{% if p.due_at %}<span class="block {% if not p.completed_at and p.due_at < now %}text-red-600{% endif %}">due {{ p.due_at|date:"j M" }}</span>{% endif %}</td>
                 <td class="text-xs whitespace-nowrap">{% if p.completed_at %}{{ p.completed_at|date:"j M Y, H:i" }}{% else %}<span class="bo-muted">—</span>{% endif %}</td>
+                <td>
+                  {% if p.can_edit %}
+                  <div class="bo-row-actions">
+                    <form method="post" action="{% url 'backoffice:progress_due' p.pk %}" class="flex items-center gap-1">{% csrf_token %}
+                      <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                      <input type="date" name="due_date" value="{{ p.due_at|date:'Y-m-d' }}" class="input !py-1.5 !text-[13px] w-36" aria-label="Due date for {{ p.tutorial.title }}" title="Due date — leave empty for none">
+                      <button class="bo-icon-btn" title="Save due date">{% icon "save" class="h-4 w-4" %}</button>
+                    </form>
+                    <form method="post" action="{% url 'backoffice:progress_unassign' p.pk %}" data-confirm="Unassign “{{ p.tutorial.title }}” from {{ employee.name }}? What they have already watched is kept.">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="bo-icon-btn is-danger" title="Unassign">{% icon "x-circle" class="h-4 w-4" %}</button></form>
+                  </div>
+                  {% endif %}
+                </td>
               </tr>
             {% endfor %}
             </tbody>
@@ -188,7 +200,7 @@
         {% if feedback_rows %}
         <div class="table-wrap">
           <table class="table">
-            <thead><tr><th>Feedback</th><th>Seen</th><th>Watched</th><th>Acknowledged</th><th>Test</th><th class="num">Score</th><th>Status</th></tr></thead>
+            <thead><tr><th>Feedback</th><th>Seen</th><th>Watched</th><th>Acknowledged</th><th>Test</th><th class="num">Score</th><th>Status</th><th aria-label="Actions"></th></tr></thead>
             <tbody>
             {% for r in feedback_rows %}
               <tr>
@@ -199,6 +211,7 @@
                 <td class="text-xs">{% if r.state %}{% if r.state.attempts_used %}Completed <span class="text-slate-400">({{ r.state.attempts_used }}×)</span>{% elif r.state.status == "in_progress" %}In progress{% else %}Not started{% endif %}{% else %}<span class="bo-muted">No test</span>{% endif %}</td>
                 <td class="num bo-num">{% if r.state.best_score is not None %}{{ r.state.best_score|floatformat:0 }}%{% else %}—{% endif %}</td>
                 <td>{% if r.state %}{% if r.state.status == "passed" %}{% status_badge "passed" "Passed" %}{% elif r.state.attempts_used %}{% status_badge "review" "Review" %}{% else %}{% status_badge "pending" "Pending" %}{% endif %}{% else %}{% if r.watched_at %}{% status_badge "completed" "Completed" %}{% else %}{% status_badge "pending" "Pending" %}{% endif %}{% endif %}</td>
+                <td>{% if r.can_remove %}<form method="post" action="{% url 'backoffice:feedback_recipient_remove' r.pk %}" class="bo-row-actions" data-confirm="Remove {{ employee.name }} from the recipients of {{ r.feedback.display_number }}? It disappears from their portal{% if r.feedback.test_id %} together with its test assignment{% endif %}.">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="bo-icon-btn is-danger" title="Remove recipient">{% icon "x-circle" class="h-4 w-4" %}</button></form>{% endif %}</td>
               </tr>
             {% endfor %}
             </tbody>
@@ -214,15 +227,33 @@
         {% if assignments %}
         <div class="table-wrap">
           <table class="table">
-            <thead><tr><th>Test</th><th>Status</th><th class="num">Best score</th><th class="num">Attempts</th><th>Assigned</th></tr></thead>
+            <thead><tr><th>Test</th><th>Status</th><th class="num">Best score</th><th class="num">Attempts</th><th>Assigned</th><th aria-label="Due date and actions"></th></tr></thead>
             <tbody>
             {% for a in assignments %}
               <tr>
                 <td><a href="{% url 'backoffice:test_results' a.test.pk %}" class="font-medium text-slate-900 hover:text-brand-700">{{ a.test.title }}</a><span class="block text-xs text-slate-500">{{ a.test.get_kind_display }} · pass ≥ {{ a.test.passing_score }}%</span></td>
                 <td>{% status_badge a.state.status %}</td>
                 <td class="num bo-num">{% if a.state.best_score is not None %}{{ a.state.best_score|floatformat:0 }}%{% else %}—{% endif %}</td>
-                <td class="num bo-num text-xs">{{ a.state.attempts_used }}{% if a.test.attempt_limit %} / {{ a.test.attempt_limit }}{% endif %}</td>
-                <td class="text-xs whitespace-nowrap text-slate-500">{{ a.assigned_at|date:"j M Y" }}{% if a.assigned_by %} · {{ a.assigned_by.name }}{% endif %}</td>
+                <td class="num bo-num text-xs">{{ a.state.attempts_used }}{% if a.state.attempt_limit %} / {{ a.state.attempt_limit }}{% endif %}{% if a.extra_attempts %}<span class="block text-[11px] text-slate-500">incl. {{ a.extra_attempts }} extra</span>{% endif %}</td>
+                <td class="text-xs whitespace-nowrap text-slate-500">{{ a.assigned_at|date:"j M Y" }}{% if a.assigned_by %} · {{ a.assigned_by.name }}{% endif %}{% if a.due_at %}<span class="block {% if a.state.status != 'passed' and a.due_at < now %}text-red-600{% endif %}">due {{ a.due_at|date:"j M" }}</span>{% endif %}</td>
+                <td>
+                  {% if a.can_edit %}
+                  <div class="bo-row-actions">
+                    <form method="post" action="{% url 'backoffice:test_assignment_due' a.pk %}" class="flex items-center gap-1">{% csrf_token %}
+                      <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                      <input type="date" name="due_date" value="{{ a.due_at|date:'Y-m-d' }}" class="input !py-1.5 !text-[13px] w-36" aria-label="Due date for {{ a.test.title }}" title="Due date — leave empty for none">
+                      <button class="bo-icon-btn" title="Save due date">{% icon "save" class="h-4 w-4" %}</button>
+                    </form>
+                    {% if a.test.attempt_limit and a.state.status != "passed" %}
+                      <form method="post" action="{% url 'backoffice:test_extra_attempt' a.test.pk employee.pk %}" data-confirm="Give {{ employee.name }} one more attempt at “{{ a.test.title }}”?">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="bo-icon-btn" title="Grant one extra attempt">{% icon "plus-circle" class="h-4 w-4" %}</button></form>
+                    {% endif %}
+                    {% if a.state.attempts_used or a.state.open_attempt %}
+                      <form method="post" action="{% url 'backoffice:test_reset_attempts' a.test.pk employee.pk %}" data-confirm="Reset {{ employee.name }}'s attempts at “{{ a.test.title }}”? All {{ a.state.attempts_used }} submitted attempt(s){% if a.state.open_attempt %} and the one in progress{% endif %} are deleted with their answers and scores, and extra attempts are cleared. This cannot be undone.">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="bo-icon-btn is-danger" title="Reset attempts">{% icon "rotate-ccw" class="h-4 w-4" %}</button></form>
+                    {% endif %}
+                    <form method="post" action="{% url 'backoffice:test_assignment_unassign' a.pk %}" data-confirm="Unassign “{{ a.test.title }}” from {{ employee.name }}? Attempts already made are kept.">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="bo-icon-btn is-danger" title="Unassign">{% icon "x-circle" class="h-4 w-4" %}</button></form>
+                  </div>
+                  {% endif %}
+                </td>
               </tr>
             {% endfor %}
             </tbody>

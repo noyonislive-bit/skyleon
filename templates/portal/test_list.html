@@ -28,7 +28,7 @@
           </td>
           <td>{% tone_badge r.badge.tone r.badge.label %}{% if r.needs_video and r.is_open %}<span class="mt-1 block text-[11px] text-amber-700">আগে ভিডিও দেখুন</span>{% endif %}</td>
           <td class="num font-mono">{% if s.best_score is not None %}{{ s.best_score|floatformat:0 }}%{% else %}—{% endif %}</td>
-          <td class="num font-mono">{{ s.attempts_used }}{% if t.attempt_limit %}/{{ t.attempt_limit }}{% else %}<span class="text-slate-400"> / ∞</span>{% endif %}</td>
+          <td class="num font-mono">{{ s.attempts_used }}{% if s.attempt_limit %}/{{ s.attempt_limit }}{% else %}<span class="text-slate-400"> / ∞</span>{% endif %}</td>
           <td class="whitespace-nowrap {% if r.due_at and r.due_at < now and r.is_open %}font-medium text-red-600{% endif %}">{% if r.due_at %}{{ r.due_at|date:"j M Y" }}{% else %}<span class="text-slate-400">—</span>{% endif %}</td>
           <td class="text-right">
             <a href="{% url 'portal:test_detail' t.pk %}" class="btn {% if r.is_open and not r.needs_video %}btn-primary{% else %}btn-secondary{% endif %} btn-sm">
@@ -49,7 +49,7 @@
         <span class="min-w-0 flex-1">
           <span class="block font-medium text-slate-900">{{ t.title }}</span>
           <span class="mt-0.5 block text-xs text-slate-500">{{ t.kind|label_bn:"test_kind" }}{% if t.project %} · {{ t.project.code }}{% endif %}</span>
-          <span class="meta-row mt-2">{% tone_badge r.badge.tone r.badge.label %}<span>সেরা স্কোর {% if s.best_score is not None %}{{ s.best_score|floatformat:0 }}%{% else %}—{% endif %}</span><span>চেষ্টা {{ s.attempts_used }}{% if t.attempt_limit %}/{{ t.attempt_limit }}{% endif %}</span>{% if r.due_at %}<span>শেষ তারিখ {{ r.due_at|date:"j M" }}</span>{% endif %}</span>
+          <span class="meta-row mt-2">{% tone_badge r.badge.tone r.badge.label %}<span>সেরা স্কোর {% if s.best_score is not None %}{{ s.best_score|floatformat:0 }}%{% else %}—{% endif %}</span><span>চেষ্টা {{ s.attempts_used }}{% if s.attempt_limit %}/{{ s.attempt_limit }}{% endif %}</span>{% if r.due_at %}<span>শেষ তারিখ {{ r.due_at|date:"j M" }}</span>{% endif %}</span>
           {% if r.needs_video and r.is_open %}<span class="mt-1 block text-[11px] text-amber-700">আগে ফিডব্যাক ভিডিওটি দেখুন</span>{% endif %}
         </span>
         {% icon "chevron-right" class="mt-2 h-4 w-4 text-slate-400" %}

@@ -7,7 +7,20 @@ dashboard, employee_detail, applicant_detail, lead_detail, message_detail.
 
 from django.urls import path
 
-from .views import applicants, assessments, comms, dashboard, employees, feedback, insights, leads, projects, system, tutorials
+from .views import (
+    applicants,
+    assessments,
+    assignments,
+    comms,
+    dashboard,
+    employees,
+    feedback,
+    insights,
+    leads,
+    projects,
+    system,
+    tutorials,
+)
 
 app_name = "backoffice"
 
@@ -29,6 +42,15 @@ urlpatterns = [
     path("members/<int:pk>/update/", employees.member_update, name="member_update"),
     path("members/<int:pk>/remove/", employees.member_remove, name="member_remove"),
     path("members/<int:pk>/qualify/", employees.member_qualify, name="member_qualify"),
+
+    # Per-person assignment adjustments (employee page, tutorial / test / feedback tracking)
+    path("progress/<int:pk>/unassign/", assignments.progress_unassign, name="progress_unassign"),
+    path("progress/<int:pk>/due/", assignments.progress_due, name="progress_due"),
+    path("test-assignments/<int:pk>/unassign/", assignments.test_assignment_unassign, name="test_assignment_unassign"),
+    path("test-assignments/<int:pk>/due/", assignments.test_assignment_due, name="test_assignment_due"),
+    path("tests/<int:pk>/people/<int:user_pk>/reset/", assignments.test_reset_attempts, name="test_reset_attempts"),
+    path("tests/<int:pk>/people/<int:user_pk>/extra-attempt/", assignments.test_extra_attempt, name="test_extra_attempt"),
+    path("feedback-recipients/<int:pk>/remove/", assignments.feedback_recipient_remove, name="feedback_recipient_remove"),
 
     path("applicants/", applicants.applicant_list, name="applicant_list"),
     path("applicants/<int:pk>/", applicants.applicant_detail, name="applicant_detail"),

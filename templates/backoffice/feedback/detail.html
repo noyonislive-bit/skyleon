@@ -57,7 +57,7 @@
       {% endif %}
     </form>
     {% if page.object_list %}
-      {% include "backoffice/feedback/_tracking_table.html" with rows=page %}
+      {% include "backoffice/feedback/_tracking_table.html" with rows=page can_remove=can_edit %}
       {% include "components/pagination.html" with page=page %}
     {% elif fb.is_published %}
       {% include "components/empty_state.html" with icon="users" title="No matching recipients" %}

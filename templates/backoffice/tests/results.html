@@ -43,10 +43,22 @@
           <td class="min-w-48">{% include "backoffice/components/person.html" with u=r.user link=True %}</td>
           <td>{% if r.state.status == "passed" %}{% status_badge "passed" "Passed" %}{% elif r.state.status == "review" %}{% status_badge "review" "Failed · can retry" %}{% elif r.state.status == "locked" %}{% status_badge "failed" "Failed · no attempts left" %}{% elif r.state.status == "in_progress" %}{% status_badge "in_progress" "In progress" %}{% else %}{% status_badge "pending" "Not taken" %}{% endif %}</td>
           <td class="num bo-num font-semibold text-slate-900">{% if r.best is not None %}{{ r.best|floatformat:0 }}%{% else %}<span class="font-normal text-slate-400">—</span>{% endif %}</td>
-          <td class="num bo-num text-xs">{{ r.attempts }}{% if test.attempt_limit %} / {{ test.attempt_limit }}{% endif %}</td>
+          <td class="num bo-num text-xs">{{ r.attempts }}{% if r.state.attempt_limit %} / {{ r.state.attempt_limit }}{% endif %}{% if r.state.extra_attempts %}<span class="block text-[11px] text-slate-500">incl. {{ r.state.extra_attempts }} extra</span>{% endif %}</td>
           <td class="text-xs whitespace-nowrap">{{ r.last_submitted|date:"j M Y, H:i"|default:"—" }}</td>
           <td class="text-xs whitespace-nowrap text-slate-500">{% if r.assignment %}{{ r.assignment.assigned_at|date:"j M Y" }}{% else %}self-started{% endif %}</td>
-          <td>{% if r.last %}<a href="{% url 'backoffice:attempt_detail' r.last.pk %}" class="bo-icon-btn" title="Latest attempt">{% icon "chevron-right" class="h-4 w-4" %}</a>{% endif %}</td>
+          <td>
+            <div class="bo-row-actions">
+              {% if can_edit %}
+                {% if test.attempt_limit and r.state.status != "passed" %}
+                  <form method="post" action="{% url 'backoffice:test_extra_attempt' test.pk r.user.pk %}" data-confirm="Give {{ r.user.name }} one more attempt at this test?">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="bo-icon-btn" title="Grant one extra attempt">{% icon "plus-circle" class="h-4 w-4" %}</button></form>
+                {% endif %}
+                {% if r.attempts or r.state.open_attempt %}
+                  <form method="post" action="{% url 'backoffice:test_reset_attempts' test.pk r.user.pk %}" data-confirm="Reset {{ r.user.name }}'s attempts? All {{ r.attempts }} submitted attempt(s){% if r.state.open_attempt %} and the one in progress{% endif %} are deleted with their answers and scores, and extra attempts are cleared. This cannot be undone.">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="bo-icon-btn is-danger" title="Reset attempts">{% icon "rotate-ccw" class="h-4 w-4" %}</button></form>
+                {% endif %}
+              {% endif %}
+              {% if r.last %}<a href="{% url 'backoffice:attempt_detail' r.last.pk %}" class="bo-icon-btn" title="Latest attempt">{% icon "chevron-right" class="h-4 w-4" %}</a>{% endif %}
+            </div>
+          </td>
         </tr>
       {% endfor %}
       </tbody>

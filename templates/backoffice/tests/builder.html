@@ -19,7 +19,7 @@
         <form method="post" action="{% url 'backoffice:test_status' test.pk %}" data-confirm="Move back to draft? Employees can't start it while it's a draft.">{% csrf_token %}<input type="hidden" name="action" value="unpublish"><button class="btn btn-secondary btn-sm">Unpublish</button></form>
       {% endif %}
       {% if test.status != "archived" %}<form method="post" action="{% url 'backoffice:test_status' test.pk %}" data-confirm="Archive this test? Results are kept.">{% csrf_token %}<input type="hidden" name="action" value="archive"><button class="btn btn-secondary btn-sm" title="Archive">{% icon "archive" class="h-4 w-4" %}</button></form>{% endif %}
-      {% if not stats.n %}<form method="post" action="{% url 'backoffice:test_status' test.pk %}" data-confirm="Delete this test and its questions?">{% csrf_token %}<input type="hidden" name="action" value="delete"><button class="btn btn-danger-soft btn-sm" title="Delete">{% icon "trash-2" class="h-4 w-4" %}</button></form>{% endif %}
+      {% if can_delete %}<form method="post" action="{% url 'backoffice:test_status' test.pk %}" data-confirm="Delete this test and its questions?">{% csrf_token %}<input type="hidden" name="action" value="delete"><button class="btn btn-danger-soft btn-sm" title="Delete">{% icon "trash-2" class="h-4 w-4" %}</button></form>{% endif %}
     {% endif %}
   </div>
 </div>

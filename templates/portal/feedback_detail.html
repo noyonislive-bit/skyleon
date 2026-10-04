@@ -88,7 +88,7 @@
         <dl class="mt-4 grid grid-cols-3 gap-3 rounded-lg bg-slate-50 p-3 text-center ring-1 ring-slate-200">
           <div><dt class="kv-label text-[10px]">প্রশ্ন</dt><dd class="mt-0.5 text-sm font-semibold text-slate-900">{{ question_count }}</dd></div>
           <div><dt class="kv-label text-[10px]">পাস মার্ক</dt><dd class="mt-0.5 text-sm font-semibold text-slate-900">{{ test.passing_score }}%</dd></div>
-          <div><dt class="kv-label text-[10px]">চেষ্টা</dt><dd class="mt-0.5 text-sm font-semibold text-slate-900">{{ state.attempts_used }}{% if test.attempt_limit %}/{{ test.attempt_limit }}{% endif %}</dd></div>
+          <div><dt class="kv-label text-[10px]">চেষ্টা</dt><dd class="mt-0.5 text-sm font-semibold text-slate-900">{{ state.attempts_used }}{% if state.attempt_limit %}/{{ state.attempt_limit }}{% endif %}</dd></div>
         </dl>
 
         {% if state.status == "passed" %}

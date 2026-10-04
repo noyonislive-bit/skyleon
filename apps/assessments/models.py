@@ -90,6 +90,9 @@ class TestAssignment(models.Model):
     assigned_at = models.DateTimeField(auto_now_add=True)
     assigned_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
     due_at = models.DateTimeField(null=True, blank=True)
+    extra_attempts = models.PositiveSmallIntegerField(
+        default=0, help_text="Attempts granted to this person on top of the test's attempt limit"
+    )
 
     class Meta:
         constraints = [models.UniqueConstraint(fields=["test", "user"], name="uniq_test_assignment")]

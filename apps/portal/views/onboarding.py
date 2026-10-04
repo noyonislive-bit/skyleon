@@ -3,7 +3,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_POST
 
-from apps.assessments.services import test_state
+from apps.assessments.services import extra_attempts_map, test_state
 from apps.core.choices import ContentStatus
 from apps.projects.models import GuidelineAck
 from apps.training.models import OnboardingStep, TutorialProgress
@@ -14,7 +14,7 @@ from ..scope import attempts_by_test, portal_view
 
 
 def enrich_sections(scope, sections):
-    """Attach the user's state for each step's tutorial / guideline / test / qualification (4 queries)."""
+    """Attach the user's state for each step's tutorial / guideline / test / qualification (5 queries)."""
     user = scope.user
     items = [i for sec in sections for i in sec["steps"]]
     tutorial_ids = {i["step"].tutorial_id for i in items if i["step"].tutorial_id}
@@ -27,6 +27,7 @@ def enrich_sections(scope, sections):
         a.guideline_id: a for a in GuidelineAck.objects.filter(user=user, guideline_id__in=guideline_ids)
     } if guideline_ids else {}
     attempts = attempts_by_test(user, tests.keys()) if tests else {}
+    extras = extra_attempts_map(user, tests.keys()) if tests else {}
 
     for sec in sections:
         sec["member"] = scope.membership(sec["project"].pk) if sec["project"] else None
@@ -46,7 +47,8 @@ def enrich_sections(scope, sections):
                 item["guideline_ack"] = ack
                 item["guideline_current"] = bool(ack and ack.version == step.guideline.version)
             if step.test_id:
-                state = test_state(user, step.test, attempts=attempts.get(step.test_id, []))
+                state = test_state(user, step.test, attempts=attempts.get(step.test_id, []),
+                                   extra_attempts=extras.get(step.test_id, 0))
                 item["test_state"] = state
                 item["test_badge"] = state_badge(state)
                 item["test_available"] = step.test.status == ContentStatus.PUBLISHED

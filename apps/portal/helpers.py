@@ -192,14 +192,17 @@ def tests_with_state(scope, qs=None):
     )
     ids = [t.pk for t in tests]
     attempts = attempts_by_test(scope.user, ids)
-    due = dict(TestAssignment.objects.filter(user=scope.user, test_id__in=ids).values_list("test_id", "due_at"))
+    due, extras = {}, {}
+    for test_id, due_at, extra in TestAssignment.objects.filter(user=scope.user, test_id__in=ids).values_list(
+            "test_id", "due_at", "extra_attempts"):
+        due[test_id], extras[test_id] = due_at, extra
     fb_ids = [t.feedback.pk for t in tests if getattr(t, "feedback", None)]
     recipients = (
         {r.feedback_id: r for r in scope.recipients().filter(feedback_id__in=fb_ids)} if fb_ids else {}
     )
     out = []
     for t in tests:
-        state = test_state(scope.user, t, attempts=attempts.get(t.pk, []))
+        state = test_state(scope.user, t, attempts=attempts.get(t.pk, []), extra_attempts=extras.get(t.pk, 0))
         fb = getattr(t, "feedback", None)
         recipient = recipients.get(fb.pk) if fb else None
         out.append({

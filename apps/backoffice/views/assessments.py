@@ -173,6 +173,9 @@ def _builder_context(request, test, qform=None, formset=None):
         "assign_form": assign_form,
         # Questions added now are appended to attempts that are still open (they count towards the score).
         "open_attempts": test.attempts.filter(submitted_at__isnull=True).count() if test.is_published else 0,
+        # test_status(action="delete") refuses while ANY attempt exists (also unsubmitted ones and people outside
+        # the viewer's scope), so the Delete button follows the same rule.
+        "can_delete": can_edit and not test.attempts.exists(),
         "qtypes": QuestionType.choices,
     }
 
@@ -382,7 +385,8 @@ def test_results(request, pk):
     people.update({a.user_id: a.user for a in attempts})
     rows = []
     for uid, person in people.items():
-        state = test_state(person, test, by_user.get(uid, []))
+        assignment = assignments.get(uid)
+        state = test_state(person, test, by_user.get(uid, []), assignment.extra_attempts if assignment else 0)
         submitted = [a for a in by_user.get(uid, []) if a.submitted_at]
         rows.append({
             "user": person, "state": state, "assignment": assignments.get(uid),
@@ -436,6 +440,7 @@ def test_results(request, pk):
         "pass_rate": pct(summary["passed"], summary["takers"]),
         "filters": f,
         "linked": _linked_feedback(test),
+        "can_edit": can_manage_content_for(user, test.project),
     })
 
 

@@ -18,7 +18,7 @@ from apps.accounts.services import (
     suspend_user,
 )
 from apps.assessments.models import Test, TestAssignment, TestAttempt
-from apps.assessments.services import assign_test, test_state
+from apps.assessments.services import assign_test, extra_attempts_map, test_state
 from apps.comms.services import absolute_url, queue_email
 from apps.core import audit
 from apps.core.choices import ContentStatus
@@ -40,6 +40,7 @@ from ..forms import (
     RoleForm,
 )
 from ..helpers import (
+    can_edit_content,
     can_manage_employee,
     day_end,
     employee_scope,
@@ -186,6 +187,8 @@ def employee_detail(request, pk):
             .select_related("tutorial__project", "tutorial__video", "tutorial__category")
             .order_by("status", "-assigned_at")
         )
+        for p in ctx["progress_rows"]:
+            p.can_edit = p.assigned and can_edit_content(user, p.tutorial.project_id)
     if tab == "feedback":
         rows = list(
             project_scope(FeedbackRecipient.objects.filter(user=employee), user, field="feedback__project")
@@ -195,8 +198,11 @@ def employee_detail(request, pk):
         attempts = {}
         for a in TestAttempt.objects.filter(user=employee, test_id__in=test_ids).order_by("-attempt_number"):
             attempts.setdefault(a.test_id, []).append(a)
+        extras = extra_attempts_map(employee, test_ids) if test_ids else {}
         for r in rows:
-            r.state = test_state(employee, r.feedback.test, attempts.get(r.feedback.test_id, [])) if r.feedback.test_id else None
+            r.state = test_state(employee, r.feedback.test, attempts.get(r.feedback.test_id, []),
+                                 extras.get(r.feedback.test_id, 0)) if r.feedback.test_id else None
+            r.can_remove = can_edit_content(user, r.feedback.project_id)
         ctx["feedback_rows"] = rows
     if tab == "tests":
         ctx["attempts"] = list(
@@ -211,7 +217,9 @@ def employee_detail(request, pk):
         for a in ctx["attempts"]:
             by_test.setdefault(a.test_id, []).append(a)
         for a in assignments:
-            a.state = test_state(employee, a.test, sorted(by_test.get(a.test_id, []), key=lambda x: -x.attempt_number))
+            a.state = test_state(employee, a.test, sorted(by_test.get(a.test_id, []), key=lambda x: -x.attempt_number),
+                                 a.extra_attempts)
+            a.can_edit = can_edit_content(user, a.test.project_id)
         ctx["assignments"] = assignments
     if tab == "overview":
         ctx["recent_attempts"] = list(
