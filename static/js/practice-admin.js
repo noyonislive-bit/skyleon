@@ -83,3 +83,14 @@
     }
   });
 })();
+
+/* Practice task form: the "Submit by" date only applies to weekly review tasks. */
+(function () {
+  "use strict";
+  const box = document.querySelector("[data-review-only]");
+  const radios = Array.from(document.querySelectorAll("input[name=kind]"));
+  if (!box || !radios.length) return;
+  const sync = () => { box.hidden = !radios.some((r) => r.checked && r.value === "review"); };
+  radios.forEach((r) => r.addEventListener("change", sync));
+  sync();
+})();

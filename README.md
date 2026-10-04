@@ -36,6 +36,10 @@ Built with **Python (Django 5.2 LTS) + MySQL/MariaDB** and designed to run on **
   emails and notifications) — the admin panel and the public website stay in English. Style guide: [`docs/BANGLA_STYLE.md`](docs/BANGLA_STYLE.md).
 - **Practice Lab**: an exact replica of the production clipping tool (Space = play, N = cut, …) where employees practise
   on real videos and are scored against the trainer's reference segmentation.
+- **Weekly review** (Practice Lab task type): everyone clips a hard video first (their work is saved; editable until the
+  answer is out) → a reviewer clips the same video in the same tool and publishes the answer → every employee sees their
+  clips next to the reviewer's with the match % and each answer clip marked matched / close / missed → they correct their
+  own work with the answer shown under the timeline and resubmit; admins see first score, corrections and improvement.
 - **Work guides**: the project's work documents rebuilt as Bangla step-by-step guides (document → section → step → video →
   description), with the original videos embedded at the exact segment each step describes, and every **Task Error example**
   from the original shown as its own card (what went wrong · why · how to avoid it · correct method). The original document

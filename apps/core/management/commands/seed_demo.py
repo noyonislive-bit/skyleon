@@ -56,7 +56,7 @@ SAMPLE_URL = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/
 DEFAULT_PASSWORD = "Demo@12345"
 LOGINS_FILE = "SAMPLE_LOGINS.txt"
 
-SAMPLE_VERSION = 2               # bump when the sample set grows; previews then top up by themselves
+SAMPLE_VERSION = 3               # bump when the sample set grows; previews then top up by themselves
 VERSION_KEY = "sample_data_version"
 REMOVED_KEY = "sample_data_removed"
 
@@ -574,6 +574,63 @@ class Command(BaseCommand):
                 return
             clips = [[round(a + shift, 2), round(b + shift, 2)] for j, (a, b) in enumerate(task.reference_clips) if j != drop]
             submit(get_draft(task, user), clips, time_spent=minutes * 60)
+
+        # ── Weekly review (everyone clips first; the reviewer's answer is published later; then they correct) ──
+        from apps.practice import services as practice_services
+
+        many = [[0.8, 2.4], [2.6, 4.1], [4.3, 6.0], [6.4, 8.2], [8.5, 9.9], [10.3, 12.6], [12.9, 14.2],
+                [14.6, 16.8], [17.1, 18.9], [19.3, 21.0], [21.4, 23.5], [23.8, 25.6], [26.0, 28.4]]
+
+        def variant(ref, shift=0.0, drop=(), merge=()):
+            """An employee's version of the answer: shifted edges, missed actions, two actions merged into one."""
+            out = []
+            for j, (a, b) in enumerate(ref):
+                if j in drop:
+                    continue
+                if j - 1 in merge and out:
+                    out[-1][1] = round(b + shift, 2)
+                    continue
+                out.append([round(a + shift, 2), round(b + shift, 2)])
+            return out
+
+        def weekly(title, video, due_days, *, instructions):
+            def create(**kw):
+                v = self.video(*video)
+                shape = fit(v, 30, (0.5, 29), many)
+                return PracticeTask.objects.create(
+                    kind="review", project=act, video=v, tolerance_sec=0.4, passing_score=75, status="published",
+                    published_at=timezone.now() - timedelta(days=max(0, -due_days) + 4), created_by=trainer, order=10,
+                    due_at=timezone.now() + timedelta(days=due_days), range_start=shape["range_start"], range_end=shape["range_end"],
+                    reference_clips=shape["reference_clips"], **kw)
+            task, created = self.ensure(PracticeTask, {"title": title}, {"instructions": instructions}, create=create)
+            return task, created
+
+        instructions = ("এই ভিডিওতে খুব কাছাকাছি অনেকগুলো অ্যাকশন আছে — এখানেই সবচেয়ে বেশি অ্যাকশন বাদ পড়ে। "
+                        "প্রতিটা অ্যাকশন আলাদা ক্লিপ করুন, দুটো অ্যাকশন এক ক্লিপে জুড়ে দেবেন না।")
+        done, created = weekly("সাপ্তাহিক রিভিউ: দ্রুত হাতের অনেক অ্যাকশন", ("weekly-review-fast-hands", 30, "0x166534"), -3,
+                               instructions=instructions)
+        if created and done.reference_clips:
+            ref = done.reference_clips
+            own = {0: variant(ref, 0.15, drop=(6,)), 1: variant(ref, 0.0, drop=(2, 9), merge=(4,)), 2: variant(ref, 0.65),
+                   3: variant(ref, 0.1), 4: None}
+            for i, e in enumerate(employees[:5]):
+                if own[i] is not None:
+                    a = practice_services.submit(practice_services.first_attempt(done, e), own[i], time_spent=(9 + i) * 60)
+                    # handed in on time, except employee 4
+                    PracticeAttempt.objects.filter(pk=a.pk).update(submitted_at=done.due_at + timedelta(hours=5 if i == 3 else -(6 + 7 * i)))
+            practice_services.publish_answer(done, trainer)
+            PracticeTask.objects.filter(pk=done.pk).update(answer_published_at=now - timedelta(days=2))
+            for i, clips in ((1, variant(ref, 0.1)), (2, variant(ref, 0.2)), (0, variant(ref, 0.05))):
+                a = practice_services.submit(practice_services.correction_draft(done, employees[i]), clips, time_spent=6 * 60)
+                PracticeAttempt.objects.filter(pk=a.pk).update(submitted_at=now - timedelta(days=1, hours=3 * i))
+
+        open_task, created = weekly("সাপ্তাহিক রিভিউ: এই সপ্তাহ — দুই হাতে একসাথে কাজ", ("weekly-review-two-hands", 30, "0x0f766e"), 4,
+                                    instructions=instructions + " দুই হাত একসাথে কাজ করলে *both hands* হিসেবে একটাই ক্লিপ হবে।")
+        if created and open_task.reference_clips:
+            ref = open_task.reference_clips
+            practice_services.submit(practice_services.first_attempt(open_task, employees[0]), variant(ref, 0.2, drop=(5,)), time_spent=11 * 60)
+            practice_services.submit(practice_services.first_attempt(open_task, employees[1]), variant(ref, 0.5, merge=(7,)), time_spent=8 * 60)
+            practice_services.save_draft(practice_services.first_attempt(open_task, employees[2]), variant(ref)[:5], time_spent=240)
 
         # ── Work guide (sample — the real guides are built from the original documents) ──
         import json

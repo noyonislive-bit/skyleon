@@ -3,7 +3,7 @@
 {% block page_actions %}
   {% if task %}
     <a href="{% url 'practice:manage_results' task.pk %}" class="btn btn-secondary">Results</a>
-    {% if task.video %}<a href="{% url 'practice:manage_reference' task.pk %}" class="btn btn-secondary">{% icon "scissors" class="h-4 w-4" %} {% if task.has_reference %}Edit{% else %}Record{% endif %} reference</a>{% endif %}
+    {% if task.video %}<a href="{% url 'practice:manage_reference' task.pk %}" class="btn btn-secondary">{% icon "scissors" class="h-4 w-4" %} {% if task.has_reference %}Edit{% else %}Record{% endif %} {% if task.is_review %}reviewer answer{% else %}reference{% endif %}</a>{% endif %}
     <form method="post" action="{% url 'practice:manage_publish' task.pk %}">{% csrf_token %}
       <input type="hidden" name="next" value="{{ request.path }}">
       {% if task.is_published %}<button name="action" value="unpublish" class="btn btn-secondary">Unpublish</button>{% else %}<button class="btn btn-success">{% icon "send" class="h-4 w-4" %} Publish</button>{% endif %}
@@ -17,6 +17,8 @@
     <div class="card-body space-y-5">
       {% include "components/form_errors.html" %}
       {% include "components/field.html" with field=form.title %}
+      {% include "components/field.html" with field=form.kind %}
+      <div data-review-only>{% include "components/field.html" with field=form.due_at hint="Optional. Submissions after this time are marked late (they are still accepted)." %}</div>
       <div class="grid gap-5 sm:grid-cols-2">
         {% include "components/field.html" with field=form.project %}
         {% include "components/field.html" with field=form.order %}
@@ -52,6 +54,26 @@
     </div>
   </form>
   <aside class="space-y-4">
+    {% if task.is_review %}
+    <div class="card card-body text-sm">
+      <h2 class="card-title mb-2">Weekly review</h2>
+      <ol class="list-decimal space-y-2 pl-4 text-slate-600">
+        <li class="{% if task.is_published %}text-emerald-700{% endif %}"><strong>Publish</strong> the task — employees are notified and clip the video themselves. Their work is saved and kept.</li>
+        <li class="{% if task.has_reference %}text-emerald-700{% endif %}"><strong>Record the reviewer answer</strong> in the same tool ({{ task.reference_clips|length }} clip{{ task.reference_clips|length|pluralize }} so far). Employees can't see it yet.</li>
+        <li class="{% if task.answer_published %}text-emerald-700{% endif %}"><strong>Publish the answer</strong> — every submission gets its match %, and employees compare and correct their work.</li>
+      </ol>
+      <form method="post" action="{% url 'practice:manage_answer' task.pk %}" class="mt-4">{% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.path }}">
+        {% if task.answer_published %}
+          <p class="mb-2 text-xs text-slate-500">Answer published {{ task.answer_published_at|date:"j M Y, H:i" }}{% if task.answer_by %} by {{ task.answer_by.name }}{% endif %}. Editing the answer updates everyone's scores.</p>
+          <button name="action" value="unpublish" class="btn btn-secondary btn-sm">Hide answer again</button>
+        {% else %}
+          <button class="btn btn-success btn-sm" {% if not task.has_reference or not task.is_published %}disabled{% endif %}>{% icon "send" class="h-4 w-4" %} Publish answer</button>
+          {% if not task.is_published %}<p class="mt-2 text-xs text-slate-500">Publish the task first.</p>{% elif not task.has_reference %}<p class="mt-2 text-xs text-slate-500">Record the reviewer answer first.</p>{% endif %}
+        {% endif %}
+      </form>
+    </div>
+    {% else %}
     <div class="card card-body text-sm text-slate-600">
       <h2 class="card-title mb-3">How to set up a practice task</h2>
       <ol class="list-decimal space-y-2 pl-4">
@@ -59,12 +81,15 @@
         <li>Save, then <strong>record the reference</strong>: clip the video yourself in the replica tool and press <em>submit task</em>.</li>
         <li><strong>Publish</strong>. Employees of the project see it in their Practice Lab and get an instant score.</li>
       </ol>
+      <p class="mt-3 text-xs text-slate-500">Choose <strong>Weekly review</strong> as the type for a hard video that everyone clips first and a reviewer answers afterwards.</p>
     </div>
+    {% endif %}
     {% if task %}
     <div class="card card-body text-sm">
-      <h2 class="card-title mb-2">Reference segmentation</h2>
+      <h2 class="card-title mb-2">{% if task.is_review %}Reviewer answer{% else %}Reference segmentation{% endif %}</h2>
       {% if task.has_reference %}<p class="text-slate-600">{{ task.reference_clips|length }} clips recorded.</p>
       <ol class="mt-2 max-h-56 space-y-1 overflow-auto font-mono text-xs text-slate-600">{% for c in task.reference_clips %}<li>Clip {{ forloop.counter }}: {{ c.0|floatformat:2 }}s – {{ c.1|floatformat:2 }}s</li>{% endfor %}</ol>
+      {% elif task.is_review %}<p class="text-slate-600">Not recorded yet. Record it once employees have clipped the video (they never see it before you publish the answer).</p>
       {% else %}<p class="text-amber-700">Not recorded yet — employees would only be scored on coverage.</p>{% endif %}
       {% if attempt_count %}
       <p class="mt-5 border-t border-slate-100 pt-4 text-xs text-slate-500">{{ attempt_count }} submitted attempt{{ attempt_count|pluralize }} — unpublish the task instead of deleting it, so the results are kept.</p>

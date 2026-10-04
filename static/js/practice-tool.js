@@ -15,7 +15,9 @@
   if (!root || !dataEl) return;
   const data = JSON.parse(dataEl.textContent);
   const cfg = data.config || {};
-  const MODE = data.mode; // practice | reference
+  // practice (instant score) | review (weekly review: own work, scored when the reviewer's answer is out)
+  // | correct (fix own work; the reviewer's answer is shown as a guide row) | reference (admin)
+  const MODE = data.mode;
   const BASE_PPS = 10; // internal pixels per second scale
   // Zoom levels relative to "100%" — like the production tool, 100% shows the whole range.
   const ZOOMS = [0.5, 0.75, 1, 1.5, 2, 3, 4, 6, 8, 12, 16, 24, 32];
@@ -45,6 +47,9 @@
   const toastEl = $("[data-toast]");
   const timerEl = $("[data-timer]");
   const saveStatus = $("[data-save-status]");
+  const guideEl = $("[data-guide]");
+  const guideToggle = $("[data-guide-toggle]");
+  const guide = (data.guide || []).map((c) => [Number(c[0]), Number(c[1])]).filter((c) => c[1] > c[0]);
 
   let lo = Number(data.task.rangeStart) || 0;
   let hi = Number(data.task.rangeEnd) || lo + 60;
@@ -168,9 +173,30 @@
     zoomLabel.textContent = Math.round((state.zoom / state.fitZoom) * 100) + "%";
     renderRuler();
     renderClips();
+    renderGuide();
     renderUncovered();
     updatePlayhead();
   }
+  // Correction mode: the reviewer's answer under the employee's own clips (click one to jump to it).
+  function renderGuide() {
+    if (!guideEl) return;
+    const on = !guideToggle || guideToggle.checked;
+    inner.classList.toggle("has-guide", on);
+    guideEl.hidden = !on;
+    guideEl.querySelectorAll(".vp-guide-clip").forEach((el) => el.remove());
+    if (!on) return;
+    guide.forEach((c, i) => {
+      const el = document.createElement("div");
+      el.className = "vp-guide-clip";
+      el.style.left = xOf(c[0]) + 1 + "px";
+      el.style.width = Math.max(4, xOf(c[1]) - xOf(c[0]) - 2) + "px";
+      el.textContent = T("উত্তর ", "Answer ") + (i + 1) + " · " + mmss(c[0]) + "–" + mmss(c[1]);
+      el.title = T("রিভিউয়ারের ক্লিপ ", "Reviewer clip ") + (i + 1) + ": " + mmssExact(c[0]) + " – " + mmssExact(c[1]);
+      el.addEventListener("pointerdown", (e) => { e.preventDefault(); e.stopPropagation(); seek(c[0]); });
+      guideEl.appendChild(el);
+    });
+  }
+  if (guideToggle) guideToggle.addEventListener("change", () => { renderGuide(); guideToggle.blur(); });
   function steps() {
     const opts = [0.5, 1, 2, 5, 10, 15, 30, 60, 120, 300, 600];
     const label = opts.find((s) => s * pps() >= 90) || 600;
@@ -521,7 +547,7 @@
     if (state.open !== null) { toast(T("আগে খোলা ক্লিপটা শেষ করুন (N চাপুন), অথবা Delete চেপে বাতিল করুন।", "Finish the open clip first (press N), or press Delete to cancel it.")); return; }
     if (!state.clips.length) { toast(T("জমা দেওয়ার আগে অন্তত একটা ক্লিপ বানান।", "Create at least one clip before submitting.")); return; }
     const gaps = uncoveredRanges();
-    if (MODE === "practice" && gaps.length && !window.confirm(T("হাত দেখা যাচ্ছে এমন কিছু অংশ এখনো ক্লিপের বাইরে আছে (" + gapList(gaps) + ")। তবুও জমা দেবেন?", "Hands-present time is still uncovered (" + gapList(gaps) + "). Submit anyway?"))) return;
+    if (MODE !== "reference" && gaps.length && !window.confirm(T("হাত দেখা যাচ্ছে এমন কিছু অংশ এখনো ক্লিপের বাইরে আছে (" + gapList(gaps) + ")। তবুও জমা দেবেন?", "Hands-present time is still uncovered (" + gapList(gaps) + "). Submit anyway?"))) return;
     state.busy = true;
     video.pause();
     post(data.urls.submit, { clips: clipsPayload(), timeSpent: Math.floor(activeMs / 1000) })
@@ -529,14 +555,31 @@
         state.dirty = false;
         saveStatus.textContent = T("জমা দেওয়া হয়েছে", "Submitted");
         if (MODE === "reference") {
-          toast("Reference saved — " + res.clips.length + " clips.");
+          toast((data.reviewAnswer ? "Answer saved — " : "Reference saved — ") + res.clips.length + " clips.");
           if (goNext && data.urls.next) setTimeout(() => (location.href = data.urls.next), 600);
           return;
         }
+        if (MODE === "review" && res.pending) { showSubmitted(); return; }
+        if (MODE === "review" && res.resultUrl) { toast(T("জমা হয়েছে — এবার রিভিউয়ারের উত্তরের সাথে মিলিয়ে দেখুন।", "Submitted — now compare with the reviewer's answer.")); setTimeout(() => (location.href = res.resultUrl), 900); return; }
         showResult(res, goNext);
       })
       .catch((err) => toast(T("জমা দেওয়া যায়নি: ", "Could not submit: ") + errorText(err)))
       .finally(() => (state.busy = false));
+  }
+  // Weekly review, before the answer: no score yet — the work is kept until the reviewer's answer is out.
+  function showSubmitted() {
+    const due = data.review && data.review.due ? T("জমা দেওয়ার শেষ সময় " + data.review.due + "। ", "Due " + data.review.due + ". ") : "";
+    $("[data-result-body]").innerHTML =
+      '<div class="pt-score"><div class="pt-score-ring" style="--p:100;--ring-color:#1f6e58"><span>✓</span></div><div>' +
+      '<span class="pt-pill is-pass">' + T("জমা হয়েছে", "Submitted") + "</span>" +
+      '<p style="margin:8px 0 0">' + state.clips.length + T("টি ক্লিপ জমা দেওয়া হয়েছে। আপনার কাজ সেভ আছে, হারাবে না।", " clips submitted. Your work is saved.") + "</p></div></div>" +
+      '<p style="margin:14px 0 0">' + due + T("রিভিউয়ারের উত্তর প্রকাশ হলে নোটিফিকেশন পাবেন — তখন দেখবেন আপনার কাজ কতটা মিলেছে আর কোথায় ভুল হয়েছে। তার আগ পর্যন্ত চাইলে আবার খুলে ঠিক করে জমা দিতে পারবেন।", "You'll be notified when the reviewer's answer is published.") + "</p>";
+    const foot = $("[data-result-foot]");
+    foot.innerHTML = "";
+    const add = (label, cls, fn) => { const b = document.createElement("button"); b.type = "button"; b.className = "vp-fbtn " + cls; b.textContent = label; b.onclick = fn; foot.appendChild(b); };
+    add(T("আরও ঠিক করি", "Keep editing"), "vp-fbtn-mint", () => closeModal($("#pt-result")));
+    add(T("প্র্যাকটিস ল্যাবে ফিরে যান", "Back to Practice Lab"), "vp-fbtn-green", () => (location.href = data.urls.back));
+    openModal($("#pt-result"));
   }
   function showResult(res, goNext) {
     const m = res.metrics || {};
@@ -548,10 +591,18 @@
       "<div><span class=\"pt-pill " + (pass ? "is-pass" : "is-fail") + "\">" + (pass ? T("পাস", "Passed") : T("এখনো পাস হয়নি", "Not passed yet")) + "</span>" +
       '<p style="margin:8px 0 0">' + T("পাস মার্ক: ", "Passing score: ") + res.passingScore + "% · " + (m.clip_count || 0) + T("টি ক্লিপ", " clips") + (m.reference_count ? T(" (রেফারেন্সে: " + m.reference_count + "টি)", " (reference: " + m.reference_count + ")") : "") + "</p></div></div>" +
       '<div class="pt-metrics">' + metric(m.boundary_f1, T("শুরু/শেষের নির্ভুলতা", "Boundary accuracy")) + metric(m.mean_iou, T("ক্লিপ মিল (IoU)", "Clip overlap (IoU)")) + metric(m.coverage, T("কভারেজ", "Coverage")) + "</div>" +
-      (issues ? '<ul class="pt-issues">' + issues + "</ul>" : '<p style="margin:14px 0 0;color:#146c4b">' + T("কোনো ভুল পাওয়া যায়নি — দারুণ কাজ!", "No issues found — great work!") + "</p>");
+      (res.firstScore != null ? '<div class="pt-compare"><span>' + T("নিজের কাজ", "Own work") + " <b>" + Math.round(res.firstScore) + '%</b></span><span class="pt-arrow">→</span><span>' + T("এখন", "Now") + ' <b style="color:' + (res.score >= res.firstScore ? "#146c4b" : "#c2410c") + '">' + Math.round(res.score) + "%</b></span>" +
+        (res.score > res.firstScore ? '<span class="pt-pill is-pass">+' + Math.round(res.score - res.firstScore) + T(" উন্নতি", " better") + "</span>" : "") + "</div>" : "") +
+      (issues ? '<ul class="pt-issues">' + issues + "</ul>" : '<p style="margin:14px 0 0;color:#146c4b">' + (MODE === "correct" ? T("রিভিউয়ারের উত্তরের সাথে পুরোপুরি মিলে গেছে — দারুণ!", "Matches the reviewer's answer — great work!") : T("কোনো ভুল পাওয়া যায়নি — দারুণ কাজ!", "No issues found — great work!")) + "</p>");
     const foot = $("[data-result-foot]");
     foot.innerHTML = "";
     const btn = (label, cls, fn) => { const b = document.createElement("button"); b.type = "button"; b.className = "vp-fbtn " + cls; b.textContent = label; b.onclick = fn; foot.appendChild(b); };
+    if (MODE === "correct") {
+      btn(T("তুলনা দেখুন", "See comparison"), "vp-fbtn-mint", () => (location.href = res.resultUrl));
+      btn(T("আরও ঠিক করুন", "Keep correcting"), "vp-fbtn-green", () => closeModal($("#pt-result")));
+      openModal($("#pt-result"));
+      return;
+    }
     btn(T("বিস্তারিত ফলাফল দেখুন", "View detailed result"), "vp-fbtn-mint", () => (location.href = res.resultUrl));
     btn(T("আবার চেষ্টা করুন", "Keep improving"), "vp-fbtn-mint", () => closeModal($("#pt-result")));
     if (data.urls.next) btn(T("পরের টাস্ক →", goNext ? "Next task →" : "Next task"), "vp-fbtn-green", () => (location.href = data.urls.next));

@@ -81,7 +81,9 @@ def fmt(t: float) -> str:
     return f"{int(t // 60):02d}:{t % 60:05.2f}"
 
 
-def score_attempt(user_clips: list[Clip], ref_clips: list[Clip], lo: float, hi: float, tol: float) -> dict:
+def score_attempt(user_clips: list[Clip], ref_clips: list[Clip], lo: float, hi: float, tol: float, *,
+                  ref_en: str = "reference", ref_bn: str = "রেফারেন্সের") -> dict:
+    """`ref_en` / `ref_bn` name the clips compared against (the trainer's reference, or the reviewer's answer)."""
     span = max(hi - lo, 0.001)
     covered = sum(e - s for s, e in union(user_clips))
     coverage = min(1.0, covered / span)
@@ -118,22 +120,22 @@ def score_attempt(user_clips: list[Clip], ref_clips: list[Clip], lo: float, hi: 
         scored = sorted(((iou(r, u), u) for u in user_clips), reverse=True)
         best_iou, best_clip = scored[0] if scored else (0.0, None)
         best.append(best_iou)
-        if best_iou < 0.5:
-            issues.append({"kind": "missed", "text": f"Reference clip {idx} ({fmt(r[0])} – {fmt(r[1])}) has no matching clip.",
-                           "text_bn": f"রেফারেন্সের {idx} নম্বর ক্লিপের ({fmt(r[0])} – {fmt(r[1])}) সাথে মেলে এমন কোনো ক্লিপ আপনি বানাননি।"})
+        if best_iou < 0.3:  # same threshold as clip_matches(): below it the action counts as not clipped
+            issues.append({"kind": "missed", "text": f"{ref_en.capitalize()} clip {idx} ({fmt(r[0])} – {fmt(r[1])}) has no matching clip.",
+                           "text_bn": f"{ref_bn} {idx} নম্বর ক্লিপের ({fmt(r[0])} – {fmt(r[1])}) সাথে মেলে এমন কোনো ক্লিপ আপনি বানাননি।"})
         elif best_clip:
             ds, de = best_clip[0] - r[0], best_clip[1] - r[1]
             if abs(ds) > tol:
-                issues.append({"kind": "boundary", "text": f"Clip for reference {idx} starts {abs(ds):.2f}s {'late' if ds > 0 else 'early'}.",
-                               "text_bn": f"রেফারেন্সের {idx} নম্বর ক্লিপের তুলনায় আপনার ক্লিপ {abs(ds):.2f} সেকেন্ড {'দেরিতে' if ds > 0 else 'আগে'} শুরু হয়েছে।"})
+                issues.append({"kind": "boundary", "text": f"Clip for {ref_en} clip {idx} starts {abs(ds):.2f}s {'late' if ds > 0 else 'early'}.",
+                               "text_bn": f"{ref_bn} {idx} নম্বর ক্লিপের তুলনায় আপনার ক্লিপ {abs(ds):.2f} সেকেন্ড {'দেরিতে' if ds > 0 else 'আগে'} শুরু হয়েছে।"})
             if abs(de) > tol:
-                issues.append({"kind": "boundary", "text": f"Clip for reference {idx} ends {abs(de):.2f}s {'late' if de > 0 else 'early'}.",
-                               "text_bn": f"রেফারেন্সের {idx} নম্বর ক্লিপের তুলনায় আপনার ক্লিপ {abs(de):.2f} সেকেন্ড {'দেরিতে' if de > 0 else 'আগে'} শেষ হয়েছে।"})
+                issues.append({"kind": "boundary", "text": f"Clip for {ref_en} clip {idx} ends {abs(de):.2f}s {'late' if de > 0 else 'early'}.",
+                               "text_bn": f"{ref_bn} {idx} নম্বর ক্লিপের তুলনায় আপনার ক্লিপ {abs(de):.2f} সেকেন্ড {'দেরিতে' if de > 0 else 'আগে'} শেষ হয়েছে।"})
     mean_iou = sum(best) / len(best) if best else 0.0
     extra_clips = [u for u in user_clips if max((iou(u, r) for r in ref_clips), default=0) < 0.3]
     for u in extra_clips[:10]:
-        issues.append({"kind": "extra", "text": f"Extra clip {fmt(u[0])} – {fmt(u[1])} does not match any reference action.",
-                       "text_bn": f"{fmt(u[0])} – {fmt(u[1])} ক্লিপটা বাড়তি — রেফারেন্সের কোনো অ্যাকশনের সাথে মেলে না।"})
+        issues.append({"kind": "extra", "text": f"Extra clip {fmt(u[0])} – {fmt(u[1])} does not match any {ref_en} action.",
+                       "text_bn": f"{fmt(u[0])} – {fmt(u[1])} ক্লিপটা বাড়তি — {ref_bn} কোনো অ্যাকশনের সাথে মেলে না।"})
 
     score = 100 * (0.5 * f1 + 0.3 * mean_iou + 0.2 * coverage)
     result.update(
@@ -149,3 +151,19 @@ def score_attempt(user_clips: list[Clip], ref_clips: list[Clip], lo: float, hi: 
         issues=issues,
     )
     return result
+
+
+def clip_matches(user_clips: list[Clip], ref_clips: list[Clip], tol: float) -> list[dict]:
+    """For every reference / answer clip: how the user's closest clip compares —
+    "ok" (overlaps well and both edges within the tolerance), "near" (overlaps, edges off) or "missed"."""
+    out = []
+    for idx, r in enumerate(ref_clips, start=1):
+        best_iou, best = max(((iou(r, u), u) for u in user_clips), default=(0.0, None))
+        row = {"n": idx, "start": r[0], "end": r[1], "iou": round(best_iou * 100), "status": "missed", "user": None,
+               "start_diff": None, "end_diff": None}
+        if best is not None and best_iou >= 0.3:
+            ds, de = best[0] - r[0], best[1] - r[1]
+            row.update(user=best, start_diff=round(ds, 2), end_diff=round(de, 2),
+                       status="ok" if best_iou >= 0.5 and abs(ds) <= tol and abs(de) <= tol else "near")
+        out.append(row)
+    return out

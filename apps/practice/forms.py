@@ -78,9 +78,16 @@ class PracticeTaskForm(StyledFormMixin, forms.ModelForm):
 
     class Meta:
         model = PracticeTask
-        fields = ["title", "project", "instructions", "video", "range_start", "range_end", "tolerance_sec", "passing_score", "order"]
-        widgets = {"instructions": forms.Textarea(attrs={"rows": 5})}
-        labels = {"tolerance_sec": "Boundary tolerance (seconds)", "passing_score": "Passing score (%)", "order": "Sort order"}
+        fields = ["title", "kind", "due_at", "project", "instructions", "video", "range_start", "range_end", "tolerance_sec", "passing_score", "order"]
+        widgets = {
+            "instructions": forms.Textarea(attrs={"rows": 5}),
+            "kind": forms.RadioSelect,
+            "due_at": forms.DateTimeInput(attrs={"type": "datetime-local"}, format="%Y-%m-%dT%H:%M"),
+        }
+        labels = {"tolerance_sec": "Boundary tolerance (seconds)", "passing_score": "Passing score (%)", "order": "Sort order",
+                  "kind": "Type", "due_at": "Submit by (weekly review)"}
+        help_texts = {"kind": "Weekly review: everyone clips the video first; a reviewer then records the answer in the same tool and publishes it — "
+                              "employees compare their clips with it and correct their work."}
 
     def __init__(self, *args, user=None, projects=None, **kwargs):
         super().__init__(*args, **kwargs)
@@ -103,6 +110,8 @@ class PracticeTaskForm(StyledFormMixin, forms.ModelForm):
             self.add_error("range_end", "Must be after the start.")
         if video and video.duration_sec and start >= video.duration_sec:
             self.add_error("range_start", "Starts after the end of the video.")
+        if data.get("kind") != "review":
+            data["due_at"] = None
         tol = data.get("tolerance_sec")
         if tol is not None and not (0 < tol <= 10):
             self.add_error("tolerance_sec", "Use a value between 0.05 and 10 seconds.")

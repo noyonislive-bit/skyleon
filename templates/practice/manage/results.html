@@ -1,6 +1,39 @@
 {% extends "backoffice/base.html" %}
 {% block page_actions %}<a href="{% url 'practice:manage_edit' task.pk %}" class="btn btn-secondary">Edit task</a>{% endblock %}
 {% block content %}
+{% if review_rows is not None %}
+<div class="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
+  <div class="stat"><p class="stat-label">Submitted own work</p><p class="stat-value">{{ review_stats.submitted }}<span class="text-base text-slate-400">/{{ review_stats.total }}</span></p><p class="stat-meta">{% if review_stats.late %}{{ review_stats.late }} late{% else %}{% if task.due_at %}due {{ task.due_at|date:"j M, H:i" }}{% else %}no deadline{% endif %}{% endif %}</p></div>
+  <div class="stat"><p class="stat-label">Average match (own work)</p><p class="stat-value">{% if review_stats.avg_first is not None %}{{ review_stats.avg_first|floatformat:0 }}%{% else %}—{% endif %}</p><p class="stat-meta">{% if task.answer_published %}vs the reviewer's answer{% else %}after the answer is published{% endif %}</p></div>
+  <div class="stat"><p class="stat-label">Corrected their work</p><p class="stat-value">{{ review_stats.corrected }}</p><p class="stat-meta">employees</p></div>
+  <div class="stat"><p class="stat-label">Average after correction</p><p class="stat-value">{% if review_stats.avg_best is not None %}{{ review_stats.avg_best|floatformat:0 }}%{% else %}—{% endif %}</p><p class="stat-meta">best correction per employee</p></div>
+</div>
+<div class="card">
+  <div class="card-header">
+    <h2 class="card-title">Weekly review · employees</h2>
+    <form method="post" action="{% url 'practice:manage_answer' task.pk %}" class="flex items-center gap-2">{% csrf_token %}
+      <input type="hidden" name="next" value="{{ request.path }}">
+      {% if task.video %}<a href="{% url 'practice:manage_reference' task.pk %}" class="btn btn-secondary btn-sm">{% icon "scissors" class="h-4 w-4" %} {% if task.has_reference %}Edit{% else %}Record{% endif %} reviewer answer</a>{% endif %}
+      {% if task.answer_published %}<button name="action" value="unpublish" class="btn btn-ghost btn-sm">Hide answer</button>
+      {% else %}<button class="btn btn-success btn-sm" {% if not task.has_reference or not task.is_published %}disabled title="Publish the task and record the answer first"{% endif %}>{% icon "send" class="h-4 w-4" %} Publish answer</button>{% endif %}
+    </form>
+  </div>
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th>Employee</th><th>Own work</th><th class="num">Match</th><th class="num">Corrections</th><th class="num">Best after correction</th><th class="num">Improvement</th><th></th></tr></thead>
+    <tbody>{% for r in review_rows %}
+      <tr>
+        <td><p class="font-medium text-slate-900">{{ r.user.name }}</p><p class="text-xs text-slate-500">{{ r.user.employee_id|default:r.user.email }}</p></td>
+        <td>{% if r.submitted %}{% status_badge "passed" "Submitted" %}{% if r.late %} <span class="badge badge-warning">Late</span>{% endif %}<p class="text-xs text-slate-500">{{ r.first.submitted_at|date:"j M, H:i" }}</p>{% elif r.first and r.first.clips %}{% status_badge "in_progress" "In progress" %}{% else %}{% status_badge "new" "Not started" %}{% endif %}{% if r.task_error %} <span class="badge badge-danger" title="{{ r.task_error.comment }}">Task error</span>{% endif %}</td>
+        <td class="num">{% if r.first.score is not None and r.submitted %}{{ r.first.score|floatformat:0 }}%{% else %}—{% endif %}</td>
+        <td class="num">{{ r.corrections }}</td>
+        <td class="num">{% if r.best is not None %}{{ r.best|floatformat:0 }}%{% else %}—{% endif %}</td>
+        <td class="num">{% if r.improvement is not None %}<span class="{% if r.improvement > 0 %}text-emerald-700{% endif %}">{% if r.improvement > 0 %}+{% endif %}{{ r.improvement }}</span>{% else %}—{% endif %}</td>
+        <td class="text-right whitespace-nowrap">{% if r.submitted %}<a href="{% url 'practice:manage_attempt' r.first.pk %}" class="btn btn-ghost btn-sm">Own work</a>{% endif %}{% if r.latest %}<a href="{% url 'practice:manage_attempt' r.latest.pk %}" class="btn btn-ghost btn-sm">Latest correction</a>{% endif %}</td>
+      </tr>
+    {% empty %}<tr><td colspan="7" class="py-8 text-center text-sm text-slate-500">No employees can see this task yet.</td></tr>{% endfor %}</tbody>
+  </table></div>
+</div>
+{% else %}
 <div class="card">
   <div class="card-header"><h2 class="card-title">Employees</h2><span class="text-xs text-slate-500">Passing score {{ task.passing_score }}%</span></div>
   {% if people %}
@@ -19,6 +52,7 @@
   </table></div>
   {% else %}{% include "components/empty_state.html" with icon="users" title="No attempts yet" text="Results appear here as soon as employees submit this task." %}{% endif %}
 </div>
+{% endif %}
 {% if errors %}
 <div class="card mt-6">
   <div class="card-header"><h2 class="card-title">Task errors reported</h2></div>

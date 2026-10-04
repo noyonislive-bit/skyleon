@@ -39,7 +39,7 @@ class SampleDataTests(TestCase):
         self.assertEqual(first["Tutorial"], 10)
         self.assertEqual(first["Test"], 6)
         self.assertEqual(first["Feedback"], 4)
-        self.assertEqual(first["PracticeTask"], 3)
+        self.assertEqual(first["PracticeTask"], 5)  # 3 practice tasks + 2 weekly reviews
         self.assertEqual(first["Guide"], 1)
         self.assertGreater(first["PracticeAttempt"], 0)
         self.assertFalse(EmailMessage.objects.exists())  # sample data never emails anyone

@@ -90,12 +90,21 @@ def publish(request, pk):
         if not task.video_id:
             messages.error(request, "Add a video before publishing.")
             return redirect("practice:manage_edit", pk=task.pk)
+        first_time = task.published_at is None
         task.status = ContentStatus.PUBLISHED
         task.published_at = task.published_at or timezone.now()
-        if not task.reference_clips:
+        if task.is_review:
+            messages.success(request, "Weekly review published — employees can clip it now. When they have submitted, record the "
+                                      "reviewer's answer and press “Publish answer”.")
+        elif not task.reference_clips:
             messages.warning(request, "Published without a reference segmentation — employees will only be scored on coverage.")
         else:
             messages.success(request, "Practice task published.")
+        task.save(update_fields=["status", "published_at", "updated_at"])
+        if task.is_review and first_time:
+            services.announce_review(task)
+        audit.log(request, "practice.publish", task, status=task.status)
+        return redirect_back(request, reverse("practice:manage"))
     task.save(update_fields=["status", "published_at", "updated_at"])
     audit.log(request, "practice.publish", task, status=task.status)
     return redirect_back(request, reverse("practice:manage"))
@@ -130,7 +139,8 @@ def reference_editor(request, pk):
         "prev": reverse("practice:manage_reference", args=[prev_task.pk]) if prev_task and prev_task.video_id else "",
         "next": reverse("practice:manage_reference", args=[next_task.pk]) if next_task and next_task.video_id else "",
     }
-    payload = workspace_payload(request, task, mode="reference", clips=task.reference_clips, urls=urls)
+    payload = workspace_payload(request, task, mode="reference", clips=task.reference_clips, urls=urls,
+                                extra={"reviewAnswer": task.is_review})
     return render(request, "practice/workspace.html", {
         "task": task, "payload": payload, "mode": "reference", "back_url": urls["back"], "show_intro": False,
     })
@@ -150,9 +160,60 @@ def reference_save(request, pk):
     lo, hi = services.task_range(task)
     task.reference_clips = [list(c) for c in clean_clips(clips, lo, hi)]
     task.save(update_fields=["reference_clips", "updated_at"])
+    if task.answer_published:  # the published answer changed: everyone's match % follows it
+        services.rescore(task)
     audit.log(request, "practice.reference", task, clips=len(task.reference_clips))
     return JsonResponse({"ok": True, "reference": True, "clips": task.reference_clips,
                          "resultUrl": reverse("practice:manage_edit", args=[task.pk])})
+
+
+@permission_required_code("content.manage")
+@require_POST
+def answer(request, pk):
+    """Weekly review: publish (or take back) the reviewer's answer."""
+    task = _task_or_404(request, pk)
+    if not task.is_review:
+        raise Http404
+    if request.POST.get("action") == "unpublish":
+        services.unpublish_answer(task)
+        audit.log(request, "practice.answer_unpublish", task)
+        messages.info(request, "Answer hidden again. Scores are kept and recalculated when you publish it again.")
+    elif not task.reference_clips:
+        messages.error(request, "Record the reviewer's answer first (Reviewer answer → clip the video → submit task).")
+    elif not task.is_published:
+        messages.error(request, "Publish the task first.")
+    else:
+        n = services.publish_answer(task, request.user)
+        audit.log(request, "practice.answer_publish", task, scored=n)
+        messages.success(request, f"Answer published — {n} submission{'s' if n != 1 else ''} scored. Employees can now compare and correct their work.")
+    return redirect_back(request, reverse("practice:manage_results", args=[task.pk]))
+
+
+def _review_rows(request, task):
+    """Weekly review results per employee: own work (first score, on time?) and corrections (best, improvement)."""
+    from .models import AttemptPhase
+
+    in_scope = people_q(request.user)
+    people = {u.pk: {"user": u, "first": None, "corrections": 0, "best": None, "latest": None, "task_error": None}
+              for u in services.audience_for(task).filter(people_q(request.user, "pk")).order_by("name")}
+    for a in PracticeAttempt.objects.filter(in_scope, task=task).select_related("user").order_by("started_at"):
+        row = people.setdefault(a.user_id, {"user": a.user, "first": None, "corrections": 0, "best": None, "latest": None, "task_error": None})
+        if a.task_error and not row["task_error"]:
+            row["task_error"] = a.task_error
+        if a.phase == AttemptPhase.FIRST:
+            row["first"] = a
+        elif a.status == AttemptStatus.SUBMITTED:
+            row["corrections"] += 1
+            row["latest"] = a
+            if a.score is not None and (row["best"] is None or a.score > row["best"]):
+                row["best"] = a.score
+    rows = list(people.values())
+    for r in rows:
+        f = r["first"]
+        r["submitted"] = bool(f and f.status == AttemptStatus.SUBMITTED)
+        r["late"] = bool(r["submitted"] and task.due_at and f.submitted_at and f.submitted_at > task.due_at)
+        r["improvement"] = round(r["best"] - f.score) if r["best"] is not None and f and f.score is not None else None
+    return rows
 
 
 @permission_required_code("content.manage")
@@ -173,7 +234,18 @@ def results(request, pk):
         if a.task_error and not row["task_error"]:
             row["task_error"] = a.task_error
     errors = PracticeAttempt.objects.filter(in_scope, task=task).exclude(task_error={}).select_related("user").order_by("-updated_at")[:20]
+    review_rows = _review_rows(request, task) if task.is_review else None
+    if review_rows is not None:
+        submitted = [r for r in review_rows if r["submitted"]]
+        scored = [r["first"].score for r in submitted if r["first"].score is not None]
+        best = [r["best"] for r in review_rows if r["best"] is not None]
+        review_stats = {"total": len(review_rows), "submitted": len(submitted), "late": sum(r["late"] for r in review_rows),
+                        "avg_first": sum(scored) / len(scored) if scored else None, "corrected": len(best),
+                        "avg_best": sum(best) / len(best) if best else None}
+    else:
+        review_stats = None
     return render(request, "practice/manage/results.html", {
+        "review_rows": review_rows, "review_stats": review_stats,
         "task": task, "people": sorted(people.values(), key=lambda r: r["user"].name), "errors": errors,
         "page_title": f"Results · {task.title}",
         "crumbs": [("Practice lab", reverse("practice:manage")), (task.title, reverse("practice:manage_edit", args=[task.pk])), ("Results", "")],

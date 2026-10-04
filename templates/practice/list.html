@@ -12,6 +12,47 @@
       </div>
     </div>
 
+    {% if reviews %}
+    <section class="space-y-3" aria-labelledby="weekly-review">
+      <div class="flex items-end justify-between gap-3">
+        <div>
+          <h2 id="weekly-review" class="text-lg font-semibold text-slate-900">সাপ্তাহিক রিভিউ</h2>
+          <p class="text-sm text-slate-500">আগে নিজে ক্লিপ করে জমা দিন। রিভিউয়ারের উত্তর প্রকাশ হলে নিজের কাজের সাথে মিলিয়ে দেখুন, তারপর ভুলগুলো ঠিক করুন।</p>
+        </div>
+      </div>
+      {% for r in reviews %}
+        {% with t=r.task %}
+        <div class="card flex flex-col gap-4 p-5 sm:flex-row sm:items-center {% if r.state == 'todo' or r.state == 'answer' %}ring-2 ring-brand-200{% endif %}">
+          <div class="flex h-16 w-28 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-gradient-to-br from-brand-800 to-ink-900 text-white/85">{% icon "scan-eye" class="h-6 w-6" %}</div>
+          <div class="min-w-0 flex-1">
+            <div class="flex flex-wrap items-center gap-2">
+              <h3 class="font-semibold text-slate-900">{{ t.title }}</h3>
+              {% if r.state == "todo" %}{% if r.overdue %}{% status_badge "failed" "সময় পেরিয়ে গেছে" %}{% elif r.draft %}{% status_badge "in_progress" "চলছে" %}{% else %}{% status_badge "new" "নতুন" %}{% endif %}
+              {% elif r.state == "waiting" %}{% status_badge "reviewing" "জমা হয়েছে · উত্তরের অপেক্ষায়" %}
+              {% elif r.state == "answer" %}{% status_badge "review" "উত্তর প্রকাশিত · মিলিয়ে দেখুন" %}
+              {% else %}{% status_badge "passed" "সংশোধন করা হয়েছে" %}{% endif %}
+              {% if r.late %}<span class="badge badge-warning">দেরিতে জমা</span>{% endif %}
+            </div>
+            <p class="mt-1 text-sm text-slate-500">{{ t.project.name|default:"সব প্রজেক্ট" }}{% if t.due_at and r.state == "todo" %} · জমা দেওয়ার শেষ সময় {{ t.due_at|date:"j F, g:i A" }}{% endif %}</p>
+          </div>
+          <div class="flex items-center gap-6 text-sm">
+            {% if r.first_score is not None %}
+            <div class="text-right"><p class="text-xs text-slate-500">আমার মিল</p><p class="font-semibold tabular-nums text-slate-900">{{ r.first_score|floatformat:0 }}%</p></div>
+            {% endif %}
+            {% if r.best_correction is not None %}
+            <div class="text-right"><p class="text-xs text-slate-500">সংশোধনের পর</p><p class="font-semibold tabular-nums text-emerald-700">{{ r.best_correction|floatformat:0 }}%</p></div>
+            {% endif %}
+            {% if r.state == "todo" %}<a href="{% url 'practice:workspace' t.pk %}" class="btn btn-primary btn-sm">{% if r.draft %}চালিয়ে যান{% else %}শুরু করুন{% endif %} {% icon "arrow-right" class="h-4 w-4" %}</a>
+            {% elif r.state == "waiting" %}<a href="{% url 'practice:workspace' t.pk %}" class="btn btn-secondary btn-sm">আবার দেখুন / ঠিক করুন</a>
+            {% else %}<a href="{% url 'practice:review' t.pk %}" class="btn btn-primary btn-sm">মিলিয়ে দেখুন {% icon "arrow-right" class="h-4 w-4" %}</a>{% endif %}
+          </div>
+        </div>
+        {% endwith %}
+      {% endfor %}
+    </section>
+    {% if rows %}<h2 class="pt-2 text-lg font-semibold text-slate-900">প্র্যাকটিস টাস্ক</h2>{% endif %}
+    {% endif %}
+
     {% for row in rows %}
       {% with t=row.task %}
       <a href="{% url 'practice:workspace' t.pk %}" class="card group flex flex-col gap-4 p-5 transition hover:ring-brand-300 sm:flex-row sm:items-center">
@@ -31,7 +72,7 @@
       </a>
       {% endwith %}
     {% empty %}
-      <div class="card">{% include "components/empty_state.html" with icon="clapperboard" title="এখনো কোনো প্র্যাকটিস টাস্ক নেই" text="আপনার ট্রেইনার এখানে ক্লিপিংয়ের অনুশীলন যোগ করবেন। কিছুদিন পর আবার দেখুন।" %}</div>
+      {% if not reviews %}<div class="card">{% include "components/empty_state.html" with icon="clapperboard" title="এখনো কোনো প্র্যাকটিস টাস্ক নেই" text="আপনার ট্রেইনার এখানে ক্লিপিংয়ের অনুশীলন যোগ করবেন। কিছুদিন পর আবার দেখুন।" %}</div>{% endif %}
     {% endfor %}
   </div>
 
