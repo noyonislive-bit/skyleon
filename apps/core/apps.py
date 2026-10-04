@@ -6,3 +6,10 @@ class CoreConfig(AppConfig):
     name = "apps.core"
     label = "core"
     verbose_name = "Core"
+
+    def ready(self):
+        from django.db.models.signals import post_migrate
+
+        from .signals import top_up_sample_data
+
+        post_migrate.connect(top_up_sample_data, sender=self, dispatch_uid="core.top_up_sample_data")

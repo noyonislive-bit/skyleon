@@ -2,7 +2,7 @@
 # Keeps the Codespace preview running and up to date while the Codespace is open:
 #   • every minute: if the website doesn't answer, it is (re)started;
 #   • every few minutes: if GitHub has new commits on this branch (and you have no local edits),
-#     they are pulled, new packages installed and the database migrated — the dev server then
+#     they are pulled, new packages installed, the database migrated and new sample data added — the dev server then
 #     reloads the new code by itself. No need to stop, rebuild or re-create anything.
 # Started by start.sh (only one copy runs). Log: /tmp/skyloon-supervisor.log
 cd "$(dirname "$0")/.."
@@ -39,6 +39,7 @@ update() {
   fi
   python manage.py migrate --noinput >> "$LOG" 2>&1
   python manage.py createcachetable >/dev/null 2>&1
+  python manage.py seed_demo --if-outdated >> "$LOG" 2>&1   # newer sample data, if any
   log "updated to $(git log -1 --format='%h %s')"
 }
 

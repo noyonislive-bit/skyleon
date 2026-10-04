@@ -1,4 +1,5 @@
 {% extends "portal/base.html" %}
+{% load portal_tags %}
 {% block content %}
 <a href="{% url 'practice:list' %}" class="card group mb-5 flex flex-wrap items-center gap-4 overflow-hidden bg-ink-900 p-5 text-slate-300 ring-ink-700 transition hover:ring-brand-400">
   <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/10 text-accent-300">{% icon "scissors" class="h-5 w-5" %}</span>
@@ -21,7 +22,7 @@
       <label for="f-category" class="sr-only">ক্যাটাগরি</label>
       <select id="f-category" name="category" class="select">
         <option value="">সব ক্যাটাগরি</option>
-        {% for c in categories %}<option value="{{ c.slug }}" {% if f.category == c.slug %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
+        {% for c in categories %}<option value="{{ c.slug }}" {% if f.category == c.slug %}selected{% endif %}>{{ c.name|category_bn }}</option>{% endfor %}
       </select>
     </div>
     <div>

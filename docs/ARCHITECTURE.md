@@ -130,5 +130,7 @@ Thumbnails: upload a JPEG captured from a `<canvas>` as `kind=image, purpose=thu
 
 * `python manage.py check`
 * `python manage.py test apps.<app>` (MySQL test DB; set `DB_TEST_NAME` to use a different test database name)
-* Demo data: `python manage.py seed_demo` — accounts `admin@`, `pm@`, `trainer@`, `employee1..8@skyleon.local`,
-  `client@northwind.example`, password `Demo@12345`.
+* Sample data: `python manage.py seed_demo` — accounts `admin@`, `pm@`, `trainer@`, `employee1..8@skyleon.local`,
+  `client@northwind.example`, password `Demo@12345` (a live site must pass `--password`). Idempotent and versioned
+  (`SAMPLE_VERSION`): previews (`SAMPLE_DATA_AUTO`, on in Codespaces / cloud sessions with DEBUG) top up after
+  every `migrate`; `--if-outdated` skips an up-to-date database; `--remove` deletes it (and keeps it out).

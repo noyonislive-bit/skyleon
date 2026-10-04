@@ -82,8 +82,11 @@ Open `https://your-domain/` (public site), `https://your-domain/login/` (staff &
 `https://your-domain/admin/` (admin panel). Then go to **Admin → Settings** and enter the company
 email, phone, address, business hours and social links shown on the website.
 
-> To explore with sample data on a staging site, run `python manage.py seed_demo` instead of
-> `--defaults` (creates demo staff/employees with password `Demo@12345` — never on production).
+> **Sample content.** The installer offers to add the same sample content as the preview (3 projects,
+> tutorials, tests, feedback, a work guide, practice tasks, sample staff / employee accounts) so every page
+> has something to show. To add it later: `python manage.py seed_demo --password 'Your-Own-Password'`
+> (on a live site the password is required and no extra super admin is created). Remove it again — your own
+> data is kept — with `python manage.py seed_demo --remove`.
 
 ## 6. Force HTTPS
 

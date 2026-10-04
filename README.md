@@ -117,7 +117,7 @@ mysql -uroot -e "CREATE DATABASE skyleon CHARACTER SET utf8mb4 COLLATE utf8mb4_u
 cp .env.example .env     # set DEBUG=true, SECRET_KEY, DB_* (and EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend)
 python manage.py migrate
 python manage.py createcachetable
-python manage.py seed_demo          # demo data, accounts below
+python manage.py seed_demo          # sample data for every page, accounts below (--remove deletes it again)
 python manage.py runserver
 ```
 

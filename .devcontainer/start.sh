@@ -10,13 +10,13 @@ echo "  Updating the preview to the latest code…"
 if [ -d .git ] && [ -z "$(git status --porcelain --untracked-files=no)" ]; then
   git pull --ff-only --quiet 2>/dev/null && echo "  ✔ code updated ($(git log -1 --format=%h))" || echo "  (could not pull — using the code already here)"
 fi
-# 2. New packages and database changes that the new code needs.
+# 2. New packages, database changes and sample data that the new code needs.
 python -m pip install --quiet --disable-pip-version-check -r requirements.txt
 python manage.py migrate --noinput >/dev/null && echo "  ✔ database up to date"
 python manage.py createcachetable >/dev/null 2>&1
-if [ "$(python manage.py shell -c "from apps.accounts.models import User; print(User.objects.exists())" 2>/dev/null | tail -1)" != "True" ]; then
-  python manage.py seed_demo >/dev/null && echo "  ✔ demo data loaded"
-fi
+# Sample data: everything the site shows (projects, tutorials, tests, feedback, guides …). Added on a new
+# preview and topped up when a newer sample set ships — never duplicated, your own changes are kept.
+python manage.py seed_demo --if-outdated >/dev/null && echo "  ✔ sample data complete"
 
 # 3. Start the website through the supervisor (keeps it running and applies future updates by itself).
 setsid nohup bash .devcontainer/supervisor.sh > /dev/null 2>&1 < /dev/null &

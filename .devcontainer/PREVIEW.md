@@ -22,8 +22,15 @@ Demo accounts — password **`Demo@12345`**:
 | Pending signup | `new.member1@skyleon.local` |
 | Client | `client@northwind.example` |
 
-Emails are printed in the terminal instead of being sent. Data is a local SQLite demo database —
-to start fresh run `rm db.sqlite3 && bash .devcontainer/setup.sh`.
+Emails are printed in the terminal instead of being sent.
+
+**Data.** Every page comes with sample data: 3 projects, 10 tutorials, 6 tests, 4 feedback items, a work guide,
+3 Practice Lab tasks, announcements, meetings, website enquiries — and what the sample employees have already
+done (watched, test results, practice scores). It lives in this Codespace's own database (`db.sqlite3`):
+when new sample data ships it is added automatically (never duplicated; your own changes are kept).
+Things you add yourself stay in **this** Codespace — a newly created Codespace starts again with only the
+sample data, so keep reopening the same one. Start completely fresh: `rm db.sqlite3 && bash .devcontainer/setup.sh`.
+Remove the sample data: `python manage.py seed_demo --remove`.
 
 The preview link is private to your GitHub account by default. To show it to someone else, right-click
 port 8000 in the **Ports** tab → Port Visibility → Public (turn it back to Private afterwards).

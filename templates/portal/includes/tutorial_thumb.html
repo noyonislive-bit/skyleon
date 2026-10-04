@@ -10,7 +10,7 @@
     <div class="absolute inset-0 flex items-center justify-center">
       <span class="flex {% if size == 'sm' %}h-7 w-7{% else %}h-12 w-12{% endif %} items-center justify-center rounded-full bg-white/15 text-white ring-1 ring-white/25 backdrop-blur">{% if t.video %}{% icon "play" class="h-4 w-4 translate-x-px" %}{% else %}{% icon "book-open" class="h-4 w-4" %}{% endif %}</span>
     </div>
-    {% if size != 'sm' and t.category %}<span class="absolute top-3 left-3 font-mono text-[10px] tracking-[0.14em] text-white/70 uppercase">{{ t.category.name }}</span>{% endif %}
+    {% if size != 'sm' and t.category %}<span class="absolute top-3 left-3 font-mono text-[10px] tracking-[0.14em] text-white/70 uppercase">{{ t.category.name|category_bn }}</span>{% endif %}
   {% endif %}
   {% if t.video.duration_sec and size != 'sm' %}<span class="absolute right-2 bottom-2 rounded-md bg-ink-950/75 px-1.5 py-0.5 font-mono text-[11px] text-white tabular-nums">{{ t.video.duration_sec|duration }}</span>{% endif %}
   {% if t.my_status == "completed" %}<span class="absolute {% if size == 'sm' %}top-1 right-1 h-4 w-4{% else %}top-2 right-2 h-6 w-6{% endif %} flex items-center justify-center rounded-full bg-emerald-500 text-white shadow ring-2 ring-white/70" title="সম্পন্ন">{% icon "check" class="h-3.5 w-3.5" stroke_width="2.5" %}</span>{% endif %}

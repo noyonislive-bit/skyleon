@@ -2,7 +2,7 @@
 # Claude Code cloud sessions: get the local preview of the site running whenever the session's
 # container starts (it is recycled after inactivity, which stops the database and the dev server).
 #   1. Python virtualenv + requirements      3. .env for local development
-#   2. MariaDB (database + user)              4. migrate (+ demo data on an empty database)
+#   2. MariaDB (database + user)              4. migrate + sample data (added / topped up)
 #   5. Django dev server on http://127.0.0.1:8000 (background, log: /tmp/skyleon-runserver.log)
 # Idempotent and non-interactive; does nothing outside cloud sessions.
 set -euo pipefail
@@ -76,10 +76,9 @@ fi
 # 4. Schema + demo data --------------------------------------------------------
 $PY manage.py migrate --noinput >/dev/null
 $PY manage.py createcachetable >/dev/null
-if [ "$($PY manage.py shell -c "from apps.accounts.models import User; print(User.objects.exists())" 2>/dev/null | tail -1)" != "True" ]; then
-  log "empty database — loading demo data (password Demo@12345)"
-  $PY manage.py seed_demo >/dev/null
-fi
+# Sample data: added on an empty database, topped up when a newer sample set ships (never duplicated;
+# not re-added after `seed_demo --remove`). Password of the sample accounts: Demo@12345.
+$PY manage.py seed_demo --if-outdated >/dev/null || log "sample data could not be loaded (run: manage.py seed_demo)"
 
 # 5. Dev server ------------------------------------------------------------------
 if ! curl -s -o /dev/null --max-time 2 http://127.0.0.1:8000/healthz/; then

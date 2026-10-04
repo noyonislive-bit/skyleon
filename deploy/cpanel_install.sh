@@ -118,6 +118,21 @@ else
   say "6/7 A Super Admin already exists — skipped"
 fi
 
+# Optional: the same sample content as the preview (3 projects, tutorials, tests, feedback, guides, practice tasks,
+# sample employee accounts), so every page has something to show. Removable later with one command.
+HAS_SAMPLE=$("$PY" manage.py shell -c "from apps.projects.models import Project; print(Project.objects.filter(code='ACT-01').exists())" | tail -1)
+if [ "$HAS_SAMPLE" != "True" ]; then
+  SAMPLE="${SAMPLE_DATA:-}"
+  [ -n "$SAMPLE" ] || SAMPLE=$(ask "Add sample content so every page has something to show? Remove it later with: python manage.py seed_demo --remove (yes/no)" yes)
+  if [ "$SAMPLE" = "yes" ]; then
+    SAMPLE_PW="${SAMPLE_PASSWORD:-}"
+    while [ "${#SAMPLE_PW}" -lt 8 ]; do
+      SAMPLE_PW=$(asks "  Password for the sample accounts (pm@, trainer@, employee1..8@skyleon.local — min. 8 characters)")
+    done
+    "$PY" manage.py seed_demo --password "$SAMPLE_PW" | tail -n +2
+  fi
+fi
+
 say "7/7 Cron jobs and restart"
 if command -v crontab >/dev/null 2>&1; then
   CRON_MAIL="*/5 * * * * $PY $APP_DIR/manage.py process_emails >/dev/null 2>&1"

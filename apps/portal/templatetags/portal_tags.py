@@ -228,3 +228,20 @@ def letter(index):
     except (TypeError, ValueError):
         return ""
     return chr(64 + n) if 1 <= n <= 26 else str(n)
+
+
+# The default tutorial categories (seed_demo CATEGORIES) are stored in English for the admin panel;
+# employees see them in Bangla. Categories an admin adds show as they were named.
+CATEGORY_BN = {
+    "Getting started": "শুরুর পাঠ",
+    "Project guidelines": "প্রজেক্ট গাইডলাইন",
+    "Annotation techniques": "অ্যানোটেশনের কৌশল",
+    "QA & review": "QA ও রিভিউ",
+    "Tools & platforms": "টুল ও প্ল্যাটফর্ম",
+    "Daily training": "দৈনিক ট্রেনিং",
+}
+
+
+@register.filter
+def category_bn(name):
+    return CATEGORY_BN.get(name, name)

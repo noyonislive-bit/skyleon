@@ -268,6 +268,12 @@ DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", "Skyloon AI <no-reply@localhost>"
 SERVER_EMAIL = DEFAULT_FROM_EMAIL
 # Send queued emails within the request (True) or leave them for the cron job (False).
 EMAIL_SEND_IMMEDIATELY = env_bool("EMAIL_SEND_IMMEDIATELY", True)
+
+# Previews (Codespaces / Claude cloud sessions, DEBUG on) add the latest sample data by themselves after
+# `migrate` — see apps/core/signals.py. Never on a live site.
+SAMPLE_DATA_AUTO = DEBUG and env_bool(
+    "SAMPLE_DATA_AUTO", os.environ.get("CODESPACES") == "true" or os.environ.get("CLAUDE_CODE_REMOTE") == "true"
+)
 ADMIN_NOTIFICATION_EMAILS = env_list("ADMIN_NOTIFICATION_EMAILS")
 
 # ─── Application settings ───────────────────────────────────────────────────
