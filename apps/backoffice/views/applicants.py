@@ -12,6 +12,7 @@ from apps.website.models import ApplicationStatus, JobApplication
 
 from ..forms import ApplicationUpdateForm
 from ..helpers import employee_scope, paginate
+from .leads import bulk_delete, delete_enquiries
 
 
 def _can_see(user, account):
@@ -39,6 +40,7 @@ def applicant_list(request):
         "counts": counts,
         "total": sum(counts.values()),
         "filters": {"q": q, "status": status},
+        "can_delete": has_permission(request.user, "enquiries.delete"),
     })
 
 
@@ -65,7 +67,25 @@ def applicant_detail(request, pk):
         "existing": existing,
         "existing_visible": _can_see(request.user, existing),
         "existing_problem": conversion_problem(existing) if existing else None,
+        "can_delete": has_permission(request.user, "enquiries.delete"),
     })
+
+
+@require_POST
+@permission_required_code("enquiries.delete")
+def applicant_delete(request, pk):
+    app = get_object_or_404(JobApplication, pk=pk)
+    name = app.full_name
+    delete_enquiries(request, [app])
+    messages.success(request, f"The application of {name} and its uploaded files were deleted."
+                     + (" Their employee account is kept." if app.user_id else ""))
+    return redirect("backoffice:applicant_list")
+
+
+@require_POST
+@permission_required_code("enquiries.delete")
+def applicant_bulk_delete(request):
+    return bulk_delete(request, JobApplication, "application", reverse("backoffice:applicant_list"))
 
 
 @require_POST

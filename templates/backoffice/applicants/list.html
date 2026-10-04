@@ -12,12 +12,14 @@
     <button class="btn btn-secondary btn-sm sm:!w-auto">Search</button>
   </form>
   {% if page.object_list %}
+  {% if can_delete %}<form id="bulk-delete" method="post" action="{% url 'backoffice:applicant_bulk_delete' %}" data-confirm="Delete the selected applications with their CV and sample files? Employee accounts created from them are kept. This cannot be undone.">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"></form>{% endif %}
   <div class="table-wrap">
     <table class="table">
-      <thead><tr><th>Applicant</th><th>Location</th><th>Experience</th><th>Preferred work</th><th>Skills</th><th>Status</th><th>Received</th><th></th></tr></thead>
+      <thead><tr>{% if can_delete %}<th class="w-px"><input type="checkbox" class="checkbox" data-check-all="ids" aria-label="Select all on this page"></th>{% endif %}<th>Applicant</th><th>Location</th><th>Experience</th><th>Preferred work</th><th>Skills</th><th>Status</th><th>Received</th><th></th></tr></thead>
       <tbody>
       {% for a in page %}
         <tr>
+          {% if can_delete %}<td><input type="checkbox" class="checkbox" name="ids" value="{{ a.pk }}" form="bulk-delete" aria-label="Select the application of {{ a.full_name }}"></td>{% endif %}
           <td><a href="{% url 'backoffice:applicant_detail' a.pk %}" class="bo-person-name">{{ a.full_name }}</a><span class="bo-person-sub">{{ a.email }}</span></td>
           <td class="text-sm">{{ a.location }}</td>
           <td class="text-sm whitespace-nowrap">{{ a.experience|default:"—" }}</td>
@@ -31,6 +33,7 @@
       </tbody>
     </table>
   </div>
+  {% if can_delete %}<div class="flex items-center gap-3 border-t border-slate-100 px-5 py-3"><button type="submit" form="bulk-delete" class="btn btn-danger-soft btn-sm">{% icon "trash-2" class="h-4 w-4" %} Delete selected</button></div>{% endif %}
   {% include "components/pagination.html" with page=page %}
   {% else %}
     {% include "components/empty_state.html" with icon="briefcase" title="No applications" text="Applications submitted on the careers page show up here." %}

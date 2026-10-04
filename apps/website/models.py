@@ -46,6 +46,7 @@ class ContactMessage(models.Model):
     subject = models.CharField(max_length=200, blank=True)
     message = models.TextField()
     status = models.CharField(max_length=20, choices=LeadStatus.choices, default=LeadStatus.NEW, db_index=True)
+    notes = models.TextField(blank=True, help_text="Internal notes — not visible to the sender")
     ip_address = models.GenericIPAddressField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
 

@@ -58,6 +58,8 @@ urlpatterns = [
     path("applicants/", applicants.applicant_list, name="applicant_list"),
     path("applicants/<int:pk>/", applicants.applicant_detail, name="applicant_detail"),
     path("applicants/<int:pk>/convert/", applicants.applicant_convert, name="applicant_convert"),
+    path("applicants/<int:pk>/delete/", applicants.applicant_delete, name="applicant_delete"),
+    path("applicants/delete/", applicants.applicant_bulk_delete, name="applicant_bulk_delete"),
 
     # Business
     path("clients/", organizations.organization_list, name="organization_list"),
@@ -69,9 +71,13 @@ urlpatterns = [
     path("clients/<int:pk>/accounts/new/", organizations.client_create, name="client_create"),
     path("client-accounts/<int:pk>/edit/", organizations.client_edit, name="client_edit"),
     path("leads/", leads.lead_list, name="lead_list"),
+    path("leads/delete/", leads.lead_bulk_delete, name="lead_bulk_delete"),
     path("leads/<int:pk>/", leads.lead_detail, name="lead_detail"),
+    path("leads/<int:pk>/delete/", leads.lead_delete, name="lead_delete"),
     path("messages/", leads.message_list, name="message_list"),
+    path("messages/delete/", leads.message_bulk_delete, name="message_bulk_delete"),
     path("messages/<int:pk>/", leads.message_detail, name="message_detail"),
+    path("messages/<int:pk>/delete/", leads.message_delete, name="message_delete"),
 
     # Projects
     path("projects/", projects.project_list, name="project_list"),

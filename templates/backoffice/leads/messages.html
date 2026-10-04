@@ -13,9 +13,15 @@
     <button class="btn btn-secondary btn-sm sm:!w-auto">Search</button>
   </form>
   {% if page.object_list %}
+  {% if can_delete %}
+    <form id="bulk-delete" method="post" action="{% url 'backoffice:message_bulk_delete' %}" data-confirm="Delete the selected messages? This cannot be undone.">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"></form>
+    <div class="flex items-center gap-3 border-t border-slate-100 px-5 py-3">
+      <label class="flex items-center gap-2 text-xs text-slate-500"><input type="checkbox" class="checkbox" data-check-all="ids"> Select all on this page</label>
+    </div>
+  {% endif %}
   <ul class="bo-list">
     {% for m in page %}
-      <li><a href="{% url 'backoffice:message_detail' m.pk %}" class="flex items-start gap-4 px-5 py-4 hover:bg-slate-50">
+      <li class="flex items-start">{% if can_delete %}<label class="flex shrink-0 items-center py-4 pl-4"><input type="checkbox" class="checkbox" name="ids" value="{{ m.pk }}" form="bulk-delete" aria-label="Select the message from {{ m.name }}"></label>{% endif %}<a href="{% url 'backoffice:message_detail' m.pk %}" class="flex min-w-0 flex-1 items-start gap-4 px-5 py-4 hover:bg-slate-50">
         <span class="mt-1.5 dot {% if m.status == 'new' %}bg-brand-500{% else %}bg-slate-200{% endif %}"></span>
         <span class="min-w-0 flex-1">
           <span class="flex flex-wrap items-center gap-x-2"><span class="font-medium text-slate-900">{{ m.name }}</span><span class="text-xs text-slate-500">{{ m.email }}{% if m.company %} · {{ m.company }}{% endif %}</span></span>
@@ -26,6 +32,7 @@
       </a></li>
     {% endfor %}
   </ul>
+  {% if can_delete %}<div class="flex items-center gap-3 border-t border-slate-100 px-5 py-3"><button type="submit" form="bulk-delete" class="btn btn-danger-soft btn-sm">{% icon "trash-2" class="h-4 w-4" %} Delete selected</button></div>{% endif %}
   {% include "components/pagination.html" with page=page %}
   {% else %}
     {% include "components/empty_state.html" with icon="message-square" title="No messages" %}

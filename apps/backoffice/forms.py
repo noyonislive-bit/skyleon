@@ -387,7 +387,8 @@ class QuoteUpdateForm(StyledFormMixin, forms.ModelForm):
 class MessageUpdateForm(StyledFormMixin, forms.ModelForm):
     class Meta:
         model = ContactMessage
-        fields = ["status"]
+        fields = ["status", "notes"]
+        widgets = {"notes": forms.Textarea(attrs={"rows": 5, "placeholder": "Internal notes — replies sent, follow-ups …"})}
 
 
 # ── Projects ────────────────────────────────────────────────────────────────

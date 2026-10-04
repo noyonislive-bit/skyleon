@@ -7,7 +7,10 @@
     <div class="flex flex-wrap items-center gap-2"><h1 class="page-title">{{ msg.subject|default:"(no subject)" }}</h1>{% status_badge msg.status msg.get_status_display %}</div>
     <p class="page-subtitle">From {{ msg.name }} · {{ msg.created_at|date:"j M Y, H:i" }}</p>
   </div>
-  <a href="mailto:{{ msg.email }}?subject={{ 'Re: '|add:msg.subject|urlencode }}" class="btn btn-primary btn-sm">{% icon "mail" class="h-4 w-4" %} Reply by email</a>
+  <div class="flex flex-wrap gap-2">
+    <a href="mailto:{{ msg.email }}?subject={{ 'Re: '|add:msg.subject|urlencode }}" class="btn btn-primary btn-sm">{% icon "mail" class="h-4 w-4" %} Reply by email</a>
+    {% if can_delete %}<form method="post" action="{% url 'backoffice:message_delete' msg.pk %}" data-confirm="Delete this message from {{ msg.name }}? This cannot be undone.">{% csrf_token %}<button class="btn btn-danger-soft btn-sm" title="Delete message">{% icon "trash-2" class="h-4 w-4" %}<span class="sr-only">Delete message</span></button></form>{% endif %}
+  </div>
 </div>
 {% endblock %}
 {% block content %}
@@ -21,9 +24,11 @@
       {% if msg.ip_address %}<div><dt>IP address</dt><dd class="bo-num text-xs">{{ msg.ip_address }}</dd></div>{% endif %}
     </dl>
   </section>
-  <form method="post" class="card card-body h-fit space-y-4">{% csrf_token %}
-    <h2 class="bo-section">Status</h2>
+  <form method="post" class="card card-body h-fit min-w-0 space-y-4">{% csrf_token %}
+    <h2 class="bo-section">Status &amp; notes</h2>
+    {% include "components/form_errors.html" %}
     {% include "components/field.html" with field=form.status %}
+    {% include "components/field.html" with field=form.notes label="Internal notes" %}
     <button class="btn btn-primary w-full">Save</button>
   </form>
 </div>

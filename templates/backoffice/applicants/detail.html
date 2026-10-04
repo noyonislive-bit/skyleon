@@ -22,6 +22,7 @@
       </form>
       {% endif %}
     {% endif %}
+    {% if can_delete %}<form method="post" action="{% url 'backoffice:applicant_delete' app.pk %}" data-confirm="Delete the application of {{ app.full_name }} with its CV and sample files? {% if app.user_id %}Their employee account is kept. {% endif %}This cannot be undone.">{% csrf_token %}<button class="btn btn-danger-soft btn-sm" title="Delete application">{% icon "trash-2" class="h-4 w-4" %}<span class="sr-only">Delete application</span></button></form>{% endif %}
   </div>
 </div>
 {% endblock %}

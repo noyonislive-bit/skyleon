@@ -15,12 +15,14 @@
     <button class="btn btn-secondary btn-sm sm:!w-auto">Search</button>
   </form>
   {% if page.object_list %}
+  {% if can_delete %}<form id="bulk-delete" method="post" action="{% url 'backoffice:lead_bulk_delete' %}" data-confirm="Delete the selected quote requests and their attached files? This cannot be undone.">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"></form>{% endif %}
   <div class="table-wrap">
     <table class="table">
-      <thead><tr><th>Contact</th><th>Project type</th><th>Dataset</th><th>Timeline</th><th>Status</th><th>Received</th><th></th></tr></thead>
+      <thead><tr>{% if can_delete %}<th class="w-px"><input type="checkbox" class="checkbox" data-check-all="ids" aria-label="Select all on this page"></th>{% endif %}<th>Contact</th><th>Project type</th><th>Dataset</th><th>Timeline</th><th>Status</th><th>Received</th><th></th></tr></thead>
       <tbody>
       {% for q in page %}
         <tr>
+          {% if can_delete %}<td><input type="checkbox" class="checkbox" name="ids" value="{{ q.pk }}" form="bulk-delete" aria-label="Select the request from {{ q.company|default:q.name }}"></td>{% endif %}
           <td><a href="{% url 'backoffice:lead_detail' q.pk %}" class="bo-person-name">{{ q.company|default:q.name }}</a><span class="bo-person-sub">{{ q.name }} · {{ q.email }}</span></td>
           <td class="text-sm"><span class="font-medium text-slate-800">{{ q.project_type }}</span>{% if q.annotation_types %}<span class="block text-xs text-slate-500">{{ q.annotation_types|join:", " }}</span>{% endif %}</td>
           <td class="text-sm">{{ q.dataset_size|default:"—" }}</td>
@@ -33,6 +35,7 @@
       </tbody>
     </table>
   </div>
+  {% if can_delete %}<div class="flex items-center gap-3 border-t border-slate-100 px-5 py-3"><button type="submit" form="bulk-delete" class="btn btn-danger-soft btn-sm">{% icon "trash-2" class="h-4 w-4" %} Delete selected</button></div>{% endif %}
   {% include "components/pagination.html" with page=page %}
   {% else %}
     {% include "components/empty_state.html" with icon="file-text" title="No quote requests" text="Requests from the “Get a quote” form appear here." %}

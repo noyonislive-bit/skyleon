@@ -10,6 +10,7 @@
   <div class="flex flex-wrap gap-2">
     <a href="mailto:{{ lead.email }}?subject={{ 'Re: your '|add:lead.project_type|add:' project'|urlencode }}" class="btn btn-primary btn-sm">{% icon "mail" class="h-4 w-4" %} Reply by email</a>
     {% if lead.phone %}<a href="tel:{{ lead.phone }}" class="btn btn-secondary btn-sm">{% icon "phone" class="h-4 w-4" %} Call</a>{% endif %}
+    {% if can_delete %}<form method="post" action="{% url 'backoffice:lead_delete' lead.pk %}" data-confirm="Delete the quote request from {{ lead.company|default:lead.name }}{% if lead.attachment %} and its attached file{% endif %}? This cannot be undone.">{% csrf_token %}<button class="btn btn-danger-soft btn-sm" title="Delete quote request">{% icon "trash-2" class="h-4 w-4" %}<span class="sr-only">Delete quote request</span></button></form>{% endif %}
   </div>
 </div>
 {% endblock %}

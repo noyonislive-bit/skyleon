@@ -23,7 +23,8 @@ from apps.feedback.models import Feedback, FeedbackRecipient
 from apps.feedback.services import publish_feedback
 from apps.projects.models import Project, ProjectStatus
 from apps.training.models import Tutorial, TutorialProgress
-from apps.website.models import JobApplication
+from apps.storage.models import MediaAsset, MediaKind, MediaStatus
+from apps.website.models import ContactMessage, JobApplication, LeadStatus, QuoteRequest
 
 from .tests import AdminTestCase
 
@@ -441,3 +442,74 @@ class ProjectDeletionTests(AdminTestCase):
         self.assertTrue(Project.objects.filter(pk=self.p2.pk).exists())
         log = AuditLog.objects.get(action="project.delete", entity_id=str(self.p1.pk))
         self.assertEqual(log.meta["code"], "P1-01")
+
+
+class EnquiryTests(AdminTestCase):
+    def file(self, name):
+        return MediaAsset.objects.create(kind=MediaKind.DOCUMENT, provider="local", storage_key=f"uploads/{name}",
+                                         original_name=name, status=MediaStatus.READY)
+
+    def test_contact_message_notes(self):
+        self.post(self.admin, "message_detail", self.message.pk, data={"status": LeadStatus.CONTACTED, "notes": "Replied on Monday"})
+        self.message.refresh_from_db()
+        self.assertEqual((self.message.status, self.message.notes), (LeadStatus.CONTACTED, "Replied on Monday"))
+        self.assertContains(self.get(self.admin, "message_detail", self.message.pk), "Replied on Monday")
+        csv = self.get(self.admin, "message_list", format="csv").content.decode("utf-8-sig")
+        self.assertIn("Notes", csv.splitlines()[0])
+        self.assertIn("Replied on Monday", csv)
+
+    def test_delete_single_enquiries_with_their_files(self):
+        attachment = self.file("brief.pdf")
+        QuoteRequest.objects.filter(pk=self.quote.pk).update(attachment=attachment)
+        cv = self.file("cv.pdf")
+        JobApplication.objects.filter(pk=self.application.pk).update(cv=cv, user=self.emp1)
+        self.assertContains(self.get(self.admin, "lead_detail", self.quote.pk), reverse("backoffice:lead_delete", args=[self.quote.pk]))
+
+        self.assertRedirects(self.post(self.admin, "lead_delete", self.quote.pk), reverse("backoffice:lead_list"),
+                             fetch_redirect_response=False)
+        self.assertFalse(QuoteRequest.objects.filter(pk=self.quote.pk).exists())
+        self.assertFalse(MediaAsset.objects.filter(pk=attachment.pk).exists())
+        self.assertTrue(audited("lead.delete", entity_id=str(self.quote.pk)))
+
+        self.post(self.admin, "message_delete", self.message.pk)
+        self.assertFalse(ContactMessage.objects.filter(pk=self.message.pk).exists())
+        self.assertTrue(audited("message.delete", entity_id=str(self.message.pk)))
+
+        self.post(self.admin, "applicant_delete", self.application.pk)
+        self.assertFalse(JobApplication.objects.filter(pk=self.application.pk).exists())
+        self.assertFalse(MediaAsset.objects.filter(pk=cv.pk).exists())
+        self.assertTrue(User.objects.filter(pk=self.emp1.pk).exists())  # the employee account stays
+        self.assertTrue(audited("applicant.delete", entity_id=str(self.application.pk)))
+
+    def test_only_super_admins_delete(self):
+        # project managers manage applicants but may not delete them; trainers see none of this
+        self.assertNotContains(self.get(self.pm, "applicant_detail", self.application.pk),
+                               reverse("backoffice:applicant_delete", args=[self.application.pk]))
+        self.assertEqual(self.post(self.pm, "applicant_delete", self.application.pk).status_code, 403)
+        self.assertEqual(self.post(self.pm, "applicant_bulk_delete", data={"ids": [self.application.pk]}).status_code, 403)
+        self.assertEqual(self.post(self.trainer, "lead_delete", self.quote.pk).status_code, 403)
+        self.assertEqual(self.client.get(reverse("backoffice:lead_delete", args=[self.quote.pk])).status_code, 405)
+        self.assertTrue(JobApplication.objects.filter(pk=self.application.pk).exists())
+        self.assertTrue(QuoteRequest.objects.filter(pk=self.quote.pk).exists())
+
+    def test_bulk_delete(self):
+        extra = [QuoteRequest.objects.create(name=f"Lead {i}", email=f"l{i}@x.test", project_type="Images") for i in range(2)]
+        page = self.get(self.admin, "lead_list")
+        self.assertContains(page, reverse("backoffice:lead_bulk_delete"))
+        self.assertContains(page, 'data-check-all="ids"')
+        back = reverse("backoffice:lead_list") + "?status=new"
+        response = self.post(self.admin, "lead_bulk_delete", data={"ids": [extra[0].pk, extra[1].pk, "junk"], "next": back})
+        self.assertRedirects(response, back, fetch_redirect_response=False)
+        self.assertEqual(list(QuoteRequest.objects.values_list("pk", flat=True)), [self.quote.pk])
+        self.assertEqual(AuditLog.objects.filter(action="lead.delete").count(), 2)
+        # nothing selected → nothing deleted
+        self.post(self.admin, "lead_bulk_delete", data={})
+        self.assertTrue(QuoteRequest.objects.filter(pk=self.quote.pk).exists())
+
+        ContactMessage.objects.create(name="Other", email="o@x.test", message="Hi")
+        self.assertContains(self.get(self.admin, "message_list"), reverse("backoffice:message_bulk_delete"))
+        self.post(self.admin, "message_bulk_delete", data={"ids": list(ContactMessage.objects.values_list("pk", flat=True))})
+        self.assertFalse(ContactMessage.objects.exists())
+        self.assertContains(self.get(self.admin, "applicant_list"), reverse("backoffice:applicant_bulk_delete"))
+        self.post(self.admin, "applicant_bulk_delete", data={"ids": [self.application.pk]})
+        self.assertFalse(JobApplication.objects.exists())
