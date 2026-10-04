@@ -14,7 +14,7 @@ One web application with three areas:
 Built with **Python (Django 5.2 LTS) + MySQL/MariaDB** and designed to run on **cPanel shared hosting**
 (Passenger "Setup Python App"). The server needs no Node.js, Redis, Docker or background workers.
 
-- **Deployment guide:** [`docs/DEPLOY_CPANEL.md`](docs/DEPLOY_CPANEL.md)
+- **Deployment guide:** [`docs/DEPLOY_CPANEL.md`](docs/DEPLOY_CPANEL.md) · বাংলায় ধাপে ধাপে: [`docs/DEPLOY_CPANEL_BN.md`](docs/DEPLOY_CPANEL_BN.md) · one-command installer: `bash deploy/cpanel_install.sh`
 - **Architecture & conventions:** [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
 
 ---

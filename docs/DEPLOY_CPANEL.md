@@ -7,6 +7,10 @@ through **Setup Python App**. No Node.js, Redis, Docker or root access is needed
 (3.11/3.12 recommended), MySQL 8 or MariaDB 10.5+, SSH or *Terminal* access (recommended), an SSL
 certificate (AutoSSL is fine).
 
+> **Quick way:** after steps 1–3 below, run `bash deploy/cpanel_install.sh` in the app's virtualenv (cPanel → Terminal).
+> It asks for the domain, database and email details and does steps 4, 5 and 7 for you. Updates: `bash deploy/cpanel_update.sh`.
+> Step-by-step guide in Bangla: [`DEPLOY_CPANEL_BN.md`](DEPLOY_CPANEL_BN.md).
+
 ---
 
 ## 1. Create the database
