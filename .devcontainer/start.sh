@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Runs every time you open (or re-open) the Codespace: brings the preview up to date, then starts the
-# website on port 8000. A stopped Codespace never needs to be re-created — just open it again.
+# website on port 8000 via supervisor.sh (auto-restart + auto-update while the Codespace is open).
+# A stopped Codespace never needs to be re-created — just open it again.
 cd "$(dirname "$0")/.."
 
 echo ""
@@ -17,13 +18,13 @@ if [ "$(python manage.py shell -c "from apps.accounts.models import User; print(
   python manage.py seed_demo >/dev/null && echo "  ✔ demo data loaded"
 fi
 
-# 3. Start the website (unless it is already running from an earlier attach).
-if curl -s -o /dev/null --max-time 2 http://127.0.0.1:8000/healthz/; then
-  echo "  The website is already running on port 8000 — open the 'Ports' tab → 8000 → globe icon."
-  exit 0
-fi
+# 3. Start the website through the supervisor (keeps it running and applies future updates by itself).
+setsid nohup bash .devcontainer/supervisor.sh > /dev/null 2>&1 < /dev/null &
+for _ in $(seq 1 30); do curl -s -o /dev/null --max-time 2 http://127.0.0.1:8000/healthz/ && break; sleep 1; done
 echo ""
-echo "  Skyloon AI is starting on port 8000 — open the 'Ports' tab if the browser does not open automatically."
+echo "  Skyloon AI is running on port 8000 — open the 'Ports' tab → 8000 → globe icon if no browser tab opened."
+echo "  It updates itself when new code is pushed to GitHub (log: /tmp/skyloon-supervisor.log)."
 echo "  Demo logins (password Demo@12345): admin@skyleon.local, pm@skyleon.local, trainer@skyleon.local, employee1@skyleon.local"
 echo ""
-exec python manage.py runserver 0.0.0.0:8000
+touch /tmp/skyloon-server.log
+exec tail -n 0 -F /tmp/skyloon-server.log
