@@ -1,6 +1,6 @@
 # Skyloon AI — preview in Codespaces
 
-The website starts automatically on **port 8000** (see the terminal below). If the browser tab did not open,
+The website starts automatically on **port 8000** (see the terminal below). Every time the Codespace is opened it first updates itself to the latest code and database — a stopped Codespace never needs to be created again: github.com/codespaces → your codespace → *Open in browser*. If the browser tab did not open,
 click the **Ports** tab → port 8000 → the globe icon (Open in Browser).
 
 | Area | Path |
