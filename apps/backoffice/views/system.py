@@ -1,19 +1,26 @@
 """Settings (company info, notification recipients, system status) and the audit log."""
 
 import platform
+from io import StringIO
+from pathlib import Path
 
 import django
 from django.conf import settings
 from django.contrib import messages
+from django.core.management import call_command
+from django.core.management.base import CommandError
 from django.db.models import Q
 from django.shortcuts import redirect, render
 from django.urls import reverse
+from django.views.decorators.http import require_POST
 
 from apps.accounts.decorators import permission_required_code
+from apps.accounts.models import Role, User
 from apps.accounts.permissions import has_permission
 from apps.comms.models import EmailMessage, EmailStatus
 from apps.core import audit, site_settings
 from apps.core.models import AuditLog
+from apps.projects.models import Project
 from apps.training.models import TutorialCategory
 
 from ..forms import CompanySettingsForm, NotificationSettingsForm
@@ -72,8 +79,49 @@ def settings_view(request):
         "email_counts": email_counts,
         "admin_env_emails": list(settings.ADMIN_NOTIFICATION_EMAILS),
         "categories": TutorialCategory.objects.all(),
+        "sample": sample_state(),
         "audit": AuditLog.objects.select_related("actor").order_by("-created_at")[:12] if has_permission(request.user, "audit.view") else None,
     })
+
+
+def sample_state() -> dict:
+    from apps.core.management.commands.seed_demo import LOGINS_FILE, REMOVED_KEY, SAMPLE_PROJECTS, marker
+
+    loaded = Project.objects.filter(code__in=SAMPLE_PROJECTS).exists()
+    return {
+        "loaded": loaded,
+        "removed": bool(marker(REMOVED_KEY)),
+        "logins_file": LOGINS_FILE,
+        "has_logins_file": (Path(settings.BASE_DIR) / LOGINS_FILE).exists(),
+    }
+
+
+@permission_required_code("settings.manage")
+@require_POST
+def sample_data(request):
+    """Load or remove the demo data (manage.py seed_demo) from the browser — no terminal needed."""
+    from apps.core.management.commands.seed_demo import sample_emails
+
+    action = request.POST.get("action")
+    out = StringIO()
+    if action == "remove":
+        if request.user.email in sample_emails() + ["admin@skyleon.local"] and User.objects.filter(
+                role=Role.SUPER_ADMIN, is_active=True).exclude(pk=request.user.pk).exists():
+            messages.error(request, "You are logged in with a demo account. Log in with your own super admin account to remove the demo data.")
+            return redirect(reverse("backoffice:settings") + "#sample-data")
+        call_command("seed_demo", remove=True, stdout=out)
+        audit.log(request, "settings.sample_data_remove", None)
+        messages.success(request, "Demo data removed — your own data is kept.")
+    elif action == "load":
+        try:
+            call_command("seed_demo", password="auto", stdout=out)
+        except CommandError as exc:
+            messages.error(request, f"Demo data could not be loaded: {exc}")
+            return redirect(reverse("backoffice:settings") + "#sample-data")
+        audit.log(request, "settings.sample_data_load", None)
+        lines = [line.strip() for line in out.getvalue().splitlines() if "/" in line and "@" in line]
+        messages.success(request, "Demo data loaded. " + (" · ".join(lines) if lines else "The demo accounts already existed — their passwords are unchanged."))
+    return redirect(reverse("backoffice:settings") + "#sample-data")
 
 
 def _email_backend_label(path):

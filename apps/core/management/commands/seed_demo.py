@@ -7,7 +7,9 @@ Sample data, so every page of the website, the employee portal and the admin pan
     python manage.py seed_demo --remove         # delete the sample data again (your own data is kept)
 
 Sample accounts use the password given with --password (default Demo@12345 — accepted only while
-DEBUG is on; a live site must choose its own). On a live site no extra super admin is created: the
+DEBUG is on; a live site must choose its own, or pass `--password auto`: a strong password is made
+for the new sample accounts, printed and saved in SAMPLE_LOGINS.txt next to manage.py — visible in
+cPanel → File Manager, never on the web). On a live site no extra super admin is created: the
 sample content is authored by your own super admin account.
 
 The set is versioned (SAMPLE_VERSION): previews (Codespaces, cloud sessions) top themselves up
@@ -17,6 +19,8 @@ what you edited. Items still carrying the first, English version of the sample t
 to the current Bangla text.
 """
 
+import os
+import secrets
 import shutil
 import subprocess
 import tempfile
@@ -50,6 +54,7 @@ from apps.website.models import ContactMessage, JobApplication, QuoteRequest
 CATEGORIES = ["Getting started", "Project guidelines", "Annotation techniques", "QA & review", "Tools & platforms", "Daily training"]
 SAMPLE_URL = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4"
 DEFAULT_PASSWORD = "Demo@12345"
+LOGINS_FILE = "SAMPLE_LOGINS.txt"
 
 SAMPLE_VERSION = 2               # bump when the sample set grows; previews then top up by themselves
 VERSION_KEY = "sample_data_version"
@@ -109,7 +114,8 @@ class Command(BaseCommand):
         parser.add_argument("--defaults", action="store_true", help="Only create the tutorial categories")
         parser.add_argument("--if-outdated", action="store_true", help="Do nothing if this database already has the current sample set")
         parser.add_argument("--remove", action="store_true", help="Delete the sample data (accounts, projects, content, leads)")
-        parser.add_argument("--password", default=None, help=f"Password for the sample accounts (default {DEFAULT_PASSWORD}, development only)")
+        parser.add_argument("--password", default=None, help=f"Password for new sample accounts (default {DEFAULT_PASSWORD}, development only; "
+                                                              f"'auto' = make a strong one and save it in {LOGINS_FILE})")
 
     def handle(self, *args, **opts):
         self.categories = {name: TutorialCategory.objects.get_or_create(name=name, defaults={"slug": name.lower().replace(" & ", "-").replace(" ", "-"), "order": i})[0] for i, name in enumerate(CATEGORIES)}
@@ -126,6 +132,11 @@ class Command(BaseCommand):
             self.stdout.write("Sample data is up to date.")
             return
         password = opts["password"]
+        generated = False
+        if password == "auto":
+            # Only accounts that don't exist yet get it — existing passwords are never changed.
+            generated = any(not User.objects.filter(email=e).exists() for e in sample_emails())
+            password = make_password() if generated else secrets.token_urlsafe(24)
         if not password:
             if not settings.DEBUG:
                 raise CommandError(
@@ -146,12 +157,15 @@ class Command(BaseCommand):
         EmailMessage.objects.filter(pk__gt=last_email).delete()
 
         self.stdout.write(self.style.SUCCESS(f"Sample data ready ({self.created} new items)."))
-        if self.admin.email == STAFF[0][0]:
-            self.stdout.write(f"  Super admin:     {STAFF[0][0]} / {password}")
-        self.stdout.write(f"  Project manager: pm@skyleon.local / {password}")
-        self.stdout.write(f"  Trainer / QA:    trainer@skyleon.local / {password}")
-        self.stdout.write(f"  Employees:       employee1..8@skyleon.local / {password}  (waiting for approval: new.member1/2@skyleon.local)")
-        self.stdout.write(f"  Client:          {CLIENT[0]} / {password}")
+        if opts["password"] == "auto" and not generated:
+            self.stdout.write(f"  The sample accounts already existed — their passwords are unchanged (see {LOGINS_FILE}).")
+            return
+        lines = login_lines(password, with_admin=self.admin.email == STAFF[0][0])
+        for line in lines:
+            self.stdout.write("  " + line)
+        if generated:
+            path = save_logins(lines)
+            self.stdout.write(f"  Saved in {path} (only you can read it; also visible in cPanel → File Manager).")
 
     # ── helpers ─────────────────────────────────────────────────────────────
     def ensure(self, model, key, fields=None, *, old=None, create=None):
@@ -713,8 +727,7 @@ class Command(BaseCommand):
         from apps.storage.services import delete_asset
 
         projects = Project.objects.filter(code__in=SAMPLE_PROJECTS)
-        sample_users = User.objects.filter(email__in=[s[0] for s in STAFF[1:]] + [f"employee{i + 1}@skyleon.local" for i in range(len(EMPLOYEES))]
-                                           + [p[0] for p in PENDING] + [CLIENT[0]])
+        sample_users = User.objects.filter(email__in=sample_emails())
         demo_admin = User.objects.filter(email=STAFF[0][0])
         keep_admin = not User.objects.filter(role=Role.SUPER_ADMIN, is_active=True).exclude(email=STAFF[0][0]).exists()
 
@@ -767,6 +780,43 @@ class Command(BaseCommand):
         if keep_admin and demo_admin.exists():
             self.stdout.write(f"  Kept {STAFF[0][0]} — it is the only super admin. Create your own (python manage.py createsuperuser), then run this again.")
         self.stdout.write("  It is not added back automatically; run `python manage.py seed_demo` to add it again.")
+        logins = Path(settings.BASE_DIR) / LOGINS_FILE
+        if logins.exists():
+            logins.unlink()
+
+
+def sample_emails() -> list[str]:
+    return ([s[0] for s in STAFF[1:]] + [f"employee{i + 1}@skyleon.local" for i in range(len(EMPLOYEES))]
+            + [p[0] for p in PENDING] + [CLIENT[0]])
+
+
+def make_password() -> str:
+    alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789"
+    return "Sky-" + "".join(secrets.choice(alphabet) for _ in range(6)) + "-" + "".join(secrets.choice(alphabet) for _ in range(6))
+
+
+def login_lines(password, *, with_admin=False) -> list[str]:
+    lines = [f"Super admin:     {STAFF[0][0]} / {password}"] if with_admin else []
+    return lines + [
+        f"Project manager: pm@skyleon.local / {password}",
+        f"Trainer / QA:    trainer@skyleon.local / {password}",
+        f"Employees:       employee1@skyleon.local … employee8@skyleon.local / {password}",
+        f"Waiting for approval: new.member1@skyleon.local, new.member2@skyleon.local / {password}",
+        f"Client:          {CLIENT[0]} / {password}",
+    ]
+
+
+def save_logins(lines) -> Path:
+    path = Path(settings.BASE_DIR) / LOGINS_FILE
+    text = ("Skyloon AI — sample (demo) accounts\n"
+            "Log in at /login/ (staff and employees) or /client/login/ (client).\n"
+            "Remove all sample data before real employees join: python manage.py seed_demo --remove\n\n"
+            + "\n".join(lines) + "\n")
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w", encoding="utf-8") as fh:
+        fh.write(text)
+    os.chmod(path, 0o600)
+    return path
 
 
 def marker(key) -> int:

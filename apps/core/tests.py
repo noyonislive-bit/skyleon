@@ -111,3 +111,54 @@ class LiveSiteSampleDataTests(TestCase):
 
         top_up_sample_data(sender=None)
         self.assertFalse(Project.objects.exists())
+
+
+@override_settings(DEBUG=False)
+@mock.patch.object(seed_demo.shutil, "which", return_value=None)
+class AutoPasswordAndAdminButtonTests(TestCase):
+    def setUp(self):
+        import tempfile
+
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.owner = User.objects.create_superuser(email="owner@example.org", password="x-Strong-123", name="Owner")
+
+    def test_auto_password_is_saved_for_new_accounts_only(self, _which):
+        from pathlib import Path
+
+        with self.settings(BASE_DIR=Path(self.tmp.name)):
+            run(password="auto")
+            path = Path(self.tmp.name) / seed_demo.LOGINS_FILE
+            text = path.read_text()
+            password = text.split("pm@skyleon.local / ")[1].split()[0]
+            self.assertTrue(User.objects.get(email="employee1@skyleon.local").check_password(password))
+            self.assertEqual(path.stat().st_mode & 0o777, 0o600)
+            out = run(password="auto", if_outdated=False)
+            self.assertIn("passwords are unchanged", out)
+            self.assertTrue(User.objects.get(email="employee1@skyleon.local").check_password(password))
+            call_command("seed_demo", remove=True, stdout=StringIO())
+            self.assertFalse(path.exists())
+
+    def test_admin_can_load_and_remove_from_settings(self, _which):
+        from pathlib import Path
+
+        from django.urls import reverse
+
+        self.client.force_login(self.owner)
+        with self.settings(BASE_DIR=Path(self.tmp.name)):
+            r = self.client.post(reverse("backoffice:sample_data"), {"action": "load"}, follow=True)
+            self.assertContains(r, "Demo data loaded")
+            self.assertTrue(Project.objects.filter(code="ACT-01").exists())
+            self.assertContains(self.client.get(reverse("backoffice:settings")), "Remove demo data")
+            self.client.post(reverse("backoffice:sample_data"), {"action": "remove"})
+            self.assertFalse(Project.objects.filter(code="ACT-01").exists())
+            self.assertTrue(User.objects.filter(pk=self.owner.pk).exists())
+
+    def test_only_super_admins(self, _which):
+        from django.urls import reverse
+
+        pm = User.objects.create_user(email="pm2@example.org", password="x-Strong-123", name="PM", role=Role.PROJECT_MANAGER)
+        self.client.force_login(pm)
+        r = self.client.post(reverse("backoffice:sample_data"), {"action": "load"})
+        self.assertIn(r.status_code, (302, 403))
+        self.assertFalse(Project.objects.filter(code="ACT-01").exists())

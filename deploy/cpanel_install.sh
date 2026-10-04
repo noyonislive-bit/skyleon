@@ -8,8 +8,9 @@
 #   bash deploy/cpanel_install.sh
 #
 # It asks a few questions (domain, database, email), then installs the packages, writes .env,
-# prepares the database and static files, creates your Super Admin login, adds the cron jobs
-# and restarts the app. Safe to run again (it keeps an existing .env unless you say otherwise).
+# prepares the database and static files, creates your Super Admin login, loads the demo data
+# (all sample content — SAMPLE_DATA=no skips it), adds the cron jobs and restarts the app.
+# Safe to run again (it keeps an existing .env unless you say otherwise).
 # Guide (Bangla): docs/DEPLOY_CPANEL_BN.md · full reference: docs/DEPLOY_CPANEL.md
 # ─────────────────────────────────────────────────────────────────────────────
 set -euo pipefail
@@ -118,19 +119,20 @@ else
   say "6/7 A Super Admin already exists — skipped"
 fi
 
-# Optional: the same sample content as the preview (3 projects, tutorials, tests, feedback, guides, practice tasks,
-# sample employee accounts), so every page has something to show. Removable later with one command.
-HAS_SAMPLE=$("$PY" manage.py shell -c "from apps.projects.models import Project; print(Project.objects.filter(code='ACT-01').exists())" | tail -1)
-if [ "$HAS_SAMPLE" != "True" ]; then
-  SAMPLE="${SAMPLE_DATA:-}"
-  [ -n "$SAMPLE" ] || SAMPLE=$(ask "Add sample content so every page has something to show? Remove it later with: python manage.py seed_demo --remove (yes/no)" yes)
-  if [ "$SAMPLE" = "yes" ]; then
-    SAMPLE_PW="${SAMPLE_PASSWORD:-}"
-    while [ "${#SAMPLE_PW}" -lt 8 ]; do
-      SAMPLE_PW=$(asks "  Password for the sample accounts (pm@, trainer@, employee1..8@skyleon.local — min. 8 characters)")
-    done
-    "$PY" manage.py seed_demo --password "$SAMPLE_PW" | tail -n +2
+# Demo data: the same complete sample set as the preview (3 projects, tutorials, tests with questions, feedback,
+# work guide, practice tasks, announcements, meetings, sample employees and their progress), so every page has
+# something to show from the first minute. Skip it with SAMPLE_DATA=no; remove it later with one command.
+if [ "${SAMPLE_DATA:-yes}" != "no" ]; then
+  say "Demo data (all sample content)"
+  SAMPLE_PW="${SAMPLE_PASSWORD:-}"
+  if [ -z "$SAMPLE_PW" ] && [ -t 0 ]; then
+    SAMPLE_PW=$(asks "  Password for the demo accounts (press Enter and one is made for you)")
   fi
+  if [ -n "$SAMPLE_PW" ] && [ "${#SAMPLE_PW}" -lt 8 ]; then
+    warn "That password is shorter than 8 characters — making a strong one instead."; SAMPLE_PW=""
+  fi
+  "$PY" manage.py seed_demo --password "${SAMPLE_PW:-auto}"
+  echo "  Remove all demo data later (before real employees join): python manage.py seed_demo --remove"
 fi
 
 say "7/7 Cron jobs and restart"

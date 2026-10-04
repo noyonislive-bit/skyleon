@@ -10,5 +10,8 @@ if [ -d .git ]; then git pull --ff-only; fi
 "$PY" manage.py collectstatic --noinput >/dev/null   # before migrate: pages need the static manifest
 "$PY" manage.py migrate --noinput
 "$PY" manage.py createcachetable
+# Demo data: added if missing, topped up when a newer sample set ships (never duplicated, your changes are kept,
+# never re-added after `manage.py seed_demo --remove`). New demo accounts get a password saved in SAMPLE_LOGINS.txt.
+"$PY" manage.py seed_demo --if-outdated --password auto
 mkdir -p tmp && touch tmp/restart.txt
 echo "✔ Updated and restarted."

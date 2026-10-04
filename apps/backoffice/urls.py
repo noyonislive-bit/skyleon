@@ -117,5 +117,6 @@ urlpatterns = [
     # Insights / system
     path("reports/", insights.reports, name="reports"),
     path("settings/", system.settings_view, name="settings"),
+    path("settings/sample-data/", system.sample_data, name="sample_data"),
     path("audit/", system.audit_log, name="audit_log"),
 ]

@@ -52,6 +52,23 @@
   </div>
 
   <aside class="min-w-0 space-y-6">
+    <section class="card scroll-mt-24" id="sample-data">
+      <div class="card-header">
+        <h2 class="card-title">Demo data</h2>
+        {% if sample.loaded %}<span class="badge badge-success">Loaded</span>{% elif sample.removed %}<span class="badge badge-neutral">Removed</span>{% else %}<span class="badge badge-warning">Not loaded</span>{% endif %}
+      </div>
+      <div class="card-body space-y-3 text-sm text-slate-600">
+        <p>Sample content for every page — 3 projects, tutorials, tests with questions, feedback, a work guide, Practice Lab tasks, announcements, meetings, enquiries — and sample employees with their progress, so you can see how everything works.</p>
+        {% if sample.loaded %}
+        <p>Sample logins: <code class="font-mono text-xs">pm@skyleon.local</code>, <code class="font-mono text-xs">trainer@skyleon.local</code>, <code class="font-mono text-xs">employee1…8@skyleon.local</code>, <code class="font-mono text-xs">client@northwind.example</code>{% if sample.has_logins_file %} — password in <code class="font-mono text-xs">{{ sample.logins_file }}</code> (cPanel → File Manager, app folder){% endif %}.</p>
+        <p class="text-xs text-slate-500">Remove it before real employees join. Your own projects, people and content are kept.</p>
+        {% endif %}
+        <form method="post" action="{% url 'backoffice:sample_data' %}" class="flex flex-wrap gap-2 pt-1">{% csrf_token %}
+          <button class="btn btn-primary btn-sm" name="action" value="load">{% icon "database" class="h-4 w-4" %} {% if sample.loaded %}Add anything missing{% else %}Load demo data{% endif %}</button>
+          {% if sample.loaded %}<button class="btn btn-danger btn-sm" name="action" value="remove" data-confirm-click="Remove all demo data (sample projects, content, accounts and enquiries)? Your own data is kept.">{% icon "trash-2" class="h-4 w-4" %} Remove demo data</button>{% endif %}
+        </form>
+      </div>
+    </section>
     <section class="card">
       <div class="card-header"><h2 class="card-title">System</h2><span class="badge badge-neutral">read-only</span></div>
       <dl class="divide-y divide-slate-100">

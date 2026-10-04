@@ -82,11 +82,13 @@ Open `https://your-domain/` (public site), `https://your-domain/login/` (staff &
 `https://your-domain/admin/` (admin panel). Then go to **Admin → Settings** and enter the company
 email, phone, address, business hours and social links shown on the website.
 
-> **Sample content.** The installer offers to add the same sample content as the preview (3 projects,
-> tutorials, tests, feedback, a work guide, practice tasks, sample staff / employee accounts) so every page
-> has something to show. To add it later: `python manage.py seed_demo --password 'Your-Own-Password'`
-> (on a live site the password is required and no extra super admin is created). Remove it again — your own
-> data is kept — with `python manage.py seed_demo --remove`.
+> **Demo data.** The installer loads the complete sample set (3 projects, tutorials, tests with questions,
+> feedback, a work guide, Practice Lab tasks, announcements, meetings, enquiries and sample employees with
+> their progress) so every page has something to show. Demo account passwords are generated, printed and saved
+> in `SAMPLE_LOGINS.txt` next to `manage.py` (mode 600, not web-accessible); no extra super admin is created.
+> `cpanel_update.sh` tops it up (`seed_demo --if-outdated --password auto`). Load or remove it in the browser:
+> Admin → Settings → *Demo data*, or `python manage.py seed_demo --remove` (keeps your own data; not re-added).
+> Install without it: `SAMPLE_DATA=no bash deploy/cpanel_install.sh`.
 
 ## 6. Force HTTPS
 
