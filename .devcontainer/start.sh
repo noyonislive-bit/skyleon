@@ -22,7 +22,15 @@ fi
 setsid nohup bash .devcontainer/supervisor.sh > /dev/null 2>&1 < /dev/null &
 for _ in $(seq 1 30); do curl -s -o /dev/null --max-time 2 http://127.0.0.1:8000/healthz/ && break; sleep 1; done
 echo ""
-echo "  Skyloon AI is running on port 8000 — open the 'Ports' tab → 8000 → globe icon if no browser tab opened."
+if [ -n "${CODESPACE_NAME:-}" ] && [ -n "${GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN:-}" ]; then
+  URL="https://${CODESPACE_NAME}-8000.${GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN}"
+  echo "$URL" > PREVIEW_URL.txt
+  echo "  ┌──────────────────────────────────────────────────────────────────────"
+  echo "  │  Your website:  $URL"
+  echo "  │  Admin panel:   $URL/admin/        Employee login: $URL/login/"
+  echo "  └──────────────────────────────────────────────────────────────────────"
+fi
+echo "  Skyloon AI is running on port 8000 — or open the 'Ports' tab → 8000 → globe icon."
 echo "  It updates itself when new code is pushed to GitHub (log: /tmp/skyloon-supervisor.log)."
 echo "  Demo logins (password Demo@12345): admin@skyleon.local, pm@skyleon.local, trainer@skyleon.local, employee1@skyleon.local"
 echo ""

@@ -25,3 +25,6 @@ node_modules/
 /test-results/
 /playwright-report/
 .DS_Store
+
+# Codespaces: the preview address printed by .devcontainer/start.sh
+PREVIEW_URL.txt
