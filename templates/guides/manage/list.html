@@ -1,6 +1,7 @@
 {% extends "backoffice/base.html" %}
 {% load guides_tags %}
 {% block page_actions %}
+  <a href="{% url 'guides:manage_doc_import' %}" class="btn btn-secondary">{% icon "file-text" class="h-4 w-4" %} Import a document (Word / Markdown)</a>
   <a href="{% url 'guides:manage_import' %}" class="btn btn-secondary">{% icon "upload" class="h-4 w-4" %} Import JSON</a>
   <a href="{% url 'guides:manage_new' %}" class="btn btn-primary">{% icon "plus" class="h-4 w-4" %} New guide</a>
 {% endblock %}

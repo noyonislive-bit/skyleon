@@ -43,8 +43,11 @@
         </table>
       </div>
       {% endif %}
+      {% if st.body_en and not st.body %}
+      <p class="g-missing-bn">{% icon "languages" class="mt-0.5 h-4 w-4 shrink-0" %}<span>এই ধাপের বাংলা লেখা এখনো যোগ হয়নি — নিচে মূল ইংরেজি নির্দেশনা দেওয়া হলো।</span></p>
+      {% endif %}
       {% if st.body_en %}
-      <details class="g-en">
+      <details class="g-en"{% if not st.body %} open{% endif %}>
         <summary>{% icon "languages" class="h-4 w-4" %}<span class="g-en-open">মূল ইংরেজি দেখুন</span><span class="g-en-close">মূল ইংরেজি লুকান</span>{% icon "chevron-down" class="g-en-chev h-4 w-4" %}</summary>
         <div class="prose-content g-en-body" lang="en">{{ st.body_en|markdown }}</div>
       </details>

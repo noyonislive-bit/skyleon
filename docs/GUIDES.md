@@ -57,6 +57,32 @@ general examples for the whole guide. Every guide with examples also gets a **�
 (`#task-errors`) listing all of them, linked from the table of contents and the guide header, so employees can
 review every Task Error before they start work.
 
+## Videos and segments (admin)
+
+Every step and Task Error example can use **one video**, chosen in its form:
+
+* **Original link** — YouTube, Vimeo, Google Drive, Loom, Stream/SharePoint, Lark, a direct MP4/WebM or an HLS link.
+  Use this for every video that comes from the source documents (never downloaded or re-hosted).
+* **Uploaded video** — upload a file (or reuse one already uploaded) to our private storage; it streams to employees
+  through signed, per-viewer links. Use this for videos you recorded yourselves.
+
+**Video segments** (editor → *Video segments*, or *Set start / end on the video* in a step form) is one screen for the
+whole guide: pick a video (used in the guide, from the uploaded library, a pasted link or a new upload), play it, select a
+step or Task Error example and press **[** where its part starts and **]** where it ends (or drag the edges of its block on
+the timeline, or type m:ss). **P** plays the selected part, ↑/↓ moves between items, *Use this video* assigns the current
+video to an item. Saving clears the *verified* mark of every changed item, so it is checked against the original again.
+YouTube, Vimeo, uploaded and direct/HLS videos report their time to the editor; for Drive, Lark, Loom and Stream players
+type the times you read in the player.
+
+## Importing a document (Word / Markdown)
+
+Admin → Work guides → **Import a document**: upload the document exported from Lark (⋯ → Download as → Word or
+Markdown). Its headings become sections and steps **in the original order**; each step keeps the original English text
+(*মূল ইংরেজি*) and the first video link in it. The guide is created as a draft — nothing is translated or invented. Then,
+for each step: write the Bangla text (the editor marks steps with *Bangla missing*), set the video segment, add the Task
+Error examples the document/video shows, and verify. Until a step has Bangla text, employees see the original English
+instruction with a note.
+
 ## Videos — original links only
 
 Videos are **never downloaded or stored on our server**. Paste the original link and it is embedded:

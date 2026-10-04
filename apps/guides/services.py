@@ -13,7 +13,7 @@ from apps.accounts.permissions import can_manage_content_for, has_permission, sc
 from apps.core.choices import ContentStatus
 
 from .models import Guide, GuideProgress, GuideSection, GuideStep, GuideTaskError
-from .video import embed_info
+from .video import item_video
 
 BN_DIGITS = str.maketrans("0123456789", "০১২৩৪৫৬৭৮৯")
 WORDS_PER_MINUTE = 120  # comfortable reading pace for Bangla instructions
@@ -147,7 +147,8 @@ def verification_stats(guide) -> dict:
     errors = GuideTaskError.objects.filter(guide=guide)
     total = steps.count() + errors.count()
     verified = steps.filter(verified_at__isnull=False).count() + errors.filter(verified_at__isnull=False).count()
-    return {"total": total, "verified": verified, "pending": total - verified,
+    missing_bangla = steps.filter(body="").exclude(body_en="").count()
+    return {"total": total, "verified": verified, "pending": total - verified, "missing_bangla": missing_bangla,
             "percent": round(verified * 100 / total) if total else 0, "complete": total > 0 and verified == total}
 
 
@@ -198,7 +199,7 @@ def step_minutes(step) -> int:
     if step.estimated_minutes:
         return int(step.estimated_minutes)
     words = len(re.findall(r"\S+", step.body or ""))
-    return max(1, math.ceil(words / WORDS_PER_MINUTE) + (1 if step.video_url else 0))
+    return max(1, math.ceil(words / WORDS_PER_MINUTE) + (1 if step.video_url or step.video_asset_id else 0))
 
 
 @dataclass(eq=False)
@@ -226,10 +227,11 @@ class StepNode:
     @property
     def video(self):
         if not hasattr(self, "_video"):
-            self._video = embed_info(self.obj.video_url, self.obj.video_start, self.obj.video_end) if self.obj.video_url else None
+            self._video = item_video(self.obj, self.viewer)
         return self._video
 
     errors: list = field(default_factory=list)
+    viewer: object = None  # signed URLs for uploaded videos are issued per viewer
 
 
 @dataclass(eq=False)
@@ -247,10 +249,12 @@ class ErrorNode:
     def anchor(self):
         return self.obj.anchor
 
+    viewer: object = None
+
     @property
     def video(self):
         if not hasattr(self, "_video"):
-            self._video = embed_info(self.obj.video_url, self.obj.video_start, self.obj.video_end) if self.obj.video_url else None
+            self._video = item_video(self.obj, self.viewer)
         return self._video
 
 
@@ -324,7 +328,7 @@ class Outline:
 
     @property
     def video_count(self):
-        return sum(1 for s in self.steps if s.obj.video_url)
+        return sum(1 for s in self.steps if s.obj.has_video)
 
     @property
     def first_unread(self):
@@ -347,7 +351,9 @@ class Outline:
 
 def build_outline(guide, user=None) -> Outline:
     sections = list(guide.sections.all())
-    steps = list(GuideStep.objects.filter(guide=guide).order_by("section__order", "section_id", "order", "pk"))
+    steps = list(GuideStep.objects.filter(guide=guide).select_related("video_asset")
+                 .order_by("section__order", "section_id", "order", "pk"))
+    viewer = user if user is not None and getattr(user, "is_authenticated", False) else None
     done_ids = set()
     if user is not None and getattr(user, "is_authenticated", False):
         done_ids = set(GuideProgress.objects.filter(user=user, step__guide=guide).values_list("step_id", flat=True))
@@ -358,25 +364,26 @@ def build_outline(guide, user=None) -> Outline:
     for i, sec in enumerate(sections, start=1):
         node = SectionNode(obj=sec, number=i)
         for j, st in enumerate(by_section.get(sec.pk, []), start=1):
-            sn = StepNode(obj=st, section=node, number=f"{i}.{j}", index=len(step_nodes) + 1, done=st.pk in done_ids)
+            sn = StepNode(obj=st, section=node, number=f"{i}.{j}", index=len(step_nodes) + 1, done=st.pk in done_ids,
+                          viewer=viewer)
             node.steps.append(sn)
             step_nodes.append(sn)
         sec_nodes.append(node)
     for a, b in zip(step_nodes, step_nodes[1:]):
         a.next, b.prev = b, a
     by_step = {sn.obj.pk: sn for sn in step_nodes}
-    raw_errors = list(GuideTaskError.objects.filter(guide=guide).order_by("order", "pk"))
+    raw_errors = list(GuideTaskError.objects.filter(guide=guide).select_related("video_asset").order_by("order", "pk"))
     errs_by_step = {}
     for e in raw_errors:
         errs_by_step.setdefault(e.step_id, []).append(e)
     error_nodes = []
     for sn in step_nodes:  # step examples in reading order, then the general ones
         for e in errs_by_step.get(sn.obj.pk, []):
-            en = ErrorNode(obj=e, number=len(error_nodes) + 1, step=sn)
+            en = ErrorNode(obj=e, number=len(error_nodes) + 1, step=sn, viewer=viewer)
             sn.errors.append(en)
             error_nodes.append(en)
     for e in errs_by_step.get(None, []):
-        error_nodes.append(ErrorNode(obj=e, number=len(error_nodes) + 1))
+        error_nodes.append(ErrorNode(obj=e, number=len(error_nodes) + 1, viewer=viewer))
     return Outline(guide=guide, sections=sec_nodes, steps=step_nodes, done_ids=done_ids, errors=error_nodes)
 
 
@@ -392,7 +399,7 @@ def guide_stats(guides, user) -> dict:
         out[err["guide_id"]]["errors"] += 1
     done = set(GuideProgress.objects.filter(user=user, step__guide_id__in=ids).values_list("step_id", flat=True))
     steps = GuideStep.objects.filter(guide_id__in=ids).only(
-        "id", "guide_id", "anchor", "body", "video_url", "estimated_minutes", "order", "section_id"
+        "id", "guide_id", "anchor", "body", "video_url", "video_asset_id", "estimated_minutes", "order", "section_id"
     ).order_by("section__order", "section_id", "order", "pk")
     for st in steps:
         row = out[st.guide_id]

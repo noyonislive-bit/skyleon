@@ -1,5 +1,5 @@
 {% extends "backoffice/base.html" %}
-{% load static guides_tags %}
+{% load static guides_tags backoffice_tags %}
 {% block page_actions %}
   {% if preview_url %}<a href="{{ preview_url }}" class="btn btn-secondary">{% icon "eye" class="h-4 w-4" %} Preview as employee</a>{% endif %}
 {% endblock %}
@@ -24,8 +24,18 @@
     </div>
 
     <div class="card card-body space-y-5">
-      <h2 class="card-title">{% icon "circle-play" class="mr-1 inline h-4 w-4" %} Where the original video shows it</h2>
-      <div>
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <h2 class="card-title">{% icon "circle-play" class="mr-1 inline h-4 w-4" %} Where the video shows it</h2>
+        {% if error %}<a href="{% url 'guides:manage_segments' guide.pk %}?item=error-{{ error.pk }}" class="btn btn-secondary btn-sm">{% icon "scissors" class="h-4 w-4" %} Set start / end on the video</a>{% endif %}
+      </div>
+      <div class="flex flex-wrap gap-4 text-sm" role="radiogroup" aria-label="Video source">
+        {% for radio in form.video_source %}<label class="inline-flex items-center gap-2 font-medium text-slate-700">{{ radio.tag }} {{ radio.choice_label }}</label>{% endfor %}
+      </div>
+      <div class="space-y-1" data-src-panel="upload">
+        <p class="text-xs text-slate-500">Upload a video to our storage (or replace it). Use this for videos you made yourself; keep original links for videos from the source documents.</p>
+        {% uploader form.video_asset kind="video" purpose="guide" external=False %}
+      </div>
+      <div data-src-panel="link">
         {% include "components/field.html" with field=form.video_url hint="The ORIGINAL video link (never downloaded or re-hosted)." %}
         <span class="g-detect{% if video_label %} is-ok{% endif %}" data-guide-detect {% if not video_label %}hidden{% endif %}>{{ video_label }}</span>
       </div>
@@ -61,4 +71,4 @@
   </aside>
 </form>
 {% endblock %}
-{% block scripts %}{{ block.super }}<script src="{% static 'js/guides-admin.js' %}" defer></script>{% endblock %}
+{% block scripts %}{{ block.super }}<script src="{% static 'js/uploader.js' %}" defer></script><script src="{% static 'js/guides-admin.js' %}" defer></script>{% endblock %}

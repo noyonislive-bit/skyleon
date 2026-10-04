@@ -116,6 +116,8 @@ class GuideStep(models.Model):
     body_en = models.TextField("Original English text", blank=True)
     video_url = models.URLField("Original video link", max_length=1000, blank=True,
                                 help_text="The ORIGINAL link (YouTube, Vimeo, Drive, Loom, Stream/SharePoint, Lark, MP4, HLS). Never re-hosted.")
+    video_asset = models.ForeignKey("storage.MediaAsset", null=True, blank=True, on_delete=models.SET_NULL, related_name="+",
+                                    help_text="A video uploaded to our storage (used instead of the link when set)")
     video_caption = models.CharField(max_length=300, blank=True)
     video_start = models.PositiveIntegerField(null=True, blank=True, help_text="Start the video at this second (optional)")
     video_end = models.PositiveIntegerField(null=True, blank=True, help_text="End of the part of the video this step explains (optional)")
@@ -129,7 +131,11 @@ class GuideStep(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     # Changing any of these means the Bangla text must be checked against the original again.
-    VERIFIED_FIELDS = ("title", "body", "body_en", "video_url", "video_start", "video_end", "actions")
+    VERIFIED_FIELDS = ("title", "body", "body_en", "video_url", "video_asset_id", "video_start", "video_end", "actions")
+
+    @property
+    def has_video(self):
+        return bool(self.video_url or self.video_asset_id)
 
     class Meta:
         ordering = ["section__order", "section_id", "order", "pk"]
@@ -167,6 +173,8 @@ class GuideTaskError(models.Model):
     correct_method = models.TextField("Correct method", blank=True, help_text="Bangla (Markdown): the right way, as the original shows it")
     video_url = models.URLField("Original video link", max_length=1000, blank=True,
                                 help_text="The ORIGINAL video that shows this mistake (never re-hosted)")
+    video_asset = models.ForeignKey("storage.MediaAsset", null=True, blank=True, on_delete=models.SET_NULL, related_name="+",
+                                    help_text="A video uploaded to our storage (used instead of the link when set)")
     video_start = models.PositiveIntegerField(null=True, blank=True)
     video_end = models.PositiveIntegerField(null=True, blank=True)
     video_caption = models.CharField(max_length=300, blank=True)
@@ -179,7 +187,11 @@ class GuideTaskError(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     VERIFIED_FIELDS = ("title", "what_wrong", "why_wrong", "how_to_avoid", "correct_method",
-                       "video_url", "video_start", "video_end", "source_text_en")
+                       "video_url", "video_asset_id", "video_start", "video_end", "source_text_en")
+
+    @property
+    def has_video(self):
+        return bool(self.video_url or self.video_asset_id)
 
     class Meta:
         ordering = ["order", "pk"]

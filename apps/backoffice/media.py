@@ -5,7 +5,7 @@ A MediaAsset has no owner field of its own — access follows the object it is
 attached to:
 
   * training content (tutorial / feedback videos, question and option media,
-    practice-task videos, guideline documents — and the thumbnails of those
+    practice-task videos, work-guide videos, guideline documents — and the thumbnails of those
     videos) → the content's project must be in the viewer's scope
     (company-wide content, project NULL, is visible to all content staff);
   * job-application CVs / work samples → `applicants.manage`;
@@ -47,6 +47,11 @@ def _content_asset_subqueries(project_ids):
         _scoped(QuestionOption.objects.filter(media__isnull=False), "question__test__project", project_ids).values("media_id"),
         _scoped(Guideline.objects.filter(document__isnull=False), "project", project_ids, nullable=False).values("document_id"),
     ]
+    if apps.is_installed("apps.guides"):
+        from apps.guides.models import GuideStep, GuideTaskError
+
+        subs.append(_scoped(GuideStep.objects.filter(video_asset__isnull=False), "guide__project", project_ids).values("video_asset_id"))
+        subs.append(_scoped(GuideTaskError.objects.filter(video_asset__isnull=False), "guide__project", project_ids).values("video_asset_id"))
     if apps.is_installed("apps.practice"):
         from apps.practice.models import PracticeTask
 

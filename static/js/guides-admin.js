@@ -57,6 +57,15 @@
     $("[data-guide-action-add]").addEventListener("click", () => { const row = addRow(); $("input", row).focus(); sync(); });
   }
 
+  // ── Video source: original link or uploaded video ──────────────────────
+  const radios = $$("input[name=video_source]");
+  const showSource = () => {
+    const v = (radios.find((r) => r.checked) || {}).value || "link";
+    $$("[data-src-panel]").forEach((p) => (p.hidden = p.dataset.srcPanel !== v));
+  };
+  radios.forEach((r) => r.addEventListener("change", showSource));
+  if (radios.length) showSource();
+
   // ── Video link detection + preview ─────────────────────────────────────
   const url = $("input[name=video_url]");
   const start = $("input[name=video_start]");

@@ -35,6 +35,7 @@ PROVIDERS = {
     "stream": "Microsoft Stream / SharePoint",
     "lark": "Lark / Feishu",
     "file": "Video file",
+    "upload": "Uploaded video",
     "hls": "HLS stream",
     "link": "Link",
 }
@@ -180,7 +181,8 @@ def embed_info(url, start=None, end=None) -> dict | None:
             params["start"] = str(start)
         if end and end > (start or 0):
             params["end"] = str(end)
-        return _result("iframe", f"https://www.youtube-nocookie.com/embed/{yt}?{urlencode(params)}", "youtube", original, start, end)
+        return _result("iframe", f"https://www.youtube-nocookie.com/embed/{yt}?{urlencode(params)}", "youtube", original, start, end,
+                       video_id=yt)
 
     # Vimeo ----------------------------------------------------------------
     vid, vhash = _vimeo(host, path, query)
@@ -191,7 +193,7 @@ def embed_info(url, start=None, end=None) -> dict | None:
             start = parse_start(parts.fragment[2:])
         if start:
             src += f"#t={start}s"
-        return _result("iframe", src, "vimeo", original, start, end)
+        return _result("iframe", src, "vimeo", original, start, end, video_id=vid, vimeo_hash=params.get("h", ""))
 
     # Google Drive -----------------------------------------------------------
     did = _drive_id(host, path, query)
@@ -234,6 +236,32 @@ def embed_info(url, start=None, end=None) -> dict | None:
         return _result("video", src, "file", original, start, end, mime=VIDEO_EXT[ext], ext=ext.upper())
 
     return _result("link", original, "link", original, None, host=host.removeprefix("www."))
+
+
+def asset_embed_info(asset, user, start=None, end=None) -> dict | None:
+    """Player info for a video uploaded to our own storage (signed, per-viewer URL)."""
+    from apps.storage.services import media_url
+
+    if asset is None:
+        return None
+    src = media_url(asset, user)
+    if not src:
+        return None
+    start, end = parse_start(start), parse_start(end)
+    if getattr(asset, "is_hls", False):
+        return _result("hls", src, "hls", "", start, end, uploaded=True)
+    if start or (end and end > (start or 0)):
+        src = src.split("#", 1)[0] + f"#t={start or 0}" + (f",{end}" if end and end > (start or 0) else "")
+    return _result("video", src, "upload", "", start, end, mime=asset.mime_type or "", uploaded=True)
+
+
+def item_video(obj, user) -> dict | None:
+    """Player info for a guide step / Task Error example: its uploaded video, else its original link."""
+    if getattr(obj, "video_asset_id", None):
+        return asset_embed_info(obj.video_asset, user, obj.video_start, obj.video_end)
+    if obj.video_url:
+        return embed_info(obj.video_url, obj.video_start, obj.video_end)
+    return None
 
 
 def describe(info: dict | None) -> str:

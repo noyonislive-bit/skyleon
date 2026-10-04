@@ -30,7 +30,7 @@
     {% if info.segment %}<p class="g-player-segment">{% icon "scissors" class="h-3.5 w-3.5" %} {% if info.end %}এই অংশ: ভিডিওর <strong>{{ info.segment|bn }}</strong>{% else %}ভিডিওর <strong>{{ info.segment|bn }}</strong> দেখুন{% endif %}</p>{% endif %}
     {% if caption %}<p class="g-player-caption">{{ caption }}</p>{% endif %}
     <p class="g-player-links">
-      <a href="{{ info.original }}" target="_blank" rel="noopener noreferrer" class="g-orig-link">{% icon "external-link" class="h-3.5 w-3.5" %} মূল ভিডিও লিংক</a>
+      {% if info.original %}<a href="{{ info.original }}" target="_blank" rel="noopener noreferrer" class="g-orig-link">{% icon "external-link" class="h-3.5 w-3.5" %} মূল ভিডিও লিংক</a>{% else %}<span></span>{% endif %}
       <span class="g-provider">{{ info.provider_label }}</span>
     </p>
     {% if info.needs_login %}

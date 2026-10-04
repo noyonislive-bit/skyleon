@@ -2,6 +2,7 @@
 {% load guides_tags %}
 {% block page_actions %}
   <a href="{% url 'guides:detail' guide.slug %}" class="btn btn-secondary">{% icon "eye" class="h-4 w-4" %} Preview</a>
+  <a href="{% url 'guides:manage_segments' guide.pk %}" class="btn btn-secondary">{% icon "scissors" class="h-4 w-4" %} Video segments</a>
   <a href="{% url 'guides:manage_progress' guide.pk %}" class="btn btn-secondary">{% icon "bar-chart-3" class="h-4 w-4" %} Progress</a>
   <form method="post" action="{% url 'guides:manage_publish' guide.pk %}">{% csrf_token %}
     {% if guide.is_published %}<button name="action" value="unpublish" class="btn btn-secondary">Unpublish</button>
@@ -20,6 +21,7 @@
   {% icon "file-check" class="mt-0.5 h-4 w-4 shrink-0" %}
   <div class="flex-1 text-sm">
     <p class="font-semibold">Source of truth: {{ verification.verified }} of {{ verification.total }} items verified against the original document and video{% if verification.total %} ({{ verification.percent }}%){% endif %}.</p>
+    {% if verification.missing_bangla %}<p class="mt-0.5 font-semibold">{{ verification.missing_bangla }} step(s) still need their Bangla text (the original English is already there).</p>{% endif %}
     <p class="mt-0.5">Order of authority: original document → original video → actual workflow → Bangla text → portal. Rules and the order of steps must not be changed — only the presentation.
       Mark a step or Task Error example as verified after checking its Bangla text against the original text <em>and</em> the video segment it points to. Editing it later clears the mark.
       {% if guide.source_url %}<a href="{{ guide.source_url }}" target="_blank" rel="noopener noreferrer" class="font-semibold underline">Open the original document</a>.{% endif %}</p>
@@ -56,9 +58,10 @@
           <a href="{% url 'guides:manage_step_edit' node.obj.pk %}" class="font-medium text-slate-800 hover:text-brand-700" lang="bn">{{ node.obj.title }}</a>
           <p class="flex flex-wrap items-center gap-2 text-xs text-slate-500">
             <span>#{{ node.anchor }}</span>
-            {% if node.obj.video_url %}<span class="inline-flex items-center gap-1 text-brand-700">{% icon "circle-play" class="h-3 w-3" %} video</span>{% endif %}
+            {% if node.obj.has_video %}<span class="inline-flex items-center gap-1 text-brand-700">{% icon "circle-play" class="h-3 w-3" %} {% if node.obj.video_asset_id %}uploaded video{% else %}video{% endif %}</span>{% endif %}
             {% if node.obj.actions %}<span class="inline-flex items-center gap-1">{% icon "keyboard" class="h-3 w-3" %} {{ node.obj.actions|length }} buttons</span>{% endif %}
             {% if node.obj.body_en %}<span>EN original</span>{% endif %}
+            {% if node.obj.body_en and not node.obj.body %}<span class="g-ver is-pending">Bangla missing</span>{% endif %}
             {% if node.video.segment %}<span class="font-mono">{{ node.video.segment }}</span>{% endif %}
             {% if node.obj.source_ref %}<span title="Source in the original">{% icon "file-text" class="inline h-3 w-3" %} {{ node.obj.source_ref|truncatechars:60 }}</span>{% endif %}
             <span>~{{ node.minutes }} min</span>

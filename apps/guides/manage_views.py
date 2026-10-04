@@ -4,6 +4,7 @@ import json
 from collections import defaultdict
 
 from django.contrib import messages
+from django.db import transaction
 from django.db.models import Count, Max
 from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -23,7 +24,7 @@ from . import services
 from .forms import GuideForm, ImportForm, SectionForm, StepForm, TaskErrorForm
 from .importer import SCHEMA_HELP, GuideImportError, export_guide, import_guide, load_json
 from .models import Guide, GuideProgress, GuideSection, GuideStep, GuideTaskError
-from .video import describe, embed_info
+from .video import clean_url, describe, embed_info, parse_start
 
 ADMIN_LABEL = "Work guides"
 
@@ -217,7 +218,7 @@ def step_form(request, section_id=None, step_id=None):
     section = step.section if step else _section_or_404(request, section_id)
     guide = section.guide
     initial = {} if step else {"section": section}
-    form = StepForm(request.POST or None, instance=step, guide=guide, initial=initial)
+    form = StepForm(request.POST or None, instance=step, guide=guide, initial=initial, user=request.user)
     before = services.snapshot(step) if step else None
     if request.method == "POST" and form.is_valid():
         obj = form.save(commit=False)
@@ -282,7 +283,7 @@ def error_form(request, pk=None, error_id=None):
     initial = {}
     if err is None and request.GET.get("step"):
         initial["step"] = GuideStep.objects.filter(guide=guide, pk=request.GET["step"]).first()
-    form = TaskErrorForm(request.POST or None, instance=err, guide=guide, initial=initial)
+    form = TaskErrorForm(request.POST or None, instance=err, guide=guide, initial=initial, user=request.user)
     before = services.snapshot(err) if err else None
     if request.method == "POST" and form.is_valid():
         obj = form.save(commit=False)
@@ -346,6 +347,148 @@ def verify(request, kind, obj_id):
     audit.log(request, f"guide.{'step' if kind == 'step' else 'task_error'}.verify", obj, guide=obj.guide_id, verified=verified)
     messages.success(request, ("Marked as verified against the original: " if verified else "Verification removed: ") + obj.title)
     return redirect(_editor_url(obj.guide, obj.anchor))
+
+
+# ── Video segments (one screen for all steps and Task Error examples) ──────────
+
+def player_source(*, url="", asset=None, user=None) -> dict | None:
+    """What the segment editor's player needs for a video: kind (video / hls / youtube / vimeo /
+    iframe / link), where to load it from and how to label it."""
+    from apps.storage.services import media_url
+
+    if asset is not None:
+        src = media_url(asset, user)
+        if not src:
+            return None
+        return {"key": f"asset:{asset.pk}", "asset": str(asset.pk), "url": "", "src": src,
+                "kind": "hls" if asset.is_hls else "video", "label": f"Uploaded · {asset.original_name or 'video'}",
+                "duration": asset.duration_sec}
+    info = embed_info(url) if url else None
+    if info is None:
+        return None
+    kind = info["kind"]
+    if kind == "iframe" and info["provider"] in ("youtube", "vimeo"):
+        kind = info["provider"]
+    host = (url.split("//", 1)[-1].split("/", 1)[0]).removeprefix("www.")
+    return {"key": f"url:{url}", "asset": "", "url": url, "src": info["src"].split("#", 1)[0], "kind": kind,
+            "video_id": info.get("video_id", ""), "hash": info.get("vimeo_hash", ""),
+            "label": f"{info['provider_label']} · {host}", "duration": None}
+
+
+def _segment_items(guide, user):
+    outline = services.build_outline(guide)
+    items, sources = [], {}
+
+    def add(obj, kind, number, title, section):
+        src = player_source(url=obj.video_url, asset=obj.video_asset, user=user) if obj.has_video else None
+        if src:
+            sources.setdefault(src["key"], src)
+        items.append({"type": kind, "id": obj.pk, "number": number, "title": title, "section": section,
+                      "anchor": obj.anchor, "video": src["key"] if src else "", "start": obj.video_start,
+                      "end": obj.video_end, "verified": bool(obj.verified_at)})
+
+    for sec in outline.sections:
+        for node in sec.steps:
+            add(node.obj, "step", node.number, node.obj.title, f"{sec.number}. {sec.obj.title}")
+            for err in node.errors:
+                add(err.obj, "error", f"{node.number} · TE{err.number}", err.obj.title, f"{sec.number}. {sec.obj.title}")
+    for err in outline.guide_errors:
+        add(err.obj, "error", f"TE{err.number}", err.obj.title, "General Task Error examples")
+    return items, sources
+
+
+@permission_required_code("content.manage")
+def segments(request, pk):
+    from apps.backoffice.forms import MediaAssetField
+    from apps.backoffice.media import content_assets
+    from apps.storage.models import MediaAsset, MediaKind, MediaStatus
+    from django import forms as dj_forms
+
+    guide = _guide_or_404(request, pk)
+    items, sources = _segment_items(guide, request.user)
+    library = content_assets(request.user, MediaAsset.objects.filter(kind=MediaKind.VIDEO, status=MediaStatus.READY))
+    for asset in library.order_by("-created_at")[:100]:
+        src = player_source(asset=asset, user=request.user)
+        if src:
+            sources.setdefault(src["key"], {**src, "library": True})
+
+    class UploadForm(dj_forms.Form):
+        video = MediaAssetField(label="Upload a new video")
+
+    return render(request, "guides/manage/segments.html", {
+        "guide": guide, "upload_form": UploadForm(),
+        "payload": {"items": items, "sources": list(sources.values()),
+                    "saveUrl": reverse("guides:manage_segments_save", args=[guide.pk]),
+                    "infoUrl": reverse("guides:manage_video_info"), "focus": request.GET.get("item", "")},
+        "page_title": f"Video segments · {guide.title}",
+        "crumbs": [(ADMIN_LABEL, reverse("guides:manage")), (guide.title, _editor_url(guide)), ("Video segments", "")],
+    })
+
+
+@permission_required_code("content.manage")
+@require_POST
+def segments_save(request, pk):
+    """Save the video + segment of many steps / Task Error examples at once (JSON)."""
+    from apps.backoffice.media import can_attach_asset
+    from apps.storage.models import MediaAsset, MediaKind, MediaStatus
+
+    guide = _guide_or_404(request, pk)
+    try:
+        data = json.loads(request.body or b"{}")
+    except ValueError:
+        return JsonResponse({"ok": False, "error": "Invalid JSON."}, status=400)
+    rows = data.get("items") if isinstance(data, dict) else None
+    if not isinstance(rows, list):
+        return JsonResponse({"ok": False, "error": "items must be a list."}, status=400)
+    models = {"step": GuideStep, "error": GuideTaskError}
+    errors, changed = [], 0
+    with transaction.atomic():
+        for i, row in enumerate(rows[:1000]):
+            if not isinstance(row, dict) or row.get("type") not in models:
+                errors.append(f"row {i + 1}: unknown item")
+                continue
+            obj = models[row["type"]].objects.filter(guide=guide, pk=row.get("id")).first()
+            if obj is None:
+                errors.append(f"row {i + 1}: not part of this guide")
+                continue
+            before = services.snapshot(obj)
+            source = row.get("source")
+            if source is None or source == {}:
+                obj.video_url, obj.video_asset = "", None
+            elif isinstance(source, dict) and source.get("asset"):
+                asset = MediaAsset.objects.filter(pk=str(source["asset"]), kind=MediaKind.VIDEO, status=MediaStatus.READY).first() \
+                    if _is_uuid(source["asset"]) else None
+                if asset is None or not (asset.pk == obj.video_asset_id or can_attach_asset(request.user, asset)):
+                    errors.append(f"{obj.title}: that uploaded video is not available")
+                    continue
+                obj.video_url, obj.video_asset = "", asset
+            elif isinstance(source, dict) and source.get("url"):
+                url = str(source["url"]).strip()
+                if clean_url(url) is None or len(url) > 1000:
+                    errors.append(f"{obj.title}: not a valid http(s) video link")
+                    continue
+                obj.video_url, obj.video_asset = url, None
+            start, end = parse_start(row.get("start")), parse_start(row.get("end"))
+            if end is not None and end <= (start or 0):
+                errors.append(f"{obj.title}: the end must be after the start")
+                continue
+            obj.video_start, obj.video_end = start, end
+            if services.content_changed(before, obj):
+                obj.verified_at, obj.verified_by = None, None  # must be checked against the original again
+                obj.save()
+                changed += 1
+    audit.log(request, "guide.segments.save", guide, changed=changed)
+    return JsonResponse({"ok": not errors, "changed": changed, "errors": errors[:20]})
+
+
+def _is_uuid(value) -> bool:
+    import uuid
+
+    try:
+        uuid.UUID(str(value))
+        return True
+    except ValueError:
+        return False
 
 
 # ── Progress ────────────────────────────────────────────────────────────────
@@ -432,6 +575,52 @@ def import_view(request):
         "form": form, "errors": errors, "result": result, "schema": SCHEMA_HELP,
         "page_title": "Import a guide",
         "crumbs": [(ADMIN_LABEL, reverse("guides:manage")), ("Import", "")],
+    })
+
+
+@permission_required_code("content.manage")
+def doc_import(request):
+    """Word / Markdown document (e.g. exported from Lark) → a new draft guide with the original English text."""
+    from django.utils.text import slugify
+
+    from .docimport import DocumentImportError, document_to_guide, outline_preview
+    from .forms import DocumentImportForm
+
+    form = DocumentImportForm(request.POST or None, request.FILES or None, projects=_projects_for(request.user))
+    errors, preview = [], None
+    if request.method == "POST" and form.is_valid():
+        d = form.cleaned_data
+        project = d.get("project")
+        if not can_manage_content_for(request.user, project):
+            form.add_error("project", "You can only create guides for your own projects." if project else
+                           "Company-wide guides can only be created by super admins and trainers — choose a project.")
+        else:
+            f = d["file"]
+            try:
+                data = document_to_guide(f.read(), f.name, slug="tmp", title=d.get("title") or "", kind=d["kind"],
+                                         project_code=project.code if project else None, source_url=d.get("source_url") or "")
+                base = d.get("slug") or slugify(data["title_en"])[:100] or slugify(f.name.rsplit(".", 1)[0])[:100] or "guide"
+                slug, n = base, 2
+                while Guide.objects.filter(slug=slug).exists():
+                    if d.get("slug"):
+                        raise DocumentImportError(f"A guide with the address “{slug}” already exists — choose another one.")
+                    slug, n = f"{base}-{n}", n + 1
+                data["slug"] = slug
+                if d.get("dry_run"):
+                    preview = {"title": data["title"], "title_en": data["title_en"], "slug": slug, "outline": outline_preview(data)}
+                else:
+                    result = import_guide(data, user=request.user)
+                    audit.log(request, "guide.document_import", result.guide, sections=result.sections, steps=result.steps)
+                    messages.success(request, f"Imported {result.sections} sections and {result.steps} steps as a draft. "
+                                              "Next: write the Bangla text of each step (the original English is shown next to it), "
+                                              "set the video segments, add the Task Error examples and verify each item.")
+                    return redirect("guides:manage_edit", pk=result.guide.pk)
+            except (DocumentImportError, GuideImportError) as exc:
+                errors = exc.errors if isinstance(exc, GuideImportError) else [str(exc)]
+    return render(request, "guides/manage/doc_import.html", {
+        "form": form, "errors": errors, "preview": preview,
+        "page_title": "Import a document",
+        "crumbs": [(ADMIN_LABEL, reverse("guides:manage")), ("Import a document", "")],
     })
 
 

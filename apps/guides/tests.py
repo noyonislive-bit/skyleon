@@ -195,3 +195,127 @@ class TaskErrorAndVerificationTests(TestCase):
         self.assertFalse(GuideTaskError.objects.filter(pk=err.pk).exists())
         self.client.force_login(self.emp)
         self.assertEqual(self.client.get(reverse("guides:manage_error_new", args=[guide.pk])).status_code, 403)
+
+
+def _docx(paragraphs):
+    """A minimal .docx: [(style_or_None, text)] with Heading1/Heading2/Heading3 styles."""
+    import io
+    import zipfile
+
+    w = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"'
+    def para(st, t):
+        ppr = '<w:pPr><w:pStyle w:val="%s"/></w:pPr>' % st if st else ""
+        return '<w:p>%s<w:r><w:t xml:space="preserve">%s</w:t></w:r></w:p>' % (ppr, t)
+
+    body = "".join(para(st, t) for st, t in paragraphs)
+    styles = "".join(f'<w:style w:type="paragraph" w:styleId="Heading{n}"><w:name w:val="heading {n}"/></w:style>' for n in (1, 2, 3))
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as z:
+        z.writestr("[Content_Types].xml", "<Types/>")
+        z.writestr("word/document.xml", f"<w:document {w}><w:body>{body}</w:body></w:document>")
+        z.writestr("word/styles.xml", f"<w:styles {w}>{styles}</w:styles>")
+    return buf.getvalue()
+
+
+class DocumentImportTests(TestCase):
+    MD = (
+        "# Video Splitting Guide\nIntro text.\n\n## Basics\n### Open the tool\nClick Open. "
+        "https://www.youtube.com/watch?v=dQw4w9WgXcQ\n#### Detail\nMore detail.\n### Cut clips\nPress N.\n"
+        "## Rules\nRule text https://x.larksuite.com/wiki/abc\n"
+    )
+
+    def setUp(self):
+        self.trainer = User.objects.create_user("t@example.com", "pw-Strong-1", name="T", role=Role.TRAINER, status=UserStatus.ACTIVE)
+
+    def test_markdown_structure_order_and_videos(self):
+        from .docimport import document_to_guide
+
+        d = document_to_guide(self.MD.encode(), "guide.md", slug="vs")
+        self.assertEqual(d["title_en"], "Video Splitting Guide")
+        titles = [[st["title"] for st in sec["steps"]] for sec in d["sections"]]
+        self.assertEqual(titles, [["Overview"], ["Open the tool", "Cut clips"], ["Rules"]])  # original order kept
+        open_step = d["sections"][1]["steps"][0]
+        self.assertIn("#### Detail", open_step["body_en"])  # deeper headings stay in the step
+        self.assertEqual(open_step["body"], "")  # nothing is "translated" automatically
+        self.assertIn("youtube.com", open_step["video_url"])
+        self.assertEqual(d["sections"][2]["steps"][0]["video_url"], "")  # a Lark wiki link is a document, not a video
+
+    def test_docx(self):
+        from .docimport import document_to_guide
+
+        raw = _docx([("Heading1", "Description Guide"), (None, "Intro"), ("Heading2", "Writing"),
+                     ("Heading3", "First sentence"), (None, "Start with the hand."), ("Heading3", "Second"), (None, "Then the object.")])
+        d = document_to_guide(raw, "doc.docx", slug="desc")
+        self.assertEqual(d["title_en"], "Description Guide")
+        self.assertEqual([st["title"] for st in d["sections"][1]["steps"]], ["First sentence", "Second"])
+        self.assertIn("Start with the hand.", d["sections"][1]["steps"][0]["body_en"])
+
+    def test_admin_import_creates_draft(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        self.client.force_login(self.trainer)
+        url = reverse("guides:manage_doc_import")
+        self.assertEqual(self.client.get(url).status_code, 200)
+        f = lambda: SimpleUploadedFile("vs.md", self.MD.encode(), content_type="text/markdown")
+        r = self.client.post(url, {"file": f(), "kind": "video_splitting", "dry_run": "on"})
+        self.assertContains(r, "Open the tool")
+        self.assertFalse(Guide.objects.exists())
+        r = self.client.post(url, {"file": f(), "kind": "video_splitting", "source_url": "https://x.larksuite.com/wiki/abc"})
+        guide = Guide.objects.get()
+        self.assertRedirects(r, reverse("guides:manage_edit", args=[guide.pk]), fetch_redirect_response=False)
+        self.assertEqual(guide.slug, "video-splitting-guide")
+        self.assertFalse(guide.is_published)
+        self.assertEqual(guide.steps.count(), 4)
+        self.assertContains(self.client.get(reverse("guides:manage_edit", args=[guide.pk])), "Bangla missing")
+
+
+class SegmentEditorTests(TestCase):
+    def setUp(self):
+        self.data = json.loads(SAMPLE.read_text(encoding="utf-8"))
+        self.guide = import_guide(self.data, publish=True).guide
+        self.trainer = User.objects.create_user("t@example.com", "pw-Strong-1", name="T", role=Role.TRAINER, status=UserStatus.ACTIVE)
+        self.other = User.objects.create_user("o@example.com", "pw-Strong-1", name="O", role=Role.TRAINER, status=UserStatus.ACTIVE)
+        self.emp = User.objects.create_user("e@example.com", "pw-Strong-1", name="E")
+        approve_user(self.emp, send_email=False)
+
+    def save(self, rows):
+        return self.client.post(reverse("guides:manage_segments_save", args=[self.guide.pk]), json.dumps({"items": rows}),
+                                content_type="application/json").json()
+
+    def test_page_and_save_segments(self):
+        from apps.storage.models import MediaAsset, MediaKind, MediaStatus
+
+        self.client.force_login(self.trainer)
+        self.assertEqual(self.client.get(reverse("guides:manage_segments", args=[self.guide.pk])).status_code, 200)
+        step = GuideStep.objects.get(guide=self.guide, anchor="playback")
+        step.verified_at = "2026-01-01T00:00:00Z"
+        step.save()
+        out = self.save([{"type": "step", "id": step.pk, "source": {"url": "https://youtu.be/dQw4w9WgXcQ"}, "start": "1:05", "end": 80}])
+        self.assertTrue(out["ok"], out)
+        step.refresh_from_db()
+        self.assertEqual((step.video_url, step.video_start, step.video_end), ("https://youtu.be/dQw4w9WgXcQ", 65, 80))
+        self.assertIsNone(step.verified_at)  # changed → must be checked against the original again
+        bad = self.save([{"type": "step", "id": step.pk, "source": {"url": "https://youtu.be/dQw4w9WgXcQ"}, "start": 90, "end": 80}])
+        self.assertFalse(bad["ok"])
+        # Uploaded video: someone else's upload can't be attached; own upload can.
+        theirs = MediaAsset.objects.create(kind=MediaKind.VIDEO, status=MediaStatus.READY, storage_key="x/a.mp4", uploaded_by=self.other)
+        mine = MediaAsset.objects.create(kind=MediaKind.VIDEO, status=MediaStatus.READY, storage_key="x/b.mp4", uploaded_by=self.trainer)
+        self.assertFalse(self.save([{"type": "step", "id": step.pk, "source": {"asset": str(theirs.pk)}, "start": 0, "end": 5}])["ok"])
+        self.assertTrue(self.save([{"type": "step", "id": step.pk, "source": {"asset": str(mine.pk)}, "start": 0, "end": 5}])["ok"])
+        step.refresh_from_db()
+        self.assertEqual((step.video_asset_id, step.video_url), (mine.pk, ""))
+        # The employee page gets a signed, per-viewer URL for it, starting at the segment.
+        self.client.force_login(self.emp)
+        r = self.client.get(reverse("guides:detail", args=[self.guide.slug]))
+        self.assertContains(r, f"/media/{mine.pk}/stream/")
+        self.assertContains(r, "#t=0,5")
+
+    def test_items_of_other_guides_and_employees_rejected(self):
+        other_guide = import_guide({**self.data, "slug": "another"}).guide
+        foreign = GuideStep.objects.filter(guide=other_guide).first()
+        self.client.force_login(self.trainer)
+        out = self.save([{"type": "step", "id": foreign.pk, "source": None, "start": None, "end": None}])
+        self.assertFalse(out["ok"])
+        self.client.force_login(self.emp)
+        self.assertEqual(self.client.get(reverse("guides:manage_segments", args=[self.guide.pk])).status_code, 403)
+

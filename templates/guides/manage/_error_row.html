@@ -5,7 +5,7 @@
     <a href="{% url 'guides:manage_error_edit' err.obj.pk %}" class="text-sm font-medium text-slate-800 hover:text-brand-700" lang="bn">Task Error {{ err.number }} · {{ err.obj.title }}</a>
     <p class="flex flex-wrap items-center gap-2 text-xs text-slate-500">
       <span>#{{ err.anchor }}</span>
-      {% if err.obj.video_url %}<span class="inline-flex items-center gap-1 text-brand-700">{% icon "circle-play" class="h-3 w-3" %} video{% if err.video.segment %} {{ err.video.segment }}{% endif %}</span>{% endif %}
+      {% if err.obj.has_video %}<span class="inline-flex items-center gap-1 text-brand-700">{% icon "circle-play" class="h-3 w-3" %} video{% if err.video.segment %} {{ err.video.segment }}{% endif %}</span>{% endif %}
       {% if not err.obj.correct_method %}<span class="text-amber-700">no correct method yet</span>{% endif %}
       {% if err.obj.source_ref %}<span>{% icon "file-text" class="inline h-3 w-3" %} {{ err.obj.source_ref|truncatechars:60 }}</span>{% endif %}
     </p>

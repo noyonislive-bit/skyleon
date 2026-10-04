@@ -1,0 +1,87 @@
+{% extends "backoffice/base.html" %}
+{% load static guides_tags backoffice_tags %}
+{% block page_actions %}
+  <a href="{% url 'guides:manage_edit' guide.pk %}" class="btn btn-secondary">{% icon "arrow-left" class="h-4 w-4" %} Back to editor</a>
+  <a href="{% url 'guides:detail' guide.slug %}" class="btn btn-secondary">{% icon "eye" class="h-4 w-4" %} Preview</a>
+{% endblock %}
+{% block content %}
+<div class="gs-root" data-gs>
+  <p class="mb-5 max-w-3xl text-sm text-slate-600">
+    Choose a video, play it, and for each step or Task Error example press <kbd class="g-kbd g-kbd-sm">[</kbd> where its part starts and
+    <kbd class="g-kbd g-kbd-sm">]</kbd> where it ends — exactly the part of the original video that the Bangla text describes.
+    Click a row (or a block on the timeline) to select it. Changed items lose their “verified” mark until they are checked again.
+  </p>
+
+  <div class="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_440px]">
+    {# ── Player ── #}
+    <section class="space-y-4 xl:sticky xl:top-20 xl:self-start">
+      <div class="card card-body space-y-3">
+        <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <label for="gs-video" class="text-sm font-medium text-slate-700 sm:w-14">Video</label>
+          <select id="gs-video" class="select flex-1" data-gs-select></select>
+        </div>
+        <div class="flex flex-col gap-2 sm:flex-row">
+          <input type="url" class="input flex-1" placeholder="…or paste a video link (YouTube, Vimeo, MP4, HLS, Drive, Lark …)" data-gs-url>
+          <button type="button" class="btn btn-secondary shrink-0" data-gs-load>{% icon "link" class="h-4 w-4" %} Load link</button>
+        </div>
+        <details class="rounded-lg ring-1 ring-slate-200">
+          <summary class="cursor-pointer px-3 py-2 text-sm font-medium text-slate-700">{% icon "cloud-upload" class="mr-1 inline h-4 w-4" %} Upload a new video</summary>
+          <div class="border-t border-slate-100 p-3">{% uploader upload_form.video kind="video" purpose="guide" external=False compact=True note=False %}</div>
+        </details>
+      </div>
+
+      <div class="card overflow-hidden">
+        <div class="gs-stage" data-gs-stage>
+          <div class="gs-empty" data-gs-empty>{% icon "film" class="h-8 w-8" %}<p>Choose a video above.</p></div>
+        </div>
+        <div class="gs-iframe-note" data-gs-manual hidden>
+          {% icon "info" class="mt-0.5 h-4 w-4 shrink-0" %}
+          <p>This player (<span data-gs-provider></span>) doesn't tell the page its current time. Play it, read the time in the player and type the start / end of each item in the list (m:ss).</p>
+        </div>
+        <div class="gs-controls">
+          <div class="flex items-center gap-1">
+            <button type="button" class="btn btn-secondary btn-sm btn-icon" data-gs-act="back5" title="Back 5 s (Shift+←)">-5</button>
+            <button type="button" class="btn btn-secondary btn-sm btn-icon" data-gs-act="back1" title="Back 1 s (←)">-1</button>
+            <button type="button" class="btn btn-primary btn-sm" data-gs-act="toggle" title="Play / pause (Space)">{% icon "play" class="h-4 w-4" %}<span data-gs-playlabel>Play</span></button>
+            <button type="button" class="btn btn-secondary btn-sm btn-icon" data-gs-act="fwd1" title="Forward 1 s (→)">+1</button>
+            <button type="button" class="btn btn-secondary btn-sm btn-icon" data-gs-act="fwd5" title="Forward 5 s (Shift+→)">+5</button>
+          </div>
+          <span class="font-mono text-sm tabular-nums text-slate-700" data-gs-clock>00:00 / --:--</span>
+          <div class="flex flex-wrap items-center gap-1 sm:ml-auto">
+            <button type="button" class="btn btn-secondary btn-sm" data-gs-act="setStart" title="Start of the selected item = now ([)">[ Start here</button>
+            <button type="button" class="btn btn-secondary btn-sm" data-gs-act="setEnd" title="End of the selected item = now (])">End here ]</button>
+            <button type="button" class="btn btn-success btn-sm" data-gs-act="playSeg" title="Play the selected item's part (P)">{% icon "repeat" class="h-3.5 w-3.5" %} Play part</button>
+          </div>
+        </div>
+        <div class="gs-timeline" data-gs-timeline title="Click to jump · drag a block's edge to adjust">
+          <div class="gs-blocks" data-gs-blocks></div>
+          <div class="gs-playhead" data-gs-playhead></div>
+        </div>
+        <p class="px-4 pb-3 text-xs text-slate-500">Keys: Space play/pause · ←/→ 1 s · Shift+←/→ 5 s · <kbd>[</kbd> start · <kbd>]</kbd> end · P play part · ↑/↓ previous/next item</p>
+      </div>
+    </section>
+
+    {# ── Items ── #}
+    <section class="card overflow-hidden">
+      <div class="card-header">
+        <div>
+          <h2 class="card-title">Steps &amp; Task Error examples</h2>
+          <p class="text-xs text-slate-500" data-gs-summary></p>
+        </div>
+      </div>
+      <div class="gs-list" data-gs-list></div>
+      <div class="gs-savebar">
+        <span class="text-sm text-slate-600" data-gs-dirty>No changes</span>
+        <button type="button" class="btn btn-primary" data-gs-save disabled>{% icon "save" class="h-4 w-4" %} Save changes</button>
+      </div>
+    </section>
+  </div>
+  <div class="g-toast" role="status" aria-live="polite" data-gs-toast hidden></div>
+  {{ payload|json_script:"gs-data" }}
+  {% csrf_token %}
+</div>
+{% endblock %}
+{% block page_scripts %}
+<script src="{% static 'js/uploader.js' %}" defer></script>
+<script src="{% static 'js/guide-segments.js' %}" data-hls="{% static 'vendor/hls.min.js' %}" defer></script>
+{% endblock %}

@@ -9,8 +9,10 @@ from apps.projects.models import Project
 
 from . import services
 from .importer import clean_actions
-from .models import Guide, GuideSection, GuideStep, GuideTaskError
+from .models import Guide, GuideKind, GuideSection, GuideStep, GuideTaskError
 from .video import clean_url, parse_start
+
+VIDEO_SOURCES = [("link", "Original link"), ("upload", "Uploaded video")]
 
 
 class GuideForm(StyledFormMixin, forms.ModelForm):
@@ -79,6 +81,12 @@ class SectionForm(StyledFormMixin, forms.ModelForm):
         return data
 
 
+def _media_field():
+    from apps.backoffice.forms import MediaAssetField
+
+    return MediaAssetField(label="Uploaded video", required=False)
+
+
 class SegmentMixin:
     """video_start / video_end typed as seconds or m:ss — the part of the ORIGINAL video the text describes."""
 
@@ -107,6 +115,22 @@ class SegmentMixin:
         start, end = data.get("video_start"), data.get("video_end")
         if end is not None and end <= (start or 0):
             self.add_error("video_end", "The end must be after the start.")
+        # One video per item: the original link OR a video uploaded to our storage.
+        if data.get("video_source") == "upload":
+            if not data.get("video_asset") and not self.has_error("video_asset"):
+                self.add_error("video_asset", "Upload a video or pick one, or switch to “Original link”.")
+            data["video_url"] = ""
+            self.instance.video_url = ""
+        else:
+            data["video_asset"] = None
+            self.instance.video_asset = None
+
+    def init_video(self, user):
+        from apps.backoffice.forms import bind_media_fields
+
+        bind_media_fields(self, user)
+        self.initial.setdefault("video_source", "upload" if getattr(self.instance, "video_asset_id", None) else "link")
+        self.fields["video_url"].required = False
 
     def init_segment(self):
         for name in ("video_start", "video_end"):
@@ -116,6 +140,8 @@ class SegmentMixin:
 
 
 class StepForm(SegmentMixin, StyledFormMixin, forms.ModelForm):
+    video_source = forms.ChoiceField(choices=VIDEO_SOURCES, widget=forms.RadioSelect, required=False, initial="link")
+    video_asset = _media_field()
     video_start = forms.CharField(label="Video part — from", required=False, help_text="Seconds (90) or m:ss (1:30)")
     video_end = forms.CharField(label="Video part — to", required=False,
                                 help_text="Where the part this step explains ends (optional)")
@@ -126,8 +152,8 @@ class StepForm(SegmentMixin, StyledFormMixin, forms.ModelForm):
 
     class Meta:
         model = GuideStep
-        fields = ["section", "title", "anchor", "body", "body_en", "video_url", "video_caption", "video_start", "video_end",
-                  "actions", "estimated_minutes", "source_ref"]
+        fields = ["section", "title", "anchor", "body", "body_en", "video_url", "video_asset", "video_caption", "video_start",
+                  "video_end", "actions", "estimated_minutes", "source_ref"]
         widgets = {
             "body": forms.Textarea(attrs={"rows": 14, "lang": "bn"}),
             "body_en": forms.Textarea(attrs={"rows": 6, "lang": "en"}),
@@ -135,9 +161,10 @@ class StepForm(SegmentMixin, StyledFormMixin, forms.ModelForm):
         labels = {"title": "Title (Bangla)", "body": "Explanation (Bangla, Markdown)", "video_caption": "Video caption (Bangla)",
                   "estimated_minutes": "Reading time (minutes)"}
 
-    def __init__(self, *args, guide=None, **kwargs):
+    def __init__(self, *args, guide=None, user=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.guide = guide
+        self.init_video(user)
         self.fields["section"].queryset = guide.sections.all()
         self.fields["section"].empty_label = None
         self.fields["section"].label_from_instance = lambda s: s.title
@@ -190,13 +217,15 @@ class StepForm(SegmentMixin, StyledFormMixin, forms.ModelForm):
 
 
 class TaskErrorForm(SegmentMixin, StyledFormMixin, forms.ModelForm):
+    video_source = forms.ChoiceField(choices=VIDEO_SOURCES, widget=forms.RadioSelect, required=False, initial="link")
+    video_asset = _media_field()
     video_start = forms.CharField(label="Video part — from", required=False, help_text="Seconds (90) or m:ss (1:30)")
     video_end = forms.CharField(label="Video part — to", required=False, help_text="Where the mistake ends in the video (optional)")
 
     class Meta:
         model = GuideTaskError
         fields = ["step", "title", "anchor", "what_wrong", "why_wrong", "how_to_avoid", "correct_method",
-                  "video_url", "video_caption", "video_start", "video_end", "source_ref", "source_text_en"]
+                  "video_url", "video_asset", "video_caption", "video_start", "video_end", "source_ref", "source_text_en"]
         widgets = {
             "what_wrong": forms.Textarea(attrs={"rows": 4, "lang": "bn"}),
             "why_wrong": forms.Textarea(attrs={"rows": 4, "lang": "bn"}),
@@ -213,9 +242,10 @@ class TaskErrorForm(SegmentMixin, StyledFormMixin, forms.ModelForm):
             "video_caption": "Video caption (Bangla)",
         }
 
-    def __init__(self, *args, guide=None, **kwargs):
+    def __init__(self, *args, guide=None, user=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.guide = guide
+        self.init_video(user)
         self.fields["step"].queryset = GuideStep.objects.filter(guide=guide).select_related("section").order_by(
             "section__order", "section_id", "order", "pk")
         self.fields["step"].empty_label = "— General example for the whole guide —"
@@ -263,3 +293,32 @@ class ImportForm(StyledFormMixin, forms.Form):
         else:
             raise forms.ValidationError("Choose a JSON file or paste the JSON.")
         return data
+
+
+class DocumentImportForm(StyledFormMixin, forms.Form):
+    file = forms.FileField(label="Word (.docx) or Markdown (.md) file",
+                           widget=forms.ClearableFileInput(attrs={"accept": ".docx,.md,.markdown,.txt"}),
+                           help_text="In Lark / Feishu: open the document → ⋯ → Download as → Word (or Markdown).")
+    title = forms.CharField(label="Guide title (Bangla)", max_length=200, required=False,
+                            help_text="Optional — you can set it later. The document's own title is kept as the English title.")
+    slug = forms.SlugField(label="Address (slug)", max_length=110, required=False,
+                           help_text="e.g. video-splitting. Leave empty to generate it from the document title.")
+    kind = forms.ChoiceField(choices=GuideKind.choices, initial=GuideKind.GENERAL)
+    project = forms.ModelChoiceField(queryset=Project.objects.none(), required=False, empty_label="All employees (company-wide)")
+    source_url = forms.URLField(label="Original document link", max_length=500, required=False,
+                                help_text="The Lark link — shown to staff next to the guide so everyone can check the original.")
+    dry_run = forms.BooleanField(label="Preview the structure only (nothing is saved)", required=False)
+
+    def __init__(self, *args, projects=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["project"].queryset = projects if projects is not None else Project.objects.all()
+        self.fields["title"].widget.attrs["lang"] = "bn"
+
+    def clean_file(self):
+        f = self.cleaned_data["file"]
+        if f.size > 20 * 1024 * 1024:
+            raise forms.ValidationError("The file is too large (max 20 MB).")
+        if not f.name.lower().endswith((".docx", ".md", ".markdown", ".txt")):
+            raise forms.ValidationError("Upload a Word (.docx) or Markdown (.md) file.")
+        return f
+

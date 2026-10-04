@@ -16,6 +16,7 @@ urlpatterns = [
     path("admin/guides/", manage_views.manage_list, name="manage"),
     path("admin/guides/new/", manage_views.guide_form, name="manage_new"),
     path("admin/guides/import/", manage_views.import_view, name="manage_import"),
+    path("admin/guides/import-document/", manage_views.doc_import, name="manage_doc_import"),
     path("admin/guides/video-info/", manage_views.video_info, name="manage_video_info"),
     path("admin/guides/<int:pk>/", manage_views.guide_form, name="manage_edit"),
     path("admin/guides/<int:pk>/publish/", manage_views.publish, name="manage_publish"),
@@ -35,4 +36,6 @@ urlpatterns = [
     path("admin/guides/task-errors/<int:error_id>/delete/", manage_views.error_delete, name="manage_error_delete"),
     path("admin/guides/task-errors/<int:error_id>/move/", manage_views.error_move, name="manage_error_move"),
     path("admin/guides/verify/<str:kind>/<int:obj_id>/", manage_views.verify, name="manage_verify"),
+    path("admin/guides/<int:pk>/segments/", manage_views.segments, name="manage_segments"),
+    path("admin/guides/<int:pk>/segments/save/", manage_views.segments_save, name="manage_segments_save"),
 ]
