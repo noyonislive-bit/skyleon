@@ -139,7 +139,9 @@ say "7/7 Cron jobs and restart"
 if command -v crontab >/dev/null 2>&1; then
   CRON_MAIL="*/5 * * * * $PY $APP_DIR/manage.py process_emails >/dev/null 2>&1"
   CRON_CLEAN="15 3 * * * $PY $APP_DIR/manage.py cleanup >/dev/null 2>&1"
-  ( crontab -l 2>/dev/null | grep -v "$APP_DIR/manage.py process_emails" | grep -v "$APP_DIR/manage.py cleanup"; echo "$CRON_MAIL"; echo "$CRON_CLEAN" ) | crontab -
+  # Keep the account's other cron jobs; an account without any crontab yet is fine too ("no crontab for …").
+  KEEP=$(crontab -l 2>/dev/null | grep -v -e "$APP_DIR/manage.py process_emails" -e "$APP_DIR/manage.py cleanup" || true)
+  printf '%s\n%s\n%s\n' "$KEEP" "$CRON_MAIL" "$CRON_CLEAN" | sed '/^$/d' | crontab -
   echo "Cron jobs added (emails every 5 minutes, cleanup daily 03:15)."
 else
   warn "crontab is not available here — add the two cron jobs in cPanel → Cron Jobs (see docs/DEPLOY_CPANEL_BN.md)."

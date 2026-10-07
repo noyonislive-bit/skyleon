@@ -34,3 +34,6 @@ SAMPLE_LOGINS.txt
 
 # Claude Code agent worktrees (local only)
 .claude/worktrees/
+
+# cPanel upload package (made on request)
+skyloon-cpanel.zip
